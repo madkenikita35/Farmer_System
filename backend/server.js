@@ -29,6 +29,7 @@ const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const receiptRoutes = require("./routes/receiptRoutes");
 const mandiRoutes = require("./routes/mandiRoutes");
+const voiceRoutes = require("./routes/voiceRoutes");
 
 // Refuse to boot on placeholder secrets in production - see the file.
 checkSecrets();
@@ -161,6 +162,7 @@ app.use("/api/auth", authRoutes);
 // so they all require a valid login token. Open any of them to see.
 app.use("/api/receipts", receiptRoutes);
 app.use("/api/mandi", mandiRoutes);
+app.use("/api/voice", voiceRoutes);
 
 // ADMIN ONLY - adminRoutes.js uses router.use(protect, adminOnly)
 app.use("/api/admin", adminRoutes);

@@ -35,9 +35,10 @@
 
 import { Routes, Route } from "react-router-dom";
 import { LanguageProvider } from "./context/LanguageContext";
-import { AuthProvider } from "./context/AuthContext";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Navbar from "./components/Navbar";
+import VoiceAssistant from "./components/VoiceAssistant";
 import Footer from "./components/Footer";
 
 // Farmer-side pages
@@ -174,10 +175,27 @@ function App() {
           </main>
 
           <Footer />
+
+          {/* The voice assistant floats above every page. It's for
+              FARMERS - the admin panel is a desk tool in English, and a
+              mic orb there would just be in the way. FarmerOnlyVoice
+              below makes that call. */}
+          <FarmerOnlyVoice />
         </div>
       </LanguageProvider>
     </AuthProvider>
   );
+}
+
+// Shows the voice assistant only to logged-in farmers.
+//
+// It has to be its own component rather than an inline check, because
+// useAuth() only works INSIDE AuthProvider - and App() itself is what
+// renders that provider, so it can't call the hook on itself.
+function FarmerOnlyVoice() {
+  const { isLoggedIn, isAdmin } = useAuth();
+  if (!isLoggedIn || isAdmin) return null;
+  return <VoiceAssistant />;
 }
 
 // A tiny inline page for unknown URLs. Kept here rather than in its own

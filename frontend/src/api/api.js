@@ -206,6 +206,27 @@ export function getNearbyMandis({ crop, lat, lon, place, radius, sortBy, date })
 }
 
 // =======================================================================
+// VOICE ASSISTANT
+// =======================================================================
+
+// Sends what the farmer said to the backend, which works out the intent,
+// looks up the real mandi data and returns a sentence ready to be spoken
+// back in the same language.
+//
+// `context` carries the last crop/intent, which is what lets a follow-up
+// like "and what about tomato?" work without repeating the whole question.
+export function askVoiceAssistant({ transcript, language, confidence, lat, lon, context }) {
+  return api.post("/voice/query", {
+    transcript,
+    language,
+    confidence,
+    lat,
+    lon,
+    context: context || {},
+  });
+}
+
+// =======================================================================
 // ADMIN-ONLY CALLS
 // =======================================================================
 // If a farmer's browser somehow called these, the backend replies 403 -
