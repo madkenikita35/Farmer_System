@@ -1,0 +1,243 @@
+/* index.css
+   -----------------------------------------------------------------------
+   The @import must come FIRST - CSS requires imports before any other
+   rule, and Vite warns about it otherwise.
+
+   Then the three Tailwind lines pull in its base styles, component
+   classes and utility classes. Everything else in the app uses Tailwind
+   utilities directly in JSX (e.g. className="p-4 bg-white").
+
+   Below that we hand-write the animations Tailwind doesn't ship with.
+   Each gets a simple class name (e.g. "animate-fadeInUp") so any
+   component can use it exactly like a normal Tailwind class.
+
+   HOW TO USE THESE:
+     <div className="animate-fadeInUp">...</div>
+
+   To make a row of cards appear one after another instead of all at
+   once, add a stagger class too:
+     <div className="animate-fadeInUp stagger-2">...</div>
+   ----------------------------------------------------------------------- */
+
+/* A friendlier, more "app-like" font than the browser default. */
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  /* A very soft top-to-bottom warm gradient instead of one flat cream.
+     It's subtle on purpose - you shouldn't notice it as a "gradient",
+     just that the page has a little depth to it. */
+  background: linear-gradient(180deg, #fffdf8 0%, #fcf9f2 45%, #f4efe3 100%);
+  background-attachment: fixed;
+  color: #30455c; /* ink-800 - softer than pure black on warm paper */
+  font-family: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Headings carry the darkest ink and a tighter letter-spacing, which is
+   what makes them read as headings rather than just bigger text. */
+h1, h2, h3 {
+  color: #1e3a56; /* ink-900 */
+  letter-spacing: -0.02em;
+}
+
+/* Text selection in the brand colour rather than the browser's blue. */
+::selection {
+  background-color: #a9eabe; /* primary-200 */
+  color: #0f442c;            /* primary-900 */
+}
+
+/* A slimmer scrollbar that matches the palette. Chrome/Edge/Safari. */
+::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+::-webkit-scrollbar-track {
+  background: #f4efe3; /* surface-200 */
+}
+::-webkit-scrollbar-thumb {
+  background: #d0dce9; /* ink-200 */
+  border-radius: 999px;
+  border: 3px solid #f4efe3;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a9bfd5; /* ink-300 */
+}
+
+/* A visible focus ring for keyboard users. The browser default is easy
+   to lose against a coloured background, and someone navigating by Tab
+   needs to see where they are. */
+:focus-visible {
+  outline: 2px solid #12814a; /* primary-600 */
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Smooth scrolling when jumping to an in-page link/section. */
+html {
+  scroll-behavior: smooth;
+}
+
+/* =======================================================================
+   KEYFRAMES  -  the actual movement definitions
+   ======================================================================= */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInLeft {
+  from { opacity: 0; transform: translateX(-24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeInRight {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Grows slightly into place - good for cards and stat tiles. */
+@keyframes popIn {
+  0%   { opacity: 0; transform: scale(0.94); }
+  60%  { opacity: 1; transform: scale(1.02); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* A slow, endless drift. Used on decorative emoji so the page feels
+   alive without anything demanding attention. */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+
+/* The "Ken Burns" effect: a photo slowly zooming in. It's what stops a
+   carousel looking like a static image between slide changes. */
+@keyframes kenBurns {
+  from { transform: scale(1); }
+  to   { transform: scale(1.12); }
+}
+
+/* A left-to-right sweep of light, used for loading placeholders. */
+@keyframes shimmer {
+  from { background-position: -600px 0; }
+  to   { background-position: 600px 0; }
+}
+
+/* A soft pulsing ring, for drawing the eye to one live element. */
+@keyframes pulseRing {
+  0%   { box-shadow: 0 0 0 0 rgba(18, 129, 74, 0.45); }
+  70%  { box-shadow: 0 0 0 12px rgba(18, 129, 74, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(18, 129, 74, 0); }
+}
+
+/* Scrolls content endlessly sideways - the crop ticker uses this.
+   It moves exactly -50%, and the content is rendered TWICE, so the
+   halfway point looks identical to the start and the loop is seamless. */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* A thin bar that fills up, showing how long until the next slide. */
+@keyframes progressBar {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+
+/* =======================================================================
+   ANIMATION CLASSES  -  what you actually put in className
+   ======================================================================= */
+
+.animate-fadeIn      { animation: fadeIn 0.5s ease-out both; }
+.animate-fadeInUp    { animation: fadeInUp 0.6s ease-out both; }
+.animate-fadeInDown  { animation: fadeInDown 0.6s ease-out both; }
+.animate-fadeInLeft  { animation: fadeInLeft 0.6s ease-out both; }
+.animate-fadeInRight { animation: fadeInRight 0.6s ease-out both; }
+.animate-popIn       { animation: popIn 0.5s ease-out both; }
+.animate-float       { animation: float 3s ease-in-out infinite; }
+.animate-kenBurns    { animation: kenBurns 7s ease-out both; }
+.animate-pulseRing   { animation: pulseRing 2s ease-out infinite; }
+
+.animate-marquee {
+  animation: marquee 40s linear infinite;
+}
+
+/* Pausing on hover lets someone actually read a card they're interested
+   in, instead of chasing it across the screen. */
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+.animate-progress {
+  animation: progressBar linear both;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+/* ---- Stagger helpers ----
+   Delay an animation so a row of items arrives one by one. Put one of
+   these next to an animate-* class. */
+.stagger-1 { animation-delay: 0.08s; }
+.stagger-2 { animation-delay: 0.16s; }
+.stagger-3 { animation-delay: 0.24s; }
+.stagger-4 { animation-delay: 0.32s; }
+.stagger-5 { animation-delay: 0.40s; }
+.stagger-6 { animation-delay: 0.48s; }
+
+/* ---- Hover helpers ---- */
+
+/* Lifts a card slightly under the cursor. */
+.hover-lift {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px -12px rgba(30, 58, 86, 0.25);
+}
+
+/* Slowly zooms a photo inside its frame on hover. The parent needs
+   `overflow-hidden` so the image stays inside its rounded corners. */
+.hover-zoom img {
+  transition: transform 0.6s ease;
+}
+.hover-zoom:hover img {
+  transform: scale(1.08);
+}
+
+/* =======================================================================
+   ACCESSIBILITY
+   =======================================================================
+   Some people get motion sickness or migraines from moving interfaces,
+   and set "reduce motion" in their operating system. This block honours
+   that: everything still appears, it just appears instantly.
+
+   This is not optional polish - an animation someone cannot physically
+   look at makes the page unusable for them. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
