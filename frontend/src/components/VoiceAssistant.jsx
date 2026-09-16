@@ -1,49 +1,69 @@
 // components/VoiceAssistant.jsx
 // -----------------------------------------------------------------------
-// A spoken, two-way assistant. A farmer taps the mic, asks a question in
-// Marathi, Hindi or English, and hears the answer back in the same
-// language. Then it listens again, without another tap.
+// A HANDS-FREE, VOICE-ONLY assistant.
+//
+// The farmer taps the mic once to open the conversation. After that
+// there is nothing to tap and nothing to type: they speak, the assistant
+// speaks back, and the microphone reopens by itself for the next
+// question. A farmer standing in a field with muddy hands and a phone in
+// their pocket can hold an entire conversation without looking at it.
+//
+// There is deliberately NO text box in the normal flow. Typing is only
+// offered when the device genuinely cannot do speech at all (Safari, or
+// a refused microphone), and then it is presented as a failure state -
+// not as an equal alternative.
 //
 // The browser does the ears and the mouth (Web Speech API). The backend
 // does the understanding - see backend/controllers/voiceController.js.
 //
 // =======================================================================
-// THE FOUR THINGS THAT MAKE THIS HARDER THAN IT LOOKS
+// THE STATE MACHINE (this is the whole component, really)
 // =======================================================================
 //
-// 1. "continuous" recognition is not continuous. Chrome stops listening
-//    after a pause no matter what the flag says. So we restart it in the
-//    onend handler, which is what keeps the conversation flowing.
+//   idle ──tap──> greeting spoken ──> LISTENING
+//                                        │
+//                          farmer stops talking
+//                                        ↓
+//                                     THINKING   (mic closed)
+//                                        ↓
+//                                     SPEAKING   (mic closed)
+//                                        ↓
+//                                    LISTENING   ← loops forever
 //
-// 2. It cannot listen while it speaks. Leave the mic open during
-//    playback and the assistant hears itself and answers its own answer.
-//    So recognition is stopped before speaking and restarted after.
+// Two rules keep it honest:
 //
-// 3. Marathi support is thin. Recognition is decent in Chrome on
-//    Android/desktop; a Marathi TTS *voice* is missing on most devices.
-//    We look for one, fall back to Hindi (closest phonetics, same
-//    script), and if there's nothing, say so on screen and keep the text.
+//   * The mic is CLOSED whenever we are thinking or speaking. Leave it
+//     open and the assistant hears its own voice and answers itself.
 //
-// 4. Safari barely supports any of it. We detect that up front and show
-//    a typed-input fallback instead of a mic that would never work.
+//   * Recognition stops on its own after a pause, whatever the
+//     `continuous` flag claims. So we restart it from `onend`. That
+//     restart is what makes the loop continuous in practice.
 //
-// The live transcript on screen is not decoration. When no voice exists
-// for a language, it IS the answer - and it lets a farmer check that
-// they were heard correctly before trusting a number.
+// =======================================================================
+// THE RACE THIS CODE EXISTS TO AVOID
+// =======================================================================
+// An earlier version guarded the restart with React state
+// (`status !== "thinking"`). That was broken: setStatus is asynchronous,
+// but `recognition.stop()` fires `onend` immediately. The guard was
+// still reading the PREVIOUS status, so the mic reopened while the
+// answer was still being fetched - and the assistant listened to itself.
+//
+// `busyRef` below is a plain ref, set synchronously the instant we begin
+// processing. Refs update immediately; state does not. For anything that
+// gates a hardware resource like a microphone, that difference matters.
 // -----------------------------------------------------------------------
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { askVoiceAssistant } from "../api/api";
 
-// The three languages, with the BCP-47 tags the browser APIs expect.
 const LANGUAGES = [
   { code: "en", speechLang: "en-IN", label: "English" },
   { code: "hi", speechLang: "hi-IN", label: "हिन्दी" },
   { code: "mr", speechLang: "mr-IN", label: "मराठी" },
 ];
 
-// Opening line per language. Kept here as well as on the server so the
-// greeting is instant - no round trip before the farmer hears anything.
+// Spoken immediately on opening, before any network call, so the farmer
+// hears something the moment they tap.
 const GREETINGS = {
   en: "Hello! I am your farming assistant. You can ask me about mandi prices, the nearest mandi, or crop information.",
   hi: "नमस्ते! मैं आपका कृषि सहायक हूँ। आप मुझसे मंडी के भाव, सबसे नजदीकी मंडी, या फसल की जानकारी पूछ सकते हैं।",
@@ -53,63 +73,91 @@ const GREETINGS = {
 const UI_TEXT = {
   en: {
     title: "Voice Assistant",
-    tapToStart: "Tap to speak",
-    listening: "Listening…",
+    listening: "Listening — just speak",
     thinking: "Thinking…",
     speaking: "Speaking…",
-    stop: "Stop",
+    starting: "Starting…",
+    paused: "Paused — tap to continue",
     you: "You",
     assistant: "Assistant",
-    typeInstead: "Or type your question",
-    send: "Send",
     langLabel: "Language",
-    tryAsking: "Try asking:",
-    examples: ["Highest price of onion", "Nearest mandi for tomato", "Price of wheat in Nashik"],
+    tryAsking: "Just say:",
+    examples: [
+      "Highest price of onion",
+      "Nearest mandi for tomato",
+      "Price of wheat in Indore",
+    ],
+    handsFree: "Hands-free — keep talking, no need to tap",
+    tapToTalk: "Tap to start talking",
+    micBlocked:
+      "Microphone permission was refused. Voice needs the microphone — please allow it in your browser settings and tap the mic again.",
+    noVoiceSupport:
+      "This browser cannot listen to speech. Voice conversation works best in Chrome on Android or desktop.",
+    fallbackTitle: "Voice is not available on this device",
+    fallbackHelp: "You can still type your question here until voice works:",
+    send: "Ask",
   },
   hi: {
     title: "आवाज सहायक",
-    tapToStart: "बोलने के लिए दबाएं",
-    listening: "सुन रहा हूँ…",
+    listening: "सुन रहा हूँ — बोलिए",
     thinking: "सोच रहा हूँ…",
     speaking: "बोल रहा हूँ…",
-    stop: "रोकें",
+    starting: "शुरू हो रहा है…",
+    paused: "रुका हुआ — जारी रखने के लिए दबाएं",
     you: "आप",
     assistant: "सहायक",
-    typeInstead: "या अपना सवाल लिखें",
-    send: "भेजें",
     langLabel: "भाषा",
-    tryAsking: "ऐसे पूछें:",
-    examples: ["प्याज का सबसे ज्यादा भाव", "मेरे पास टमाटर की मंडी", "नाशिक में गेहूं का भाव"],
+    tryAsking: "ऐसे बोलें:",
+    examples: [
+      "प्याज का सबसे ज्यादा भाव",
+      "मेरे पास टमाटर की मंडी",
+      "इंदौर में गेहूं का भाव",
+    ],
+    handsFree: "बिना छुए — बोलते रहिए",
+    tapToTalk: "बोलने के लिए दबाएं",
+    micBlocked:
+      "माइक्रोफोन की अनुमति नहीं मिली। कृपया ब्राउज़र सेटिंग में अनुमति दें और फिर माइक दबाएं।",
+    noVoiceSupport:
+      "यह ब्राउज़र आवाज नहीं सुन सकता। Android या डेस्कटॉप पर Chrome सबसे अच्छा काम करता है।",
+    fallbackTitle: "इस डिवाइस पर आवाज उपलब्ध नहीं है",
+    fallbackHelp: "तब तक आप यहाँ लिख सकते हैं:",
+    send: "पूछें",
   },
   mr: {
     title: "आवाज सहाय्यक",
-    tapToStart: "बोलण्यासाठी दाबा",
-    listening: "ऐकत आहे…",
+    listening: "ऐकत आहे — बोला",
     thinking: "विचार करत आहे…",
     speaking: "बोलत आहे…",
-    stop: "थांबा",
+    starting: "सुरू होत आहे…",
+    paused: "थांबले — सुरू ठेवण्यासाठी दाबा",
     you: "तुम्ही",
     assistant: "सहाय्यक",
-    typeInstead: "किंवा तुमचा प्रश्न लिहा",
-    send: "पाठवा",
     langLabel: "भाषा",
-    tryAsking: "असे विचारा:",
-    examples: ["कांद्याचा सर्वात जास्त भाव", "माझ्या जवळची टोमॅटो मंडई", "नाशिक मध्ये गव्हाचा भाव"],
+    tryAsking: "असे बोला:",
+    examples: [
+      "कांद्याचा सर्वात जास्त भाव",
+      "माझ्या जवळची टोमॅटो मंडई",
+      "इंदूर मध्ये गव्हाचा भाव",
+    ],
+    handsFree: "हात न लावता — बोलत राहा",
+    tapToTalk: "बोलण्यासाठी दाबा",
+    micBlocked:
+      "मायक्रोफोनची परवानगी मिळाली नाही. कृपया ब्राउझर सेटिंगमध्ये परवानगी द्या आणि पुन्हा माइक दाबा.",
+    noVoiceSupport:
+      "हा ब्राउझर आवाज ऐकू शकत नाही. Android किंवा डेस्कटॉपवर Chrome सर्वोत्तम चालते.",
+    fallbackTitle: "या डिव्हाइसवर आवाज उपलब्ध नाही",
+    fallbackHelp: "तोपर्यंत तुम्ही इथे लिहू शकता:",
+    send: "विचारा",
   },
 };
 
 /**
  * Guesses the starting language from the browser's own setting.
- *
- * Marathi first, as the brief asks: a device set to mr-IN is almost
- * certainly a Maharashtra farmer. Anything else Indian-Devanagari falls
- * to Hindi, and everything else to English. The farmer can override it
- * with the switcher - auto-detection gets this wrong often enough that
- * the manual control is essential, not a nicety.
+ * Marathi first, as the brief asks - a device set to mr-IN is almost
+ * certainly a Maharashtra farmer.
  */
 function detectBrowserLanguage() {
   const preferred = navigator.languages || [navigator.language || "en"];
-
   for (const tag of preferred) {
     const lower = String(tag).toLowerCase();
     if (lower.startsWith("mr")) return "mr";
@@ -119,35 +167,37 @@ function detectBrowserLanguage() {
 }
 
 function VoiceAssistant() {
-  // ---- What the assistant is doing right now ----
-  // "idle" | "listening" | "thinking" | "speaking" | "unsupported"
+  // "idle" | "starting" | "listening" | "thinking" | "speaking" | "paused"
   const [status, setStatus] = useState("idle");
   const [isOpen, setIsOpen] = useState(false);
-
   const [language, setLanguage] = useState(detectBrowserLanguage);
-  const [turns, setTurns] = useState([]); // the visible conversation
-  const [interim, setInterim] = useState(""); // words heard mid-sentence
+  const [turns, setTurns] = useState([]);
+  const [interim, setInterim] = useState("");
+  const [notice, setNotice] = useState(null);
+  const [voiceFailed, setVoiceFailed] = useState(null); // "blocked" | "unsupported"
   const [typedQuestion, setTypedQuestion] = useState("");
-  const [notice, setNotice] = useState(null); // e.g. "no Marathi voice"
 
-  // ---- Things that must NOT trigger a re-render when they change ----
+  // ---- Refs: updated synchronously, unlike state ----
   const recognitionRef = useRef(null);
-  const contextRef = useRef({}); // last crop/intent, for follow-ups
-  const coordsRef = useRef(null); // GPS, once granted
-  const shouldKeepListeningRef = useRef(false);
-  const languageRef = useRef(language);
+  const contextRef = useRef({});
+  const coordsRef = useRef(null);
+  const sessionActiveRef = useRef(false); // is a conversation running?
+  const busyRef = useRef(false); // thinking or speaking - mic must stay shut
   const isSpeakingRef = useRef(false);
+  const languageRef = useRef(language);
+  const transcriptEndRef = useRef(null);
 
-  // Keep the ref in step, so the recognition callbacks (which close over
-  // their first render) always read the CURRENT language rather than the
-  // one selected when the session started.
   useEffect(() => {
     languageRef.current = language;
   }, [language]);
 
+  // Keep the newest turn in view without the farmer scrolling.
+  useEffect(() => {
+    transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [turns, interim]);
+
   const text = UI_TEXT[language];
 
-  // ---- Can this browser do any of it? ----
   const SpeechRecognition =
     typeof window !== "undefined" &&
     (window.SpeechRecognition || window.webkitSpeechRecognition);
@@ -161,41 +211,42 @@ function VoiceAssistant() {
   /**
    * Picks the best installed voice for a language.
    *
-   * Exact locale first (mr-IN), then any voice for that language, then -
-   * for Marathi only - a Hindi voice. Marathi and Hindi share the
-   * Devanagari script and much of their phonetics, so a Hindi voice
-   * reading Marathi is accented but understandable. That is far better
-   * than silence, which is what most devices would otherwise give.
+   * Exact locale (mr-IN), then any voice for that language, then - for
+   * Marathi only - a Hindi voice. They share Devanagari and much of
+   * their phonetics, so a Hindi voice reading Marathi is accented but
+   * understandable. On most devices that is the difference between an
+   * answer and silence.
    */
-  const pickVoice = useCallback((languageCode) => {
-    if (!canSpeak) return null;
+  const pickVoice = useCallback(
+    (languageCode) => {
+      if (!canSpeak) return null;
+      const voices = window.speechSynthesis.getVoices() || [];
+      if (voices.length === 0) return null;
 
-    const voices = window.speechSynthesis.getVoices() || [];
-    if (voices.length === 0) return null;
+      const wanted = (
+        LANGUAGES.find((l) => l.code === languageCode)?.speechLang || "en-IN"
+      ).toLowerCase();
 
-    const target = LANGUAGES.find((l) => l.code === languageCode);
-    const wanted = target ? target.speechLang.toLowerCase() : "en-in";
+      const exact = voices.find((v) => v.lang?.toLowerCase() === wanted);
+      if (exact) return { voice: exact, fellBack: false };
 
-    const exact = voices.find((v) => v.lang && v.lang.toLowerCase() === wanted);
-    if (exact) return { voice: exact, fellBack: false };
+      const sameLanguage = voices.find((v) =>
+        v.lang?.toLowerCase().startsWith(languageCode)
+      );
+      if (sameLanguage) return { voice: sameLanguage, fellBack: false };
 
-    const sameLanguage = voices.find(
-      (v) => v.lang && v.lang.toLowerCase().startsWith(languageCode)
-    );
-    if (sameLanguage) return { voice: sameLanguage, fellBack: false };
+      if (languageCode === "mr") {
+        const hindi = voices.find((v) => v.lang?.toLowerCase().startsWith("hi"));
+        if (hindi) return { voice: hindi, fellBack: "hi" };
+      }
 
-    if (languageCode === "mr") {
-      const hindi = voices.find((v) => v.lang && v.lang.toLowerCase().startsWith("hi"));
-      if (hindi) return { voice: hindi, fellBack: "hi" };
-    }
+      const english = voices.find((v) => v.lang?.toLowerCase().startsWith("en"));
+      return english ? { voice: english, fellBack: "en" } : null;
+    },
+    [canSpeak]
+  );
 
-    const indianEnglish = voices.find(
-      (v) => v.lang && v.lang.toLowerCase().startsWith("en")
-    );
-    return indianEnglish ? { voice: indianEnglish, fellBack: "en" } : null;
-  }, [canSpeak]);
-
-  /** Speaks a sentence, then hands the microphone back. */
+  /** Speaks a sentence, then runs `onDone` - normally "listen again". */
   const speak = useCallback(
     (sentence, languageCode, onDone) => {
       if (!canSpeak || !sentence) {
@@ -203,52 +254,73 @@ function VoiceAssistant() {
         return;
       }
 
-      window.speechSynthesis.cancel(); // drop anything still queued
+      window.speechSynthesis.cancel();
 
       const utterance = new SpeechSynthesisUtterance(sentence);
       const chosen = pickVoice(languageCode);
 
-      if (chosen) {
-        utterance.voice = chosen.voice;
-        utterance.lang = chosen.voice.lang;
-
-        if (chosen.fellBack === "hi") {
-          setNotice(
-            "No Marathi voice is installed on this device, so a Hindi voice is reading the reply. The text below is in Marathi. Fuller Marathi voice support is coming."
-          );
-        } else if (chosen.fellBack === "en") {
-          setNotice(
-            "No Indian-language voice is installed on this device. The reply is shown as text below."
-          );
-        } else {
-          setNotice(null);
-        }
-      } else {
-        // Nothing at all to speak with - the transcript carries the answer.
+      if (!chosen) {
         setNotice(
-          "This device has no speech voices available, so replies are shown as text only."
+          "This device has no speech voices installed, so replies are shown as text."
         );
         onDone && onDone();
         return;
       }
 
-      // Slightly slower than default. These are numbers that matter to
-      // someone's income, often heard over a noisy field.
+      utterance.voice = chosen.voice;
+      utterance.lang = chosen.voice.lang;
+
+      if (chosen.fellBack === "hi") {
+        setNotice(
+          "No Marathi voice on this device — a Hindi voice is reading the reply. The text below is Marathi. Fuller Marathi voice support is coming."
+        );
+      } else if (chosen.fellBack === "en") {
+        setNotice(
+          "No Indian-language voice on this device — the reply is shown as text below."
+        );
+      } else {
+        setNotice(null);
+      }
+
+      // A little slower than default. These are numbers that decide
+      // someone's income, often heard beside a noisy road.
       utterance.rate = 0.95;
-      utterance.pitch = 1;
+
+      // ---- WATCHDOG ----
+      // The whole conversation hangs on `onend` firing, because that is
+      // what reopens the microphone. Chrome has a long-standing bug
+      // where a long utterance can finish without ever firing it, and a
+      // call or notification interrupting playback can do the same.
+      // The farmer would be left staring at "Speaking…" forever, with
+      // the mic shut and nothing to tap.
+      //
+      // So we also set a timer. Whichever happens first - the real event
+      // or the timeout - hands the microphone back exactly once.
+      let finished = false;
+      const finishOnce = () => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(watchdog);
+        isSpeakingRef.current = false;
+        onDone && onDone();
+      };
+
+      // Roughly how long this sentence should take, plus headroom.
+      // ~12 characters a second is a comfortable speaking pace.
+      const expectedMs = Math.min(30000, 3000 + (sentence.length / 12) * 1000);
+      const watchdog = setTimeout(() => {
+        if (!finished) {
+          window.speechSynthesis.cancel();
+          finishOnce();
+        }
+      }, expectedMs);
 
       utterance.onstart = () => {
         isSpeakingRef.current = true;
         setStatus("speaking");
       };
-      utterance.onend = () => {
-        isSpeakingRef.current = false;
-        onDone && onDone();
-      };
-      utterance.onerror = () => {
-        isSpeakingRef.current = false;
-        onDone && onDone();
-      };
+      utterance.onend = finishOnce;
+      utterance.onerror = finishOnce;
 
       window.speechSynthesis.speak(utterance);
     },
@@ -256,13 +328,19 @@ function VoiceAssistant() {
   );
 
   // =====================================================================
-  // ASKING THE BACKEND
+  // LISTENING
   // =====================================================================
+  // Declared as a ref-held function because startListening and
+  // handleTranscript call each other. A plain pair of useCallbacks would
+  // be a circular dependency; this keeps both able to see the latest
+  // version without React complaining.
+  const startListeningRef = useRef(() => {});
 
   const handleTranscript = useCallback(
     async (transcript, confidence) => {
-      if (!transcript || !transcript.trim()) {
-        startListening();
+      if (!transcript?.trim()) {
+        busyRef.current = false;
+        startListeningRef.current();
         return;
       }
 
@@ -281,14 +359,14 @@ function VoiceAssistant() {
         });
 
         const result = response.data;
-
-        // Remember crop/intent so "and what about tomato?" works.
         contextRef.current = result.context || {};
 
         // The server may have worked out a different language from the
-        // words themselves - follow it, so the reply is spoken correctly.
+        // words themselves - follow it, so the reply is spoken correctly
+        // and the NEXT turn listens in the right language too.
         if (result.language && result.language !== languageRef.current) {
           setLanguage(result.language);
+          languageRef.current = result.language;
         }
 
         setTurns((previous) => [
@@ -297,46 +375,54 @@ function VoiceAssistant() {
         ]);
 
         speak(result.reply, result.language || languageRef.current, () => {
+          busyRef.current = false; // free the mic again
           if (result.endSession) {
-            stopSession();
+            pauseSession();
           } else {
-            startListening(); // keep the conversation going, no tap needed
+            startListeningRef.current();
           }
         });
       } catch (error) {
         console.error(error);
         const failure =
-          language === "mr"
+          languageRef.current === "mr"
             ? "माफ करा, सर्व्हरशी संपर्क होऊ शकला नाही."
-            : language === "hi"
+            : languageRef.current === "hi"
             ? "माफ कीजिए, सर्वर से संपर्क नहीं हो सका।"
             : "Sorry, I could not reach the server.";
         setTurns((previous) => [...previous, { who: "assistant", text: failure }]);
-        speak(failure, languageRef.current, () => startListening());
+        speak(failure, languageRef.current, () => {
+          busyRef.current = false;
+          startListeningRef.current();
+        });
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [speak, language]
+    [speak]
   );
 
-  // =====================================================================
-  // LISTENING
-  // =====================================================================
-
   const startListening = useCallback(() => {
-    if (!canListen || !shouldKeepListeningRef.current) return;
+    // Three reasons not to open the mic, all checked synchronously.
+    if (!canListen) return;
+    if (!sessionActiveRef.current) return;
+    if (busyRef.current) return;
 
-    // Tear down any previous instance first. Calling start() on one
-    // that's already running throws InvalidStateError.
     if (recognitionRef.current) {
       try {
         recognitionRef.current.abort();
       } catch (error) {
-        /* already stopped - nothing to do */
+        /* already stopped */
       }
     }
 
-    const recognition = new SpeechRecognition();
+    // Read the constructor from `window` HERE rather than using the one
+    // captured when this callback was created. A stale closure would
+    // keep using an object from an earlier render - and it makes the
+    // loop impossible to exercise in a test, because a stand-in
+    // recogniser installed later would simply be ignored.
+    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!Recognition) return;
+
+    const recognition = new Recognition();
     recognition.lang =
       LANGUAGES.find((l) => l.code === languageRef.current)?.speechLang || "en-IN";
     recognition.continuous = true;
@@ -349,10 +435,10 @@ function VoiceAssistant() {
     };
 
     recognition.onresult = (event) => {
-      // BARGE-IN: the farmer started talking while we were still
-      // speaking. Cut the playback off mid-sentence - being talked over
-      // by a machine that won't stop is infuriating, and they've clearly
-      // heard enough.
+      // BARGE-IN. The farmer started talking while the assistant was
+      // still speaking, so they have heard enough. Cut the playback off
+      // mid-word - being talked over by a machine that will not stop is
+      // the fastest way to make someone abandon a voice interface.
       if (isSpeakingRef.current) {
         window.speechSynthesis.cancel();
         isSpeakingRef.current = false;
@@ -366,8 +452,9 @@ function VoiceAssistant() {
         const result = event.results[i];
         if (result.isFinal) {
           finalText += result[0].transcript;
-          // Chrome reports 0 for some languages; treat that as "unknown"
-          // rather than "terrible", or every Marathi turn looks low quality.
+          // Chrome reports 0 for some languages. Treat that as "unknown"
+          // rather than "terrible", or every Marathi turn looks low
+          // quality and gets sent back for a repeat.
           if (result[0].confidence > 0) confidence = result[0].confidence;
         } else {
           interimText += result[0].transcript;
@@ -377,9 +464,12 @@ function VoiceAssistant() {
       setInterim(interimText);
 
       if (finalText.trim()) {
-        shouldKeepListeningRef.current = true;
+        // Claim the mic BEFORE stopping. recognition.stop() fires onend
+        // almost immediately, and onend restarts listening unless this
+        // flag is already set. A ref updates now; state would not.
+        busyRef.current = true;
         try {
-          recognition.stop(); // can't listen and speak at once - see note 2
+          recognition.stop();
         } catch (error) {
           /* already stopping */
         }
@@ -388,37 +478,31 @@ function VoiceAssistant() {
     };
 
     recognition.onerror = (event) => {
-      // "no-speech" and "aborted" are normal parts of the loop - someone
-      // paused, or we stopped it ourselves. Only real faults deserve a
-      // message.
+      // "no-speech" and "aborted" are ordinary parts of the loop -
+      // someone paused, or we stopped it ourselves. Only real faults
+      // deserve to interrupt the farmer.
       if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-        shouldKeepListeningRef.current = false;
-        setStatus("idle");
-        setNotice(
-          "Microphone permission was refused. Please allow it in your browser, or type your question below."
-        );
+        sessionActiveRef.current = false;
+        setVoiceFailed("blocked");
+        setStatus("paused");
       } else if (event.error === "language-not-supported") {
         setNotice(
           `Speech recognition for ${
             LANGUAGES.find((l) => l.code === languageRef.current)?.label
-          } is not available in this browser. Try Chrome, switch language, or type your question.`
+          } is not available in this browser. Try Chrome, or switch language above.`
         );
-        setStatus("idle");
-        shouldKeepListeningRef.current = false;
+        setStatus("paused");
+        sessionActiveRef.current = false;
       }
     };
 
     recognition.onend = () => {
-      // Recognition stops on its own after a pause, whatever
-      // `continuous` claims - see note 1 at the top. If we're still in a
-      // session and not busy, start it again so the farmer can just keep
-      // talking.
-      if (
-        shouldKeepListeningRef.current &&
-        !isSpeakingRef.current &&
-        statusRef.current !== "thinking"
-      ) {
-        setTimeout(() => startListening(), 250);
+      // Recognition always stops by itself after a pause, whatever
+      // `continuous` promises. Reopening it here is what makes the
+      // conversation hands-free. busyRef keeps us from reopening while
+      // an answer is still being fetched or spoken.
+      if (sessionActiveRef.current && !busyRef.current && !isSpeakingRef.current) {
+        setTimeout(() => startListeningRef.current(), 250);
       }
     };
 
@@ -427,38 +511,37 @@ function VoiceAssistant() {
     try {
       recognition.start();
     } catch (error) {
-      // Occasionally throws if the previous instance hasn't released the
-      // mic yet. One retry is enough in practice.
+      // Throws if the previous instance has not released the mic yet.
       setTimeout(() => {
         try {
           recognition.start();
         } catch (retryError) {
-          setStatus("idle");
+          setStatus("paused");
         }
       }, 300);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canListen, handleTranscript]);
 
-  // `status` inside onend would be stale (the callback closes over the
-  // render that created it), so keep a ref alongside it.
-  const statusRef = useRef(status);
+  // Publish the newest version for the mutually-recursive callers.
   useEffect(() => {
-    statusRef.current = status;
-  }, [status]);
+    startListeningRef.current = startListening;
+  }, [startListening]);
 
   // =====================================================================
-  // SESSION CONTROL
+  // SESSION
   // =====================================================================
 
   function startSession() {
     setIsOpen(true);
     setTurns([]);
+    setVoiceFailed(canListen ? null : "unsupported");
     contextRef.current = {};
-    shouldKeepListeningRef.current = true;
+    sessionActiveRef.current = true;
+    busyRef.current = true; // held until the greeting finishes
+    setStatus("starting");
 
-    // Ask for location up front, quietly. If they say no, "near me"
-    // questions fall back to asking which district they're in.
+    // Ask for location quietly up front, so "nearest mandi" works
+    // without interrupting the conversation to ask later.
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -477,15 +560,16 @@ function VoiceAssistant() {
     const greeting = GREETINGS[language];
     setTurns([{ who: "assistant", text: greeting }]);
 
-    if (canListen) {
-      speak(greeting, language, () => startListening());
-    } else {
-      speak(greeting, language, () => {});
-    }
+    speak(greeting, language, () => {
+      busyRef.current = false;
+      startListeningRef.current(); // straight into listening - no tap
+    });
   }
 
-  function stopSession() {
-    shouldKeepListeningRef.current = false;
+  /** Stops listening but keeps the conversation on screen. */
+  function pauseSession() {
+    sessionActiveRef.current = false;
+    busyRef.current = false;
     if (recognitionRef.current) {
       try {
         recognitionRef.current.abort();
@@ -495,15 +579,29 @@ function VoiceAssistant() {
     }
     if (canSpeak) window.speechSynthesis.cancel();
     isSpeakingRef.current = false;
-    setStatus("idle");
+    setStatus("paused");
     setInterim("");
   }
 
-  // Always release the microphone when the component goes away -
-  // otherwise the browser keeps showing a recording indicator.
+  function resumeSession() {
+    setVoiceFailed(null);
+    sessionActiveRef.current = true;
+    busyRef.current = false;
+    startListeningRef.current();
+  }
+
+  function closeAssistant() {
+    pauseSession();
+    setIsOpen(false);
+    setStatus("idle");
+  }
+
+  // Always release the microphone when the component unmounts, or the
+  // browser keeps showing a recording indicator on a page that isn't
+  // listening any more.
   useEffect(() => {
     return () => {
-      shouldKeepListeningRef.current = false;
+      sessionActiveRef.current = false;
       if (recognitionRef.current) {
         try {
           recognitionRef.current.abort();
@@ -517,8 +615,8 @@ function VoiceAssistant() {
     };
   }, []);
 
-  // Voices load asynchronously in Chrome - getVoices() is empty on first
-  // call. This nudges a re-render once they arrive.
+  // Voices load asynchronously in Chrome - getVoices() is empty on the
+  // first call. This nudges a re-render once they arrive.
   useEffect(() => {
     if (!canSpeak) return;
     const handler = () => setNotice((current) => current);
@@ -526,13 +624,17 @@ function VoiceAssistant() {
     return () => window.speechSynthesis.removeEventListener("voiceschanged", handler);
   }, [canSpeak]);
 
-  /** The typed fallback, for Safari or a refused microphone. */
+  /**
+   * The typed escape hatch. Only reachable when voice genuinely cannot
+   * run on this device - never offered alongside a working microphone,
+   * because this is meant to be a spoken conversation.
+   */
   function submitTyped(e) {
     e.preventDefault();
     const question = typedQuestion.trim();
     if (!question) return;
     setTypedQuestion("");
-    shouldKeepListeningRef.current = false; // typed mode: don't grab the mic
+    busyRef.current = true;
     handleTranscript(question, 1);
   }
 
@@ -540,7 +642,6 @@ function VoiceAssistant() {
   // UI
   // =====================================================================
 
-  // Closed: just the floating button.
   if (!isOpen) {
     return (
       <button
@@ -556,10 +657,30 @@ function VoiceAssistant() {
   }
 
   const statusLabel = {
-    idle: text.tapToStart,
+    idle: text.tapToTalk,
+    starting: text.starting,
     listening: text.listening,
     thinking: text.thinking,
     speaking: text.speaking,
+    paused: text.paused,
+  }[status];
+
+  const orbStyle = {
+    listening: "bg-under-600 animate-pulseRing scale-110",
+    speaking: "bg-accent-500",
+    thinking: "bg-ink-400 animate-pulse",
+    starting: "bg-ink-400 animate-pulse",
+    paused: "bg-ink-300",
+    idle: "bg-primary-gradient",
+  }[status];
+
+  const orbIcon = {
+    listening: "🎙️",
+    speaking: "🔊",
+    thinking: "💭",
+    starting: "⏳",
+    paused: "▶️",
+    idle: "🎤",
   }[status];
 
   return (
@@ -569,8 +690,8 @@ function VoiceAssistant() {
         <span className="font-bold flex items-center gap-2">🎤 {text.title}</span>
 
         <div className="flex items-center gap-2">
-          {/* Language switcher - auto-detection is wrong often enough
-              that this has to be one tap away, not buried in settings. */}
+          {/* Auto-detection gets the language wrong often enough that
+              this has to be one tap away, not buried in a settings page. */}
           <select
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
@@ -586,10 +707,7 @@ function VoiceAssistant() {
           </select>
 
           <button
-            onClick={() => {
-              stopSession();
-              setIsOpen(false);
-            }}
+            onClick={closeAssistant}
             aria-label="Close"
             className="w-7 h-7 rounded-lg bg-white/20 hover:bg-white/35 grid place-items-center"
           >
@@ -598,17 +716,15 @@ function VoiceAssistant() {
         </div>
       </div>
 
-      {/* ---------- Unsupported browser ---------- */}
-      {!canListen && (
+      {/* ---------- Voice unavailable ---------- */}
+      {voiceFailed && (
         <div className="bg-accent-50 border-b border-accent-200 px-4 py-3 text-xs text-accent-900">
-          <strong>Voice input isn't supported in this browser.</strong> Safari and
-          some others don't provide speech recognition. You can still type your
-          question below, and replies will be spoken if a voice is available.
-          Chrome on Android or desktop gives the best results.
+          <p className="font-semibold mb-1">⚠️ {text.fallbackTitle}</p>
+          <p>{voiceFailed === "blocked" ? text.micBlocked : text.noVoiceSupport}</p>
         </div>
       )}
 
-      {/* ---------- Voice-availability notice ---------- */}
+      {/* ---------- Voice-quality notice ---------- */}
       {notice && (
         <div className="bg-ink-50 border-b border-ink-200 px-4 py-2 text-xs text-ink-700">
           ℹ️ {notice}
@@ -616,17 +732,14 @@ function VoiceAssistant() {
       )}
 
       {/* ---------- Conversation ---------- */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-[12rem]">
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-[11rem]">
         {turns.map((turn, index) => (
-          <div
-            key={index}
-            className={turn.who === "user" ? "text-right" : "text-left"}
-          >
+          <div key={index} className={turn.who === "user" ? "text-right" : "text-left"}>
             <p className="text-[10px] uppercase tracking-wide text-ink-400 mb-0.5">
               {turn.who === "user" ? text.you : text.assistant}
             </p>
             <div
-              className={`inline-block rounded-2xl px-3.5 py-2 text-sm max-w-[85%] ${
+              className={`inline-block rounded-2xl px-3.5 py-2 text-sm max-w-[85%] text-left ${
                 turn.who === "user"
                   ? "bg-ink-100 text-ink-800"
                   : "bg-primary-50 text-primary-900 ring-1 ring-primary-100"
@@ -634,9 +747,10 @@ function VoiceAssistant() {
             >
               {turn.text}
 
-              {/* The numbers behind the sentence, so a farmer can check
-                  them - and so the answer survives a missing TTS voice. */}
-              {turn.data && turn.data.modalPrice && (
+              {/* The numbers behind the sentence. This is what a farmer
+                  checks before trusting a figure - and it is the whole
+                  answer when no TTS voice exists for their language. */}
+              {turn.data?.modalPrice && (
                 <div className="mt-2 pt-2 border-t border-primary-200 text-xs space-y-0.5">
                   <div className="font-semibold">
                     ₹{turn.data.modalPrice.toLocaleString("en-IN")}/quintal
@@ -652,7 +766,8 @@ function VoiceAssistant() {
           </div>
         ))}
 
-        {/* Words heard so far, before the sentence is finished. */}
+        {/* Words heard so far, before the sentence is complete. Seeing
+            this appear is how the farmer knows the mic is really live. */}
         {interim && (
           <div className="text-right">
             <div className="inline-block rounded-2xl px-3.5 py-2 text-sm bg-ink-50 text-ink-400 italic">
@@ -661,71 +776,78 @@ function VoiceAssistant() {
           </div>
         )}
 
-        {/* Example questions, while the conversation is still empty. */}
-        {turns.length <= 1 && (
+        {turns.length <= 1 && !voiceFailed && (
           <div className="text-xs text-ink-400 pt-2">
-            <p className="mb-1">{text.tryAsking}</p>
+            <p className="mb-1 font-medium">{text.tryAsking}</p>
             <ul className="space-y-0.5">
               {text.examples.map((example) => (
-                <li key={example}>• {example}</li>
+                <li key={example}>• “{example}”</li>
               ))}
             </ul>
           </div>
         )}
+
+        <div ref={transcriptEndRef} />
       </div>
 
-      {/* ---------- Mic orb + status ---------- */}
-      <div className="px-4 py-3 border-t border-surface-200 bg-surface-50">
-        {canListen && (
-          <div className="flex items-center gap-3 mb-2">
-            <button
-              onClick={() => {
-                if (status === "listening") {
-                  stopSession();
-                } else {
-                  shouldKeepListeningRef.current = true;
-                  startListening();
-                }
-              }}
-              aria-label={statusLabel}
-              className={`w-12 h-12 rounded-full grid place-items-center text-xl text-white
-                shrink-0 transition-all ${
-                  status === "listening"
-                    ? "bg-under-600 animate-pulseRing scale-110"
-                    : status === "speaking"
-                    ? "bg-accent-500"
-                    : status === "thinking"
-                    ? "bg-ink-400"
-                    : "bg-primary-gradient hover:scale-105"
-                }`}
-            >
-              {status === "listening" ? "🎙️" : status === "speaking" ? "🔊" : "🎤"}
-            </button>
-
-            <span className="text-sm font-medium text-ink-600">{statusLabel}</span>
-          </div>
-        )}
-
-        {/* Typed fallback - always available, not just when voice fails.
-            A farmer in a noisy mandi may simply prefer it. */}
-        <form onSubmit={submitTyped} className="flex gap-2">
-          <input
-            type="text"
-            value={typedQuestion}
-            onChange={(e) => setTypedQuestion(e.target.value)}
-            placeholder={text.typeInstead}
-            className="flex-1 border border-ink-200 rounded-xl px-3 py-2 text-sm
-              focus:outline-none focus:ring-2 focus:ring-primary-500"
-          />
+      {/* ---------- The mic orb: the ONLY control in normal use ---------- */}
+      {!voiceFailed && (
+        <div className="px-4 py-4 border-t border-surface-200 bg-surface-50 flex flex-col items-center gap-2">
           <button
-            type="submit"
-            className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-semibold
-              hover:bg-primary-700 transition-colors"
+            onClick={() => {
+              if (status === "paused" || status === "idle") resumeSession();
+              else pauseSession();
+            }}
+            aria-label={statusLabel}
+            className={`w-16 h-16 rounded-full grid place-items-center text-2xl text-white
+              transition-all shadow-soft ${orbStyle}`}
           >
-            {text.send}
+            {orbIcon}
           </button>
-        </form>
-      </div>
+
+          <p className="text-sm font-semibold text-ink-700">{statusLabel}</p>
+
+          {/* Say out loud that no further tapping is needed - otherwise
+              people tap the orb after every reply and cut themselves off. */}
+          {(status === "listening" || status === "speaking" || status === "thinking") && (
+            <p className="text-[11px] text-ink-400 text-center">{text.handsFree}</p>
+          )}
+        </div>
+      )}
+
+      {/* ---------- Typed fallback: ONLY when voice cannot run ---------- */}
+      {voiceFailed && (
+        <div className="px-4 py-3 border-t border-surface-200 bg-surface-50">
+          <p className="text-xs text-ink-500 mb-2">{text.fallbackHelp}</p>
+          <form onSubmit={submitTyped} className="flex gap-2">
+            <input
+              type="text"
+              value={typedQuestion}
+              onChange={(e) => setTypedQuestion(e.target.value)}
+              className="flex-1 border border-ink-200 rounded-xl px-3 py-2 text-sm
+                focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+            <button
+              type="submit"
+              className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-semibold
+                hover:bg-primary-700 transition-colors"
+            >
+              {text.send}
+            </button>
+          </form>
+
+          {/* Only offered if the mic was refused - if the browser has no
+              recognition at all, retrying cannot help. */}
+          {voiceFailed === "blocked" && (
+            <button
+              onClick={resumeSession}
+              className="mt-2 w-full text-xs text-primary-700 font-semibold hover:underline"
+            >
+              🎤 Try the microphone again
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
