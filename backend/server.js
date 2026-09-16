@@ -22,6 +22,7 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const path = require("path");
 
+const checkSecrets = require("./config/checkSecrets");
 const connectDB = require("./config/db");
 const seedDefaultUsers = require("./config/seedUsers");
 const authRoutes = require("./routes/authRoutes");
@@ -29,7 +30,17 @@ const adminRoutes = require("./routes/adminRoutes");
 const receiptRoutes = require("./routes/receiptRoutes");
 const mandiRoutes = require("./routes/mandiRoutes");
 
+// Refuse to boot on placeholder secrets in production - see the file.
+checkSecrets();
+
 const app = express();
+
+// Behind a load balancer or hosting platform (Render, Railway, Heroku,
+// nginx) the real client protocol and IP arrive in X-Forwarded-* headers.
+// Without this, req.secure is always false and the rate limiter sees
+// every request as coming from the proxy's single IP - so one abusive
+// client could exhaust the limit for everybody.
+app.set("trust proxy", 1);
 
 // =======================================================================
 // SECURITY MIDDLEWARE
@@ -56,13 +67,29 @@ const app = express();
 // standard first thing added to any real Express app.
 app.use(
   helmet({
-    // We serve uploaded receipt images from this server, and the React
-    // frontend on port 5173 displays them in <img> tags. The strictest
-    // default would block that cross-origin image load, so we relax
-    // just this one setting.
+    // The React frontend runs on a different origin (port 5173) and
+    // fetches receipt images from this server, so the strictest
+    // same-origin policy would block them. Those images are still
+    // access-controlled - see GET /api/receipts/image/:filename.
     crossOriginResourcePolicy: { policy: "cross-origin" },
   })
 );
+
+// --- 1b. Force HTTPS in production ---
+// Tokens and passwords travel in these requests. Over plain HTTP anyone
+// on the same network can read them, so in production we bounce HTTP
+// requests to HTTPS instead of serving them. Left off in development,
+// where there is no certificate and everything is on localhost.
+if (process.env.NODE_ENV === "production") {
+  app.use((req, res, next) => {
+    // `req.secure` is only trustworthy because of the "trust proxy"
+    // setting above; the header check covers proxies that don't set it.
+    if (req.secure || req.headers["x-forwarded-proto"] === "https") {
+      return next();
+    }
+    return res.redirect(308, `https://${req.headers.host}${req.originalUrl}`);
+  });
+}
 
 // --- 2. CORS: who is allowed to call this API from a browser? ---
 // Before, this was a bare cors() - meaning ANY website on the internet
@@ -95,9 +122,33 @@ const generalLimiter = rateLimit({
 });
 app.use("/api", generalLimiter);
 
-// Serve uploaded receipt images statically, e.g.
-// http://localhost:5000/uploads/1234-receipt.jpg
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// NOTE: uploaded receipt images are deliberately NOT served statically.
+//
+// There used to be an `app.use("/uploads", express.static(...))` here,
+// which put every uploaded receipt on the public internet - no login
+// needed, and the filenames ("<timestamp>-<original name>") were easy to
+// guess. Receipt photos carry names, addresses, GSTINs and prices, so
+// that was a PII leak open to anyone.
+//
+// They are now served by GET /api/receipts/image/:filename, which sits
+// behind `protect` and checks the requester actually owns the receipt.
+// See getReceiptImage() in controllers/receiptController.js.
+
+// --- 5. Never cache API responses ---
+// Almost every endpoint here returns data specific to the logged-in
+// user - their receipts, their dashboard, their profile. Without an
+// explicit instruction, a browser or a shared proxy is free to store
+// those responses and can hand one user's data to the next person on
+// the same machine or network.
+//
+// "private"  = only the end user's own browser may cache this, never a
+//              shared proxy.
+// "no-store" = actually, don't keep it at all.
+app.use("/api", (req, res, next) => {
+  res.set("Cache-Control", "private, no-store");
+  res.set("Pragma", "no-cache");
+  next();
+});
 
 // =======================================================================
 // ROUTES
@@ -143,6 +194,34 @@ app.use((err, req, res, next) => {
     message: "Something went wrong on the server.",
     ...(isDevelopment && { error: err.message }),
   });
+});
+
+// =======================================================================
+// LAST-RESORT CRASH GUARDS
+// =======================================================================
+// Express only catches errors thrown inside its own request handling. An
+// error raised by a background worker or a stray promise lands outside
+// that, and Node's default response is to print it and KILL THE PROCESS.
+//
+// That was not theoretical here: a malformed image upload crashed the
+// OCR worker, and the whole server exited. validateImage() in
+// services/ocrService.js now blocks that specific route in, but these
+// handlers make sure the NEXT unforeseen async error degrades into a log
+// line rather than an outage.
+//
+// We deliberately keep serving. An uncaught exception can in principle
+// leave the process in an unknown state - the textbook advice is to exit
+// and let a process manager restart you. This app has no process manager
+// configured, so exiting means staying down until someone notices. A
+// logged error and a live server is the better trade here; if you deploy
+// behind pm2/systemd/Docker with a restart policy, switch this to
+// `process.exit(1)` and let the supervisor bring it back cleanly.
+process.on("uncaughtException", (error) => {
+  console.error("💥 Uncaught exception (server kept running):", error);
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("💥 Unhandled promise rejection (server kept running):", reason);
 });
 
 const PORT = process.env.PORT || 5000;

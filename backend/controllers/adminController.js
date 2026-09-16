@@ -17,6 +17,8 @@
 //   5. toggleFarmerActive -> deactivate/reactivate a farmer's login
 // -----------------------------------------------------------------------
 
+const mongoose = require("mongoose");
+
 const User = require("../models/User");
 const Receipt = require("../models/Receipt");
 const ActivityLog = require("../models/ActivityLog");
@@ -257,6 +259,13 @@ async function getAllFarmers(req, res) {
 // ---------------------------------------------------------------------
 async function getFarmerDetail(req, res) {
   try {
+    // A malformed id made Mongoose throw a CastError, which became a
+    // generic 500. Checking first gives an honest 404 and keeps error
+    // logs meaningful.
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(404).json({ message: "No farmer found with that id." });
+    }
+
     const farmer = await User.findById(req.params.id);
 
     if (!farmer) {
@@ -342,6 +351,10 @@ async function getActivityFeed(req, res) {
 // ---------------------------------------------------------------------
 async function toggleFarmerActive(req, res) {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(404).json({ message: "No farmer found with that id." });
+    }
+
     const farmer = await User.findById(req.params.id);
 
     if (!farmer) {

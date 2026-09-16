@@ -196,7 +196,66 @@ function scoreAttempt(fields, ocrConfidence) {
  * @returns {Promise<object>} the guessed fields, plus `rawOcrText` and
  *   some extra notes the review screen uses to flag uncertain values.
  */
+/**
+ * Checks an uploaded file really is a usable image BEFORE we hand it to
+ * Tesseract.
+ *
+ * SECURITY: this is a denial-of-service fix, not a nicety. Tesseract
+ * runs in a worker thread, and on a malformed or absurdly small image it
+ * aborts with "RuntimeError: Aborted(-1)". That error surfaces on the
+ * worker's 'error' event, OUTSIDE the try/catch around the OCR call, so
+ * Node re-throws it on the next tick and the ENTIRE SERVER EXITS.
+ *
+ * A 67-byte 1x1 PNG was enough to do it. Any logged-in user could take
+ * the whole app down, repeatedly, with one upload.
+ *
+ * So anything that isn't a real, reasonably-sized raster image is
+ * rejected here, before it can reach the worker.
+ */
+async function validateImage(imagePath) {
+  // Tesseract needs enough pixels to find a glyph; below this there is
+  // nothing to read anyway, and this is the range that crashes it.
+  const MIN_DIMENSION_PX = 32;
+  const MAX_DIMENSION_PX = 20000; // guards against decompression bombs
+
+  try {
+    const sharp = require("sharp");
+    const metadata = await sharp(imagePath).metadata();
+
+    if (!metadata.width || !metadata.height) {
+      return { ok: false, reason: "That file isn't a readable image." };
+    }
+    if (metadata.width < MIN_DIMENSION_PX || metadata.height < MIN_DIMENSION_PX) {
+      return {
+        ok: false,
+        reason: `That image is only ${metadata.width}x${metadata.height} pixels - too small to read any text from. Please upload a clear photo of the receipt.`,
+      };
+    }
+    if (metadata.width > MAX_DIMENSION_PX || metadata.height > MAX_DIMENSION_PX) {
+      return { ok: false, reason: "That image is too large to process." };
+    }
+    return { ok: true };
+  } catch (error) {
+    // sharp throws on anything it can't decode - a renamed .txt, a
+    // truncated upload, a file that isn't an image at all.
+    return { ok: false, reason: "That file could not be read as an image." };
+  }
+}
+
 async function extractReceiptDetails(imagePath) {
+  // Reject anything that would crash the OCR worker - see validateImage().
+  const check = await validateImage(imagePath);
+  if (!check.ok) {
+    return {
+      rawOcrText: "",
+      ...emptyFields(),
+      scanQuality: "failed",
+      fieldsFound: 0,
+      scanNotes: [check.reason],
+      notes: [check.reason],
+    };
+  }
+
   const variants = await buildImageVariants(imagePath);
   const temporaryFiles = variants
     .filter((v) => v.path !== imagePath)

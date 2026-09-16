@@ -11,6 +11,9 @@
 //   4. getDashboardStats -> numbers + chart-ready data for the dashboard
 // -----------------------------------------------------------------------
 
+const path = require("path");
+const fs = require("fs");
+
 const Receipt = require("../models/Receipt");
 const { extractReceiptDetails } = require("../services/ocrService");
 const { fetchMandiPrices } = require("../services/mandiApiService");
@@ -323,9 +326,73 @@ async function getDashboardStats(req, res) {
   }
 }
 
+// ---------------------------------------------------------------------
+// SECURITY FIX: serve receipt images ONLY to the farmer who uploaded
+// them (or to an admin).
+//
+// These images used to be served by a plain
+//     app.use("/uploads", express.static(...))
+// in server.js, which put every uploaded receipt on the public internet.
+// Anyone who guessed a filename - and they were just
+// "<timestamp>-<original name>", so quite guessable - could download
+// another farmer's receipt. Those photos carry names, addresses, GSTINs
+// and prices, so that was a straight PII leak needing no login at all.
+//
+// This route replaces it. It is mounted behind `protect`, and it checks
+// that the requester actually owns the receipt before sending a byte.
+// ---------------------------------------------------------------------
+async function getReceiptImage(req, res) {
+  try {
+    // path.basename() strips any directory part, so a request for
+    // "../../.env" can only ever ask for ".env" inside uploads/.
+    const requestedName = path.basename(req.params.filename || "");
+
+    if (!requestedName) {
+      return res.status(400).json({ message: "No image was requested." });
+    }
+
+    // Does a receipt with this image exist, and may this user see it?
+    // Admins may see any; a farmer may only see their own.
+    const query = { imageName: requestedName };
+    if (req.user.role !== "admin") {
+      query.uploadedBy = req.user._id;
+    }
+
+    const receipt = await Receipt.findOne(query);
+
+    // Deliberately the same 404 whether the image doesn't exist or
+    // belongs to someone else - otherwise this route becomes a way to
+    // discover which filenames are real.
+    if (!receipt) {
+      return res.status(404).json({ message: "Image not found." });
+    }
+
+    const uploadsDirectory = path.join(__dirname, "..", "uploads");
+    const filePath = path.join(uploadsDirectory, requestedName);
+
+    // Belt and braces: confirm the resolved path really is inside the
+    // uploads folder before reading it.
+    if (!path.resolve(filePath).startsWith(path.resolve(uploadsDirectory))) {
+      return res.status(400).json({ message: "Invalid image path." });
+    }
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ message: "Image not found." });
+    }
+
+    // Never let a browser or proxy cache somebody's private receipt.
+    res.set("Cache-Control", "private, no-store");
+    res.sendFile(filePath);
+  } catch (error) {
+    console.error("Error serving receipt image:", error);
+    res.status(500).json({ message: "Failed to load that image." });
+  }
+}
+
 module.exports = {
   scanReceipt,
   createReceipt,
   getReceipts,
   getDashboardStats,
+  getReceiptImage,
 };

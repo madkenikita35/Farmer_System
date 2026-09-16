@@ -13,7 +13,8 @@ SETUP
    rate-limited and shared by everyone):
    - Go to https://data.gov.in and register/log in (Google or gov email works).
    - Go to "My Account" -> "API Keys" and generate one.
-   - Paste it into API_KEY below, replacing the demo key.
+   - Put it in backend/.env as MANDI_API_KEY (never in this file -
+     this file is committed to git).
 
 2. Install dependencies:
    pip install requests pandas openpyxl
@@ -34,6 +35,8 @@ NOTES
   script automatically splits output across multiple sheets.
 """
 
+import io
+import os
 import time
 import requests
 import pandas as pd
@@ -41,8 +44,34 @@ from openpyxl.utils import get_column_letter
 
 # ---- CONFIG -----------------------------------------------------------
 
-# Shared public demo key (rate-limited). Replace with your own free key.
-API_KEY = "579b464db66ec23bdd0000010dc802224e164f874b54c5b6ab80e133"
+# SECURITY: the key is read from the environment, not written here.
+#
+# It used to be hard-coded on this line - and this file IS committed to
+# git, so the key went into the repository history for anyone with
+# access to read. A data.gov.in key is low-value, but a credential in
+# source control is a habit worth not forming: the same pattern with a
+# database or payment key is a serious incident.
+#
+# Set it in backend/.env (which is gitignored) as MANDI_API_KEY, or
+# export it in your shell before running this script.
+API_KEY = os.environ.get("MANDI_API_KEY", "").strip()
+
+if not API_KEY:
+    # Fall back to reading backend/.env directly, so the script works
+    # without you having to export anything by hand.
+    _env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "backend", ".env")
+    if os.path.exists(_env_path):
+        with io.open(_env_path, encoding="utf-8") as _f:
+            for _line in _f:
+                if _line.strip().startswith("MANDI_API_KEY="):
+                    API_KEY = _line.split("=", 1)[1].strip()
+                    break
+
+if not API_KEY:
+    raise SystemExit(
+        "No MANDI_API_KEY found. "
+        "Set it in backend/.env or export MANDI_API_KEY before running."
+    )
 
 # Resource ID for "Current Daily Price of Various Commodities from Various
 # Markets (Mandi)" / "Variety-wise Daily Market Prices Data of Commodity".

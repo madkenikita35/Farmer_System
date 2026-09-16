@@ -24,8 +24,28 @@
 // -----------------------------------------------------------------------
 
 const jwt = require("jsonwebtoken");
+
 const User = require("../models/User");
 const { logActivity } = require("../services/activityService");
+
+// ---------------------------------------------------------------------
+// SECURITY: every credential field must be a plain string.
+//
+// Express parses JSON bodies, so a caller can send
+//     {"email": {"$ne": null}, "password": {"$ne": null}}
+// and that object goes straight into a Mongoose query. That is NoSQL
+// injection - the classic version of it returns "the first user whose
+// email is not null" and logs the attacker in as them.
+//
+// It did not actually bypass login here (the code calls
+// email.toLowerCase(), which throws on an object), but it crashed the
+// handler into a 500 on hostile input, which is both noisy and a poor
+// thing to rely on. An explicit type check is the actual control.
+// ---------------------------------------------------------------------
+function isNonEmptyString(value) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
 
 /**
  * Builds the signed token we hand to the browser after a successful
@@ -73,10 +93,24 @@ async function signup(req, res) {
     const { name, email, password, phone, state } = req.body;
 
     // --- Validation: check the basics before touching the database ---
-    if (!name || !email || !password) {
+    if (!isNonEmptyString(name) || !isNonEmptyString(email) || !isNonEmptyString(password)) {
       return res.status(400).json({
         message: "Please provide your name, email and password.",
       });
+    }
+
+    // Optional fields must still be strings if present - they end up in
+    // the database and, for `state`, inside a query later on.
+    if ((phone !== undefined && typeof phone !== "string") ||
+        (state !== undefined && typeof state !== "string")) {
+      return res.status(400).json({ message: "Phone and state must be text." });
+    }
+
+    // A basic shape check. The real validation is that a person can
+    // receive mail at it, which we can't test here - this just rejects
+    // obvious nonsense before it reaches the database.
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ message: "Please enter a valid email address." });
     }
 
     if (password.length < 6) {
@@ -131,7 +165,7 @@ async function login(req, res) {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
+    if (!isNonEmptyString(email) || !isNonEmptyString(password)) {
       return res.status(400).json({ message: "Please enter your email and password." });
     }
 

@@ -14,6 +14,7 @@ const {
   createReceipt,
   getReceipts,
   getDashboardStats,
+  getReceiptImage,
 } = require("../controllers/receiptController");
 
 // 🔒 Every receipt route needs a logged-in user. Uploading a receipt
@@ -34,6 +35,12 @@ router.post("/", createReceipt);
 // GET /api/receipts
 // List all saved receipts (newest first).
 router.get("/", getReceipts);
+
+// GET /api/receipts/image/:filename
+// An uploaded receipt photo. Only the farmer who uploaded it (or an
+// admin) can fetch it - see getReceiptImage() for why this replaced the
+// old public /uploads folder.
+router.get("/image/:filename", getReceiptImage);
 
 // GET /api/receipts/dashboard-stats
 // Get summary numbers + chart-ready data for the dashboard page.
