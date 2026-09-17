@@ -16,69 +16,204 @@ const API_BASE_URL = "http://localhost:5000/api";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+
+  // Send cookies with every request. This is what carries the HttpOnly
+  // refresh-token cookie to /auth/refresh and /auth/logout. Without it
+  // the browser would simply leave the cookie behind and the user would
+  // be logged out on every page refresh.
+  withCredentials: true,
 });
 
 // =======================================================================
-// THE TOKEN - how the backend knows who we are
+// THE ACCESS TOKEN - IN MEMORY ONLY
 // =======================================================================
-// When you log in, the backend gives us a long string called a "token".
-// Every protected API route needs it sent back in a header:
+// This used to be `localStorage.setItem("mandi_token", ...)`.
 //
-//     Authorization: Bearer <token>
+// WHY THAT WAS A PROBLEM
+// localStorage is readable by ANY JavaScript running on the page. One
+// XSS bug - in our code, or in any npm package we pull in - and the
+// attacker reads the token and is that farmer for the next seven days.
+// The token also survived closing the browser, so it sat on disk.
 //
-// We could write that header by hand in every single function below...
-// but that's 12 chances to forget one. Instead we use an axios
-// "interceptor": a function axios runs automatically on every request,
-// just before it's sent. It adds the header once, for everything.
+// WHAT WE DO INSTEAD
+// The access token now lives in the plain variable below. Facts about
+// a plain variable that make this safer:
+//
+//   - It is NOT in localStorage or sessionStorage, so nothing on disk.
+//   - It vanishes when the tab closes or reloads.
+//   - It expires in 15 minutes rather than 7 days.
+//
+// "But it reloads away - does the farmer get logged out?" No. On load
+// the app calls /auth/refresh, and the HttpOnly cookie (which JS cannot
+// read, and therefore XSS cannot steal) mints a fresh access token.
+// See AuthContext.jsx.
+//
+// This variable is module-level, so every import of api.js shares the
+// one value - it behaves like a tiny store.
 // =======================================================================
 
-// We keep the token in localStorage so it survives a page refresh.
-const TOKEN_KEY = "mandi_token";
+let accessTokenInMemory = null;
 
-export function saveToken(token) {
-  localStorage.setItem(TOKEN_KEY, token);
+export function setAccessToken(token) {
+  accessTokenInMemory = token || null;
 }
 
-export function getToken() {
-  return localStorage.getItem(TOKEN_KEY);
+export function getAccessToken() {
+  return accessTokenInMemory;
 }
 
-export function clearToken() {
-  localStorage.removeItem(TOKEN_KEY);
+export function clearAccessToken() {
+  accessTokenInMemory = null;
+}
+
+// ---------------------------------------------------------------------
+// Clearing out the OLD storage.
+//
+// Anyone who used the app before this change still has a token and a
+// full user record (name, email, phone, role) sitting in their browser
+// from the previous version. Removing the code that WRITES them does
+// not remove what is already there - it would sit on their disk
+// indefinitely. So we delete it once, on startup.
+//
+// The second group are keys from an unrelated app that was served on
+// this same localhost port during development. localStorage is shared
+// per ORIGIN, not per project, so they show up in this app's dev-tools
+// too. They are not ours and nothing here reads them, but they hold
+// real-looking names and emails, so they are cleared as well.
+// ---------------------------------------------------------------------
+const LEGACY_KEYS = [
+  // ours, from before this refactor
+  "mandi_token",
+  "mandi_current_user",
+  // another app that shared this dev origin
+  "token",
+  "user",
+  "role",
+  "username",
+  "auth_session",
+  "custom_employees",
+  "portalLang",
+];
+
+export function purgeLegacyStorage() {
+  for (const key of LEGACY_KEYS) {
+    try {
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
+    } catch (error) {
+      // Private mode / blocked storage. Nothing to clean up, carry on.
+    }
+  }
 }
 
 // ---- REQUEST interceptor: runs before every request goes out ----
 api.interceptors.request.use((config) => {
-  const token = getToken();
+  const token = getAccessToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
-// ---- RESPONSE interceptor: runs on every response that comes back ----
-// If the backend ever replies 401 ("your session expired or is
-// invalid"), the sensible thing is to throw away the dead token and
-// send the user back to the login page. Doing it here means every page
-// in the app gets that behaviour for free.
+// =======================================================================
+// RESPONSE interceptor: silently renew an expired access token
+// =======================================================================
+// Access tokens now last 15 minutes, so a farmer with the app open will
+// hit an expired one during normal use. They must not see that.
+//
+// On a 401 we call /auth/refresh ONCE and replay the original request
+// with the new token. Only if the refresh ALSO fails do we treat the
+// session as over and send them to the login page.
+//
+// `isRefreshing` + `waitingRequests` handle the case where several
+// requests fail at the same moment (a dashboard firing three calls at
+// once). Without them each would trigger its own refresh, and since
+// refresh tokens are single-use, the first would rotate the token and
+// the other two would fail with a token that had just been burned -
+// logging the user out for no reason. Instead the first one refreshes
+// and the rest queue up behind it.
+// =======================================================================
+
+let isRefreshing = false;
+let waitingRequests = [];
+
+function onRefreshed(token) {
+  waitingRequests.forEach((callback) => callback(token));
+  waitingRequests = [];
+}
+
+// A bare axios (not `api`) so this one call cannot be intercepted by
+// the very interceptor we are inside - that would recurse forever.
+function requestNewAccessToken() {
+  return axios.post(`${API_BASE_URL}/auth/refresh`, {}, { withCredentials: true });
+}
+
 api.interceptors.response.use(
   (response) => response, // success - pass it straight through
-  (error) => {
-    if (error.response && error.response.status === 401) {
-      clearToken();
-      localStorage.removeItem("mandi_current_user");
+  async (error) => {
+    const originalRequest = error.config;
+    const status = error.response?.status;
 
-      // Only redirect if we're not ALREADY on the login page, otherwise
-      // we'd bounce the page in a loop while someone is typing.
-      if (!window.location.pathname.startsWith("/login")) {
-        window.location.href = "/login";
-      }
+    // Not an auth problem, or we already retried this one - give up.
+    if (status !== 401 || !originalRequest || originalRequest._alreadyRetried) {
+      return Promise.reject(error);
     }
-    // Re-throw so the page's own catch block still runs and can show
-    // a message. Without this line, errors would silently vanish.
-    return Promise.reject(error);
+
+    // Never try to refresh a failed refresh or a failed login. Doing so
+    // would loop, and a 401 from those genuinely means "not logged in".
+    const url = originalRequest.url || "";
+    if (url.includes("/auth/refresh") || url.includes("/auth/login")) {
+      handleSessionEnded();
+      return Promise.reject(error);
+    }
+
+    originalRequest._alreadyRetried = true;
+
+    // A refresh is already in flight - wait for it rather than starting
+    // a second one (see the note above about single-use tokens).
+    if (isRefreshing) {
+      return new Promise((resolve, reject) => {
+        waitingRequests.push((token) => {
+          if (!token) return reject(error);
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          resolve(api(originalRequest));
+        });
+      });
+    }
+
+    isRefreshing = true;
+    try {
+      const response = await requestNewAccessToken();
+      const newToken = response.data.accessToken;
+
+      setAccessToken(newToken);
+      onRefreshed(newToken);
+
+      originalRequest.headers.Authorization = `Bearer ${newToken}`;
+      return api(originalRequest);
+    } catch (refreshError) {
+      // The refresh cookie is gone, expired, or already spent. This is
+      // a real logout.
+      onRefreshed(null);
+      handleSessionEnded();
+      return Promise.reject(refreshError);
+    } finally {
+      isRefreshing = false;
+    }
   }
 );
+
+/** Forget everything locally and send the user back to the login page. */
+function handleSessionEnded() {
+  clearAccessToken();
+  purgeLegacyStorage();
+
+  // Only redirect if we are not ALREADY on the login page, otherwise
+  // we would bounce the page in a loop while someone is typing.
+  if (!window.location.pathname.startsWith("/login")) {
+    window.location.href = "/login";
+  }
+}
 
 // =======================================================================
 // AUTH CALLS
@@ -104,6 +239,18 @@ export function getMeRequest() {
 
 // Tells the backend we logged out (so it shows in the admin's activity
 // feed). The actual "forgetting" happens in the browser.
+// Swaps the HttpOnly refresh cookie for a new short-lived access
+// token. Called once when the app loads, and automatically by the
+// interceptor above whenever an access token expires mid-session.
+export function refreshRequest() {
+  return api.post("/auth/refresh");
+}
+
+// Ends every session this user has, on every device.
+export function logoutEverywhereRequest() {
+  return api.post("/auth/logout-all");
+}
+
 export function logoutRequest() {
   return api.post("/auth/logout");
 }

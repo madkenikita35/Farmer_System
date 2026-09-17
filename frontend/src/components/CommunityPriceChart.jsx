@@ -6,6 +6,7 @@
 // to this same app, not from any government source.
 // -----------------------------------------------------------------------
 
+import { useLanguage } from "../context/LanguageContext";
 import {
   BarChart,
   Bar,
@@ -20,6 +21,8 @@ import {
 // `data` looks like:
 // [{ mandiName: "Pune Mandi", averagePrice: 1950, reportCount: 4 }, ...]
 function CommunityPriceChart({ data }) {
+  const { t } = useLanguage();
+
   if (!data || data.length === 0) {
     return (
       <p className="text-ink-500 text-sm">
@@ -40,11 +43,11 @@ function CommunityPriceChart({ data }) {
         <Tooltip
           formatter={(value, name, props) => [
             `₹${value} (${props.payload.reportCount} farmer${props.payload.reportCount === 1 ? "" : "s"} reported)`,
-            "Average Price",
+            t("chart_average_price"),
           ]}
         />
         <Legend />
-        <Bar dataKey="averagePrice" name="Farmer-Reported Average" fill="#F59E0B" radius={[6, 6, 0, 0]} />
+        <Bar dataKey="averagePrice" name={t("chart_farmer_avg")} fill="#F59E0B" radius={[6, 6, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );

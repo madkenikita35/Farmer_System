@@ -33,6 +33,8 @@ const {
   CROP_NAMES_DEVANAGARI,
   INTENT_KEYWORDS,
   PLACE_CONNECTORS,
+  PLACE_MARKERS_AFTER,
+  PLACE_NOISE,
 } = require("../config/voicePhrases");
 
 // ---------------------------------------------------------------------
@@ -307,31 +309,72 @@ function extractState(transcript) {
  */
 function extractPlace(transcript, language) {
   const text = (transcript || "").trim();
-  const connectors = [
-    ...(PLACE_CONNECTORS[language] || []),
-    ...PLACE_CONNECTORS.en,
-  ];
+  if (!text) return null;
 
-  for (const connector of connectors) {
+  // Hindi and Marathi first, because they put the place BEFORE the
+  // marker and the English rule below would read the sentence backwards.
+  if (language === "hi" || language === "mr") {
+    const fromMarker = placeBeforeMarker(text, language);
+    if (fromMarker) return fromMarker;
+  }
+
+  // English word order - also tried for Hindi and Marathi, because
+  // farmers mix English in constantly ("Nashik मधील rate").
+  for (const connector of PLACE_CONNECTORS.en) {
     const index = text.toLowerCase().lastIndexOf(connector);
     if (index === -1) continue;
 
-    let candidate = text.slice(index + connector.length).trim();
-
-    // Trim trailing question words that aren't part of the name.
-    candidate = candidate
-      .replace(/[?.!,]/g, " ")
-      .replace(
-        /\b(mandi|market|apmc|district|state|भाव|दर|किंमत|काय|आहे|क्या|है|कितना|कितनी|मंडी|मंडई|जिला|जिल्हा)\b/gi,
-        " "
-      )
-      .trim();
+    const words = cleanPlaceWords(text.slice(index + connector.length));
 
     // One to three words is a plausible place name; more is a sentence.
-    const words = candidate.split(/\s+/).filter(Boolean);
     if (words.length >= 1 && words.length <= 3) {
       return words.join(" ");
     }
+  }
+
+  return null;
+}
+
+/**
+ * Splits a fragment into words and drops the ones that are never part
+ * of a place name.
+ *
+ * NOTE ON : the old version stripped these with a regex using  word
+ * boundaries. JavaScript's  only understands ASCII, so it never
+ * matched a Devanagari word - which is why "भाव क्या है" survived the
+ * filter and was handed to the geocoder as a place name. Comparing
+ * whole tokens instead works in every script.
+ */
+function cleanPlaceWords(fragment) {
+  return String(fragment)
+    .replace(/[?.!,।]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .filter((word) => !PLACE_NOISE.includes(word.toLowerCase()));
+}
+
+/**
+ * Finds the place in a postpositional sentence: "इंदौर में गेहूं का
+ * भाव", "नाशिक के पास कौन सी मंडी". It locates the locative
+ * marker, then walks backwards over noise words to the real name.
+ */
+function placeBeforeMarker(text, language) {
+  const markers = PLACE_MARKERS_AFTER[language] || [];
+  if (markers.length === 0) return null;
+
+  const words = String(text)
+    .replace(/[?.!,।]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+
+  const markerIndex = words.findIndex((word) => markers.includes(word));
+  if (markerIndex <= 0) return null; // nothing before it to be a place
+
+  // Step back over "के", "भाव" and friends to the first real word.
+  for (let i = markerIndex - 1; i >= 0; i--) {
+    const word = words[i];
+    if (PLACE_NOISE.includes(word.toLowerCase())) continue;
+    return word;
   }
 
   return null;
@@ -357,7 +400,16 @@ function parseVoiceQuery(transcript, browserLanguageHint, context = {}) {
 
   const spokenCrop = extractCrop(transcript);
   const state = extractState(transcript);
-  const place = extractPlace(transcript, language);
+  let place = extractPlace(transcript, language);
+
+  // "what is the price of onion" - " of " is one of the English place
+  // connectors, so the CROP name lands in the place slot and the
+  // question comes back as "I could not find a price for Onion in
+  // onion today". If what we picked up as a place is really just the
+  // crop said again, it is not a place.
+  if (place && extractCrop(place)) {
+    place = null;
+  }
 
   // ---- CONVERSATION CONTEXT ----
   // This is what makes follow-ups work. "and what about tomato?" has no

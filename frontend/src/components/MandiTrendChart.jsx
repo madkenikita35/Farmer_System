@@ -6,6 +6,7 @@
 // crop?"
 // -----------------------------------------------------------------------
 
+import { useLanguage } from "../context/LanguageContext";
 import {
   BarChart,
   Bar,
@@ -19,11 +20,11 @@ import {
 
 // `data` looks like: [{ market: "Pune Mandi", modalPrice: 1900, minPrice: 1750, maxPrice: 2050 }, ...]
 function MandiTrendChart({ data }) {
+  const { t } = useLanguage();
+
   if (!data || data.length === 0) {
     return (
-      <p className="text-ink-500 text-sm">
-        Comparison data will appear here once you save a receipt.
-      </p>
+<p className="text-ink-500 text-sm">{t("chart_empty_trend")}</p>
     );
   }
 
@@ -35,9 +36,9 @@ function MandiTrendChart({ data }) {
         <YAxis label={{ value: "₹ per Quintal", angle: -90, position: "insideLeft" }} />
         <Tooltip />
         <Legend />
-        <Bar dataKey="minPrice" name="Min Price" fill="#90CAF9" radius={[6, 6, 0, 0]} />
-        <Bar dataKey="modalPrice" name="Modal (Typical) Price" fill="#1F3B57" radius={[6, 6, 0, 0]} />
-        <Bar dataKey="maxPrice" name="Max Price" fill="#2E7D32" radius={[6, 6, 0, 0]} />
+        <Bar dataKey="minPrice" name={t("chart_min_price")} fill="#90CAF9" radius={[6, 6, 0, 0]} />
+        <Bar dataKey="modalPrice" name={t("chart_modal_price")} fill="#1F3B57" radius={[6, 6, 0, 0]} />
+        <Bar dataKey="maxPrice" name={t("chart_max_price")} fill="#2E7D32" radius={[6, 6, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );

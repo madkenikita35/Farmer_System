@@ -19,8 +19,11 @@ import { compareMandiPrices } from "../api/api";
 import StatCard from "../components/StatCard";
 import MandiTrendChart from "../components/MandiTrendChart";
 import CommunityPriceChart from "../components/CommunityPriceChart";
+import { useLanguage } from "../context/LanguageContext";
 
 function CheckRates() {
+  const { t } = useLanguage();
+
   // The crop ticker on the home page links here as
   // /check-rates?crop=Wheat, so read that and search for it straight
   // away - otherwise clicking a crop would just dump you on an empty
@@ -39,7 +42,7 @@ function CheckRates() {
   // Pulled out of the form handler so the effect below can call it too.
   async function runSearch(cropName) {
     if (!cropName.trim()) {
-      setErrorMessage("Please enter a crop name, e.g. Wheat.");
+      setErrorMessage(t("cr_err_need_crop"));
       return;
     }
 
@@ -50,7 +53,7 @@ function CheckRates() {
       setResult(response.data);
     } catch (error) {
       console.error(error);
-      setErrorMessage("Could not fetch prices. Make sure the backend server is running.");
+      setErrorMessage(t("cr_err_fetch"));
     } finally {
       setIsLoading(false);
     }
@@ -75,12 +78,8 @@ function CheckRates() {
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-10 animate-fadeIn">
-      <h1 className="text-2xl font-bold text-ink-900 mb-2">🔍 Check Mandi Rates</h1>
-      <p className="text-ink-600 mb-6">
-        Before you sell, see what price your crop is fetching - both the
-        official government rate and what other farmers nearby actually
-        got paid.
-      </p>
+      <h1 className="text-2xl font-bold text-ink-900 mb-2">🔍 {t("cr_title")}</h1>
+      <p className="text-ink-600 mb-6">{t("cr_subtitle")}</p>
 
       {/* ---------- Search form ---------- */}
       <form
@@ -88,27 +87,27 @@ function CheckRates() {
         className="bg-white rounded-2xl shadow-soft p-6 border border-surface-300/60 grid sm:grid-cols-4 gap-4 mb-8"
       >
         <div className="sm:col-span-2">
-          <label className="block text-sm font-medium text-ink-600 mb-1">Crop</label>
+          <label className="block text-sm font-medium text-ink-600 mb-1">{t("common_crop")}</label>
           <input
             type="text"
             value={crop}
             onChange={(e) => setCrop(e.target.value)}
-            placeholder="e.g. Wheat, Onion, Tomato"
+            placeholder={t("cr_placeholder_crop")}
             className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-ink-600 mb-1">State (optional)</label>
+          <label className="block text-sm font-medium text-ink-600 mb-1">{t("cr_label_state")}</label>
           <input
             type="text"
             value={state}
             onChange={(e) => setState(e.target.value)}
-            placeholder="e.g. Maharashtra"
+            placeholder={t("cr_placeholder_state")}
             className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-ink-600 mb-1">Date</label>
+          <label className="block text-sm font-medium text-ink-600 mb-1">{t("common_date")}</label>
           <input
             type="date"
             value={date}
@@ -122,7 +121,7 @@ function CheckRates() {
             disabled={isLoading}
             className="w-full sm:w-auto bg-primary-gradient text-white font-semibold px-6 py-3 rounded-2xl shadow-soft hover:scale-[1.02] transition-all disabled:opacity-50"
           >
-            {isLoading ? "Searching..." : "🔍 Check Rates"}
+            {isLoading ? t("common_searching") : `🔍 ${t("cr_btn_check")}`}
           </button>
         </div>
       </form>
@@ -143,15 +142,17 @@ function CheckRates() {
 // Split into its own component to keep CheckRates() above focused on
 // the FORM, and this one focused on the DISPLAY.
 function ResultsView({ result }) {
+  const { t, tPlural } = useLanguage();
+
   const { government, community, bestMandi, worstMandi, priceGap, priceGapPercent, rankedMandis } =
     result;
 
   // A short, honest note about where the government numbers came from -
   // the same "real vs mock" idea shown on the Upload result screen.
   const govtSourceLabel = {
-    "real-exact-date": `✅ Real government data for ${government.matchedDate}`,
-    "real-nearest-date": `✅ Real government data (closest available date: ${government.matchedDate})`,
-    mock: "⚠️ Sample/mock data (no MANDI_API_KEY set, or no real records found)",
+    "real-exact-date": `✅ ${t("cr_src_real", { date: government.matchedDate })}`,
+    "real-nearest-date": `✅ ${t("cr_src_real_nearest", { date: government.matchedDate })}`,
+    mock: `⚠️ ${t("cr_src_mock")}`,
   }[government.dataSource];
 
   return (
@@ -160,19 +161,19 @@ function ResultsView({ result }) {
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <StatCard
           icon="🏛️"
-          label="Government Average (₹/Quintal)"
+          label={t("cr_gov_average")}
           value={government.averagePrice ?? "-"}
           tone="primary"
         />
         <StatCard
           icon="🧑‍🌾"
-          label="Farmer-Reported Average (₹/Quintal)"
+          label={t("cr_farmer_average")}
           value={community.averagePrice ?? "-"}
           tone="accent"
         />
         <StatCard
           icon="📝"
-          label="Farmer Reports Found"
+          label={t("cr_reports_found")}
           value={community.reportCount}
         />
       </div>
@@ -185,13 +186,13 @@ function ResultsView({ result }) {
       {bestMandi && worstMandi && (
         <div className="grid sm:grid-cols-2 gap-4 mb-4">
           <MandiOfferCard
-            title="Highest price right now"
+            title={t("cr_highest_now")}
             emoji="📈"
             offer={bestMandi}
             tone="good"
           />
           <MandiOfferCard
-            title="Lowest price right now"
+            title={t("cr_lowest_now")}
             emoji="📉"
             offer={worstMandi}
             tone="bad"
@@ -201,10 +202,12 @@ function ResultsView({ result }) {
 
       {priceGap > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 mb-6 text-sm text-amber-900">
-          💡 That's a difference of <strong>₹{priceGap.toLocaleString("en-IN")}</strong> per
-          quintal ({priceGapPercent}%) between the best and worst mandi. On 10 quintals
-          that's <strong>₹{(priceGap * 10).toLocaleString("en-IN")}</strong> - worth
-          checking before you load the truck.
+          💡{" "}
+          {t("cr_gap_note", {
+            gap: priceGap.toLocaleString("en-IN"),
+            percent: priceGapPercent,
+            total: (priceGap * 10).toLocaleString("en-IN"),
+          })}
         </div>
       )}
 
@@ -216,16 +219,16 @@ function ResultsView({ result }) {
           {/* <details>/<summary> is plain HTML - it gives you a
               collapsible section with no JavaScript at all. */}
           <summary className="cursor-pointer px-6 py-4 font-semibold text-ink-900">
-            📊 See all {rankedMandis.length} mandis ranked, best price first
+            📊 {t("cr_see_all_ranked", { count: rankedMandis.length })}
           </summary>
           <div className="px-6 pb-5 max-h-96 overflow-y-auto">
             <table className="w-full text-sm">
               <thead className="text-ink-500 text-left">
                 <tr>
                   <th className="py-2 font-semibold">#</th>
-                  <th className="py-2 font-semibold">Mandi</th>
-                  <th className="py-2 font-semibold">Source</th>
-                  <th className="py-2 font-semibold text-right">₹/quintal</th>
+                  <th className="py-2 font-semibold">{t("common_mandi")}</th>
+                  <th className="py-2 font-semibold">{t("common_source")}</th>
+                  <th className="py-2 font-semibold text-right">{t("common_per_quintal")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -256,12 +259,12 @@ function ResultsView({ result }) {
       {/* ---- The two charts, side by side on wide screens ---- */}
       <div className="grid lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-2xl shadow-soft p-6 border border-surface-300/60">
-          <h2 className="font-semibold text-ink-900 mb-3">🏛️ Government Mandi Prices</h2>
+          <h2 className="font-semibold text-ink-900 mb-3">🏛️ {t("cr_chart_gov")}</h2>
           <MandiTrendChart data={government.prices} />
         </div>
 
         <div className="bg-white rounded-2xl shadow-soft p-6 border border-surface-300/60">
-          <h2 className="font-semibold text-ink-900 mb-3">🧑‍🌾 What Other Farmers Got Paid</h2>
+          <h2 className="font-semibold text-ink-900 mb-3">🧑‍🌾 {t("cr_chart_farmers")}</h2>
           <CommunityPriceChart data={community.records} />
         </div>
       </div>
@@ -274,6 +277,8 @@ function ResultsView({ result }) {
 // results. `tone` is just "good" or "bad" and picks the colour scheme.
 // ---------------------------------------------------------------------
 function MandiOfferCard({ title, emoji, offer, tone }) {
+  const { t } = useLanguage();
+
   const styles =
     tone === "good"
       ? "bg-green-50 border-green-200 text-green-900"
@@ -291,7 +296,7 @@ function MandiOfferCard({ title, emoji, offer, tone }) {
 
       <p className={`text-3xl font-bold ${priceColor}`}>
         ₹{offer.price.toLocaleString("en-IN")}
-        <span className="text-sm font-normal opacity-60"> /quintal</span>
+        <span className="text-sm font-normal opacity-60"> {t("common_per_quintal")}</span>
       </p>
 
       <div className="mt-2">
@@ -304,17 +309,22 @@ function MandiOfferCard({ title, emoji, offer, tone }) {
 // A little label saying whether a price came from the government or
 // from other farmers - so the farmer always knows what they're looking at.
 function SourceChip({ source, reportCount }) {
+  const { t, tPlural } = useLanguage();
+
   if (source === "government") {
     return (
       <span className="inline-block bg-white/70 text-xs px-2 py-1 rounded-full font-medium">
-        🏛️ Government listed
+        🏛️ {t("src_government_listed")}
       </span>
     );
   }
 
+  // The "1 report / 2 reports" choice is made by tPlural, not by a
+  // ternary bolted onto an English "s". Plurals do not work that way in
+  // most of the languages this app offers.
   return (
     <span className="inline-block bg-white/70 text-xs px-2 py-1 rounded-full font-medium">
-      🧑‍🌾 {reportCount} farmer report{reportCount === 1 ? "" : "s"}
+      🧑‍🌾 {tPlural("src_farmer_reports", reportCount)}
     </span>
   );
 }

@@ -3,7 +3,23 @@
 // A simple table listing every saved receipt, with a colour-coded
 // "verdict" badge (Fair Price / Underpaid / Overpaid) so it's easy to
 // scan at a glance.
+//
+// ---------------------------------------------------------------------
+// TRANSLATING THE VERDICT
+// ---------------------------------------------------------------------
+// `r.verdict` arrives from the backend as an English string - "Fair
+// Price", "Underpaid" and so on. Those are DATA values, not display
+// text: the database stores them, the charts group by them, and the
+// admin pages filter on them. So we must NOT translate them at the
+// source.
+//
+// Instead each English value maps to a translation KEY here, and the
+// key is looked up in the farmer's language at the moment we draw it.
+// The value travelling through the app stays English; only the pixels
+// change. VERDICT_KEYS below is that map.
 // -----------------------------------------------------------------------
+
+import { useLanguage } from "../context/LanguageContext";
 
 // Maps each verdict to a Tailwind colour class - keeping this in one
 // place means the colours stay consistent everywhere we show a verdict.
@@ -14,21 +30,27 @@ const verdictStyles = {
   "No Data": "bg-gray-100 text-ink-600",
 };
 
+// English verdict (as stored) -> translation key (as shown).
+const VERDICT_KEYS = {
+  "Fair Price": "verdict_fair_price",
+  Underpaid: "verdict_underpaid",
+  Overpaid: "verdict_overpaid",
+  "No Data": "verdict_no_data",
+};
+
 // Short badge so it's obvious at a glance whether a row's comparison
 // came from REAL government data or a mock/sample fallback.
-const dataSourceStyles = {
-  "real-exact-date": { label: "Real", className: "bg-green-100 text-green-800" },
-  "real-nearest-date": { label: "Real (nearest date)", className: "bg-green-100 text-green-800" },
-  mock: { label: "Mock", className: "bg-amber-100 text-amber-800" },
+const dataSourceKeys = {
+  "real-exact-date": { key: "src_real", className: "bg-green-100 text-green-800" },
+  "real-nearest-date": { key: "src_real_nearest", className: "bg-green-100 text-green-800" },
+  mock: { key: "src_mock", className: "bg-amber-100 text-amber-800" },
 };
 
 function ReceiptTable({ receipts }) {
+  const { t, tPlural } = useLanguage();
+
   if (!receipts || receipts.length === 0) {
-    return (
-      <p className="text-ink-500 text-sm">
-        No receipts uploaded yet. Go to "Upload Receipt" to add your first one!
-      </p>
-    );
+    return <p className="text-ink-500 text-sm">{t("rt_empty")}</p>;
   }
 
   return (
@@ -36,20 +58,20 @@ function ReceiptTable({ receipts }) {
       <table className="w-full text-sm text-left">
         <thead>
           <tr className="border-b border-gray-200 text-ink-500">
-            <th className="py-2 pr-4">Date</th>
-            <th className="py-2 pr-4">Crop</th>
-            <th className="py-2 pr-4">Mandi</th>
-            <th className="py-2 pr-4">Qty (Qtl)</th>
-            <th className="py-2 pr-4">Price You Got</th>
-            <th className="py-2 pr-4">Government Avg</th>
-            <th className="py-2 pr-4">Farmer-Reported Avg</th>
-            <th className="py-2 pr-4">Verdict</th>
-            <th className="py-2 pr-4">Data Source</th>
+            <th className="py-2 pr-4">{t("common_date")}</th>
+            <th className="py-2 pr-4">{t("common_crop")}</th>
+            <th className="py-2 pr-4">{t("common_mandi")}</th>
+            <th className="py-2 pr-4">{t("rt_qty")}</th>
+            <th className="py-2 pr-4">{t("rt_price_you_got")}</th>
+            <th className="py-2 pr-4">{t("rt_gov_avg")}</th>
+            <th className="py-2 pr-4">{t("rt_farmer_avg")}</th>
+            <th className="py-2 pr-4">{t("rt_verdict")}</th>
+            <th className="py-2 pr-4">{t("rt_data_source")}</th>
           </tr>
         </thead>
         <tbody>
           {receipts.map((r) => {
-            const source = dataSourceStyles[r.dataSource] || dataSourceStyles.mock;
+            const source = dataSourceKeys[r.dataSource] || dataSourceKeys.mock;
             return (
               <tr key={r._id} className="border-b border-surface-200 hover:bg-gray-50">
                 <td className="py-2 pr-4">{r.date || new Date(r.createdAt).toLocaleDateString()}</td>
@@ -59,16 +81,18 @@ function ReceiptTable({ receipts }) {
                 <td className="py-2 pr-4">₹{r.pricePerQuintal}</td>
                 <td className="py-2 pr-4">{r.marketAveragePrice ? `₹${r.marketAveragePrice}` : "-"}</td>
                 <td className="py-2 pr-4">
-                  {r.communityAveragePrice ? `₹${r.communityAveragePrice} (${r.communityReportCount})` : "-"}
+                  {r.communityAveragePrice
+                    ? `₹${r.communityAveragePrice} (${tPlural("report_count", r.communityReportCount)})`
+                    : "-"}
                 </td>
                 <td className="py-2 pr-4">
                   <span className={`px-2 py-1 rounded-full text-xs font-semibold ${verdictStyles[r.verdict]}`}>
-                    {r.verdict}
+                    {t(VERDICT_KEYS[r.verdict] || "verdict_no_data")}
                   </span>
                 </td>
                 <td className="py-2 pr-4">
                   <span className={`px-2 py-1 rounded-full text-xs font-semibold ${source.className}`}>
-                    {source.label}
+                    {t(source.key)}
                   </span>
                 </td>
               </tr>

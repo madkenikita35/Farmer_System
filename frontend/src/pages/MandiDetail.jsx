@@ -23,8 +23,11 @@ import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { getMandiCrops } from "../api/api";
 import StatCard from "../components/StatCard";
+import { useLanguage } from "../context/LanguageContext";
 
 function MandiDetail() {
+  const { t } = useLanguage();
+
   const [searchParams] = useSearchParams();
   const mandiName = searchParams.get("mandi") || "";
   const state = searchParams.get("state") || "";
@@ -39,7 +42,7 @@ function MandiDetail() {
   useEffect(() => {
     async function load() {
       if (!mandiName) {
-        setErrorMessage("No mandi was specified in the URL.");
+        setErrorMessage(t("mdet_err_no_mandi"));
         setIsLoading(false);
         return;
       }
@@ -51,7 +54,7 @@ function MandiDetail() {
         setData(response.data);
       } catch (error) {
         console.error(error);
-        setErrorMessage("Could not load this mandi's crops. Is the backend running?");
+        setErrorMessage(t("mdet_err_load"));
       } finally {
         setIsLoading(false);
       }
@@ -64,7 +67,7 @@ function MandiDetail() {
     return (
       <div className="text-center py-24 text-ink-500">
         <div className="text-3xl mb-2 animate-pulse">🌾</div>
-        <p className="text-sm">Loading crops for {mandiName}...</p>
+        <p className="text-sm">{t("mdet_loading", { mandi: mandiName })}</p>
       </div>
     );
   }
@@ -76,7 +79,7 @@ function MandiDetail() {
           {errorMessage}
         </div>
         <Link to="/mandis" className="text-primary-700 font-semibold text-sm mt-4 inline-block">
-          ← Back to all mandis
+          {t("common_back_to_mandis")}
         </Link>
       </div>
     );
@@ -93,7 +96,7 @@ function MandiDetail() {
   return (
     <div className="max-w-6xl mx-auto px-6 py-10 animate-fadeIn">
       <Link to="/mandis" className="text-primary-700 font-semibold text-sm mb-4 inline-block">
-        ← Back to all mandis
+        {t("common_back_to_mandis")}
       </Link>
 
       <h1 className="text-2xl font-bold text-ink-900 mb-1">🏛️ {mandiName}</h1>
@@ -101,15 +104,14 @@ function MandiDetail() {
 
       {/* ---------- Summary cards ---------- */}
       <div className="grid sm:grid-cols-3 gap-4 mb-8">
-        <StatCard icon="🌾" label="Crops Listed Here" value={totalCrops} tone="primary" />
-        <StatCard icon="📝" label="Receipts From Our Farmers" value={farmerReportCount} tone="accent" />
-        <StatCard icon="⚖️" label="Crops We Can Compare" value={comparableCrops.length} />
+        <StatCard icon="🌾" label={t("mdet_crops_listed")} value={totalCrops} tone="primary" />
+        <StatCard icon="📝" label={t("mdet_receipts_from_farmers")} value={farmerReportCount} tone="accent" />
+        <StatCard icon="⚖️" label={t("mdet_crops_comparable")} value={comparableCrops.length} />
       </div>
 
       {dataSource === "mock" && (
         <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2 mb-4">
-          ⚠️ The government API returned nothing for this mandi - only farmer-reported
-          prices (if any) are shown below.
+          ⚠️ {t("mdet_mock_note")}
         </p>
       )}
 
@@ -117,10 +119,8 @@ function MandiDetail() {
       {crops.length === 0 ? (
         <div className="text-center py-16 text-ink-500 bg-white rounded-2xl border border-gray-100">
           <div className="text-3xl mb-2">🤷</div>
-          <p className="font-medium">No crops reported for this mandi today.</p>
-          <p className="text-sm mt-1">
-            Mandis don't report every day. Try again tomorrow, or pick another mandi.
-          </p>
+          <p className="font-medium">{t("mdet_none_title")}</p>
+          <p className="text-sm mt-1">{t("mdet_none_text")}</p>
         </div>
       ) : (
         <div className="bg-white rounded-2xl shadow-soft border border-surface-300/60 overflow-hidden">
@@ -128,21 +128,21 @@ function MandiDetail() {
             <table className="w-full text-sm">
               <thead className="bg-surface-200/70 text-ink-600">
                 <tr>
-                  <th className="text-left px-4 py-3 font-semibold">Crop</th>
+                  <th className="text-left px-4 py-3 font-semibold">{t("common_crop")}</th>
                   <th className="text-right px-4 py-3 font-semibold">
-                    🏛️ Government
+                    🏛️ {t("common_government")}
                     <span className="block text-[11px] font-normal text-ink-400">
-                      ₹/quintal
+                      {t("common_per_quintal")}
                     </span>
                   </th>
                   <th className="text-right px-4 py-3 font-semibold">
-                    🧑‍🌾 Our Farmers
+                    🧑‍🌾 {t("common_our_farmers")}
                     <span className="block text-[11px] font-normal text-ink-400">
-                      ₹/quintal
+                      {t("common_per_quintal")}
                     </span>
                   </th>
-                  <th className="text-right px-4 py-3 font-semibold">Difference</th>
-                  <th className="text-right px-4 py-3 font-semibold">Reports</th>
+                  <th className="text-right px-4 py-3 font-semibold">{t("common_difference")}</th>
+                  <th className="text-right px-4 py-3 font-semibold">{t("common_reports")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -155,12 +155,7 @@ function MandiDetail() {
         </div>
       )}
 
-      <p className="text-xs text-ink-400 mt-4">
-        "Government" is the modal price from data.gov.in's Agmarknet dataset.
-        "Our Farmers" is the average of what farmers using this app reported
-        being paid at this mandi. A dash means that source has no data for
-        that crop.
-      </p>
+      <p className="text-xs text-ink-400 mt-4">{t("mdet_footnote")}</p>
     </div>
   );
 }

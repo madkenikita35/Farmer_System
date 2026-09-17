@@ -24,8 +24,11 @@
 import { useState, useMemo } from "react";
 import { getNearbyMandis } from "../api/api";
 import StatCard from "../components/StatCard";
+import { useLanguage } from "../context/LanguageContext";
 
 function NearbyMandis() {
+  const { t } = useLanguage();
+
   const [crop, setCrop] = useState("");
   const [place, setPlace] = useState("");
   const [radius, setRadius] = useState(150);
@@ -42,9 +45,7 @@ function NearbyMandis() {
   // ---- Ask the browser where we are ----
   function handleUseMyLocation() {
     if (!navigator.geolocation) {
-      setErrorMessage(
-        "This browser can't share your location. Please type your town instead."
-      );
+      setErrorMessage(t("nm_err_no_geolocation"));
       return;
     }
 
@@ -65,11 +66,11 @@ function NearbyMandis() {
       (error) => {
         setIsLocating(false);
         const messages = {
-          1: "You didn't allow location access. Please type your town below instead.",
-          2: "Your location isn't available right now. Please type your town below.",
-          3: "Finding your location took too long. Please type your town below.",
+          1: t("nm_err_denied"),
+          2: t("nm_err_unavailable"),
+          3: t("nm_err_timeout"),
         };
-        setErrorMessage(messages[error.code] || "Could not get your location.");
+        setErrorMessage(messages[error.code] || t("nm_err_generic_location"));
       },
       { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
     );
@@ -79,13 +80,11 @@ function NearbyMandis() {
     e.preventDefault();
 
     if (!crop.trim()) {
-      setErrorMessage("Please enter a crop name, e.g. Onion.");
+      setErrorMessage(t("nm_err_need_crop"));
       return;
     }
     if (!coordinates && !place.trim()) {
-      setErrorMessage(
-        "Tap “Use my location”, or type the town you're selling near."
-      );
+      setErrorMessage(t("nm_err_need_place"));
       return;
     }
 
@@ -104,10 +103,7 @@ function NearbyMandis() {
       setResult(response.data);
     } catch (error) {
       console.error(error);
-      setErrorMessage(
-        error.response?.data?.message ||
-          "Could not search nearby mandis. Is the backend running?"
-      );
+      setErrorMessage(error.response?.data?.message || t("nm_err_search"));
     } finally {
       setIsLoading(false);
     }
@@ -115,13 +111,8 @@ function NearbyMandis() {
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-10 animate-fadeIn">
-      <h1 className="text-2xl font-bold text-ink-900 mb-2">
-        📍 Best-Paying Mandis Near You
-      </h1>
-      <p className="text-ink-600 mb-6">
-        Find the mandis around you that are paying the most for your crop
-        today - so you know where it's worth driving to.
-      </p>
+      <h1 className="text-2xl font-bold text-ink-900 mb-2">📍 {t("nm_title")}</h1>
+      <p className="text-ink-600 mb-6">{t("nm_subtitle")}</p>
 
       {/* ---------- Search form ---------- */}
       <form
@@ -130,19 +121,19 @@ function NearbyMandis() {
       >
         <div className="grid sm:grid-cols-2 gap-4 mb-4">
           <div>
-            <label className="block text-sm font-medium text-ink-600 mb-1">Crop</label>
+            <label className="block text-sm font-medium text-ink-600 mb-1">{t("common_crop")}</label>
             <input
               type="text"
               value={crop}
               onChange={(e) => setCrop(e.target.value)}
-              placeholder="e.g. Onion, Wheat, Tomato"
+              placeholder={t("nm_placeholder_crop")}
               className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-ink-600 mb-1">
-              Search within
+              {t("nm_search_within")}
             </label>
             <select
               value={radius}
@@ -160,7 +151,7 @@ function NearbyMandis() {
 
         {/* ---- Location: GPS button OR a typed name ---- */}
         <div className="border-t border-surface-200 pt-4">
-          <p className="text-sm font-medium text-ink-600 mb-2">Your location</p>
+          <p className="text-sm font-medium text-ink-600 mb-2">{t("nm_your_location")}</p>
 
           <div className="flex flex-col sm:flex-row gap-3">
             <button
@@ -174,13 +165,13 @@ function NearbyMandis() {
               }`}
             >
               {isLocating
-                ? "📡 Finding you..."
+                ? `📡 ${t("nm_finding_you")}`
                 : coordinates
-                ? "✅ Using your location"
-                : "📍 Use my location"}
+                ? `✅ ${t("nm_using_location")}`
+                : `📍 ${t("nm_use_my_location")}`}
             </button>
 
-            <span className="text-sm text-ink-400 self-center">or</span>
+            <span className="text-sm text-ink-400 self-center">{t("common_or")}</span>
 
             <input
               type="text"
@@ -190,7 +181,7 @@ function NearbyMandis() {
                 // Typing a place means they've chosen that instead of GPS.
                 if (e.target.value) setCoordinates(null);
               }}
-              placeholder="Type your town or district, e.g. Nashik"
+              placeholder={t("nm_place_placeholder")}
               className="flex-1 border border-ink-200 rounded-xl px-3.5 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
             />
           </div>
@@ -202,7 +193,7 @@ function NearbyMandis() {
             disabled={isLoading}
             className="bg-primary-gradient text-white font-semibold px-6 py-3 rounded-2xl shadow-soft hover:scale-[1.02] transition-all disabled:opacity-50 hover-lift"
           >
-            {isLoading ? "Searching..." : "🔍 Find Best Mandis"}
+            {isLoading ? t("common_searching") : `🔍 ${t("nm_find_btn")}`}
           </button>
 
         </div>
@@ -226,6 +217,8 @@ function NearbyMandis() {
 // component above stays focused on the FORM and this one on the RESULTS.
 // ---------------------------------------------------------------------
 function NearbyResults({ result, sortBy, onSortChange }) {
+  const { t, tPlural } = useLanguage();
+
   const { mandis, bestPaying, nearest, tradeOff, origin, radiusKm } = result;
 
   // Re-order whenever the farmer flips the Sort by buttons.
@@ -255,12 +248,12 @@ function NearbyResults({ result, sortBy, onSortChange }) {
       <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
         <div className="text-4xl mb-3">🤷</div>
         <p className="font-semibold text-ink-900 mb-1">
-          No mandi within {radiusKm} km reported this crop today.
+          {t("nm_none_title", { radius: radiusKm })}
         </p>
         <p className="text-sm text-ink-500 max-w-md mx-auto">
           {result.outsideRadius > 0
-            ? `${result.outsideRadius} mandis do have a price for it, but they're all further than ${radiusKm} km. Try a wider search.`
-            : "Not every mandi reports every crop every day. Try again tomorrow, or check a different crop."}
+            ? t("nm_none_outside", { count: result.outsideRadius, radius: radiusKm })
+            : t("nm_none_text")}
         </p>
       </div>
     );
@@ -271,33 +264,31 @@ function NearbyResults({ result, sortBy, onSortChange }) {
       {/* ---- The headline answer ---- */}
       <div className="grid sm:grid-cols-2 gap-4 mb-4">
         <HighlightCard
-          title="Best price near you"
+          title={t("nm_best_price_near")}
           emoji="💰"
           mandi={bestPaying}
           tone="good"
         />
-        <HighlightCard title="Closest to you" emoji="📍" mandi={nearest} tone="neutral" />
+        <HighlightCard title={t("nm_closest_to_you")} emoji="📍" mandi={nearest} tone="neutral" />
       </div>
 
       {/* ---- The trade-off, worked out for them ---- */}
       {tradeOff && tradeOff.extraRupeesPerQuintal > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 mb-6 text-sm text-amber-900">
-          💡 The best-paying mandi gives you{" "}
-          <strong>₹{tradeOff.extraRupeesPerQuintal.toLocaleString("en-IN")} more per quintal</strong>,
-          but it's <strong>{tradeOff.extraKm} km further</strong> than the closest one. On 10
-          quintals that's{" "}
-          <strong>
-            ₹{(tradeOff.extraRupeesPerQuintal * 10).toLocaleString("en-IN")} extra
-          </strong>{" "}
-          - worth weighing against your transport cost.
+          💡{" "}
+          {t("nm_tradeoff", {
+            extra: tradeOff.extraRupeesPerQuintal.toLocaleString("en-IN"),
+            km: tradeOff.extraKm,
+            total: (tradeOff.extraRupeesPerQuintal * 10).toLocaleString("en-IN"),
+          })}
         </div>
       )}
 
       {/* ---- Where we searched from ---- */}
       <div className="grid sm:grid-cols-3 gap-4 mb-6">
-        <StatCard icon="🏛️" label="Mandis Found" value={result.totalFound} tone="primary" />
-        <StatCard icon="📏" label="Search Radius" value={`${radiusKm} km`} />
-        <StatCard icon="📍" label="Searched Around" value={shortLabel(origin.label)} />
+        <StatCard icon="🏛️" label={t("nm_mandis_found")} value={result.totalFound} tone="primary" />
+        <StatCard icon="📏" label={t("nm_search_radius")} value={`${radiusKm} km`} />
+        <StatCard icon="📍" label={t("nm_searched_around")} value={shortLabel(origin.label)} />
       </div>
 
       {/* ---- The full ranked list ---- */}
@@ -312,11 +303,11 @@ function NearbyResults({ result, sortBy, onSortChange }) {
           and obvious. */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <h2 className="font-semibold text-ink-900">
-          All {result.totalFound} mandis within {radiusKm} km
+          {t("nm_all_within", { count: result.totalFound, radius: radiusKm })}
         </h2>
 
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-ink-500">Sort by:</span>
+          <span className="text-ink-500">{t("nm_sort_by")}</span>
           <button
             type="button"
             onClick={() => onSortChange("price")}
@@ -326,7 +317,7 @@ function NearbyResults({ result, sortBy, onSortChange }) {
                 : "bg-gray-100 text-ink-600 hover:bg-gray-200"
             }`}
           >
-            💰 Highest price
+            💰 {t("nm_sort_price")}
           </button>
           <button
             type="button"
@@ -337,7 +328,7 @@ function NearbyResults({ result, sortBy, onSortChange }) {
                 : "bg-gray-100 text-ink-600 hover:bg-gray-200"
             }`}
           >
-            📍 Nearest
+            📍 {t("nm_sort_distance")}
           </button>
         </div>
       </div>
@@ -348,7 +339,7 @@ function NearbyResults({ result, sortBy, onSortChange }) {
             <thead className="bg-surface-200/70 text-ink-600">
               <tr>
                 <th className="text-left px-4 py-3 font-semibold">#</th>
-                <th className="text-left px-4 py-3 font-semibold">Mandi</th>
+                <th className="text-left px-4 py-3 font-semibold">{t("common_mandi")}</th>
                 {/* A ▼ on whichever column the list is currently ordered
                     by, so the sort state is readable from the table
                     itself and not only from the buttons above it. */}
@@ -357,19 +348,25 @@ function NearbyResults({ result, sortBy, onSortChange }) {
                     sortBy === "distance" ? "text-primary-700" : ""
                   }`}
                 >
-                  Distance{sortBy === "distance" ? " ▼" : ""}
+                  {t("nm_col_distance")}
+                  {sortBy === "distance" ? " ▼" : ""}
                 </th>
                 <th
                   className={`text-right px-4 py-3 font-semibold ${
                     sortBy === "price" ? "text-primary-700" : ""
                   }`}
                 >
-                  🏛️ Government{sortBy === "price" ? " ▼" : ""}
-                  <span className="block text-[11px] font-normal text-ink-400">₹/quintal</span>
+                  🏛️ {t("common_government")}
+                  {sortBy === "price" ? " ▼" : ""}
+                  <span className="block text-[11px] font-normal text-ink-400">
+                    {t("common_per_quintal")}
+                  </span>
                 </th>
                 <th className="text-right px-4 py-3 font-semibold">
-                  🧑‍🌾 Our Farmers
-                  <span className="block text-[11px] font-normal text-ink-400">₹/quintal</span>
+                  🧑‍🌾 {t("common_our_farmers")}
+                  <span className="block text-[11px] font-normal text-ink-400">
+                    {t("common_per_quintal")}
+                  </span>
                 </th>
               </tr>
             </thead>
@@ -402,8 +399,7 @@ function NearbyResults({ result, sortBy, onSortChange }) {
                           ₹{mandi.farmerReportedPrice.toLocaleString("en-IN")}
                         </span>
                         <span className="block text-[11px] text-ink-400">
-                          {mandi.farmerReportCount} report
-                          {mandi.farmerReportCount === 1 ? "" : "s"}
+                          {tPlural("report_count", mandi.farmerReportCount)}
                         </span>
                       </>
                     ) : (
@@ -418,14 +414,10 @@ function NearbyResults({ result, sortBy, onSortChange }) {
       </div>
 
       <p className="text-xs text-ink-400 mt-4">
-        Distances are straight-line ("as the crow flies"), not road distance -
-        the actual drive will be longer. They are measured to the centre of
-        each mandi's district, so mandis in your own district are shown as
-        "in your area" rather than an exact figure we can't really claim.
+        {t("nm_footnote")}
         {result.couldNotLocate > 0 &&
-          ` ${result.couldNotLocate} mandi(s) had a price but no location we could place on the map, so they aren't listed.`}
-        {result.dataSource === "mock" &&
-          " ⚠️ Showing sample prices - live government data wasn't available."}
+          ` ${t("nm_footnote_unlocated", { count: result.couldNotLocate })}`}
+        {result.dataSource === "mock" && ` ⚠️ ${t("nm_footnote_mock")}`}
       </p>
     </div>
   );
@@ -446,6 +438,8 @@ function NearbyResults({ result, sortBy, onSortChange }) {
 // still uses the real figure - this only changes what is DISPLAYED.
 // ---------------------------------------------------------------------
 function DistanceLabel({ mandi }) {
+  const { t } = useLanguage();
+
   // Roughly how wide an Indian district is, so distances below this are
   // inside our margin of error rather than genuinely measured.
   const DISTRICT_PRECISION_KM = 12;
@@ -455,7 +449,7 @@ function DistanceLabel({ mandi }) {
     return (
       <>
         <span className="font-semibold">~{Math.round(mandi.distanceKm)} km</span>
-        <span className="block text-[11px] text-amber-600">rough estimate</span>
+        <span className="block text-[11px] text-amber-600">{t("nm_rough_estimate")}</span>
       </>
     );
   }
@@ -463,8 +457,8 @@ function DistanceLabel({ mandi }) {
   if (mandi.distanceKm < DISTRICT_PRECISION_KM) {
     return (
       <>
-        <span className="font-semibold text-primary-700">In your area</span>
-        <span className="block text-[11px] text-ink-400">same district</span>
+        <span className="font-semibold text-primary-700">{t("nm_in_your_area")}</span>
+        <span className="block text-[11px] text-ink-400">{t("nm_same_district")}</span>
       </>
     );
   }
@@ -474,6 +468,8 @@ function DistanceLabel({ mandi }) {
 
 // One of the two big answer cards at the top.
 function HighlightCard({ title, emoji, mandi, tone }) {
+  const { t } = useLanguage();
+
   if (!mandi) return null;
 
   const styles =
@@ -498,10 +494,10 @@ function HighlightCard({ title, emoji, mandi, tone }) {
         </span>
         <span className="text-sm opacity-70">
           {mandi.distanceAccuracy === "state"
-            ? `~${Math.round(mandi.distanceKm)} km away (rough)`
+            ? t("nm_km_away_rough", { km: Math.round(mandi.distanceKm) })
             : mandi.distanceKm < 12
-            ? "in your area"
-            : `${Math.round(mandi.distanceKm)} km away`}
+            ? t("nm_in_your_area_lower")
+            : t("nm_km_away", { km: Math.round(mandi.distanceKm) })}
         </span>
       </div>
     </div>

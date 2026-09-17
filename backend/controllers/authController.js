@@ -24,8 +24,10 @@
 // -----------------------------------------------------------------------
 
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 
 const User = require("../models/User");
+const RefreshToken = require("../models/RefreshToken");
 const { logActivity } = require("../services/activityService");
 
 // ---------------------------------------------------------------------
@@ -47,20 +49,108 @@ function isNonEmptyString(value) {
 }
 
 
+// =====================================================================
+// THE TWO TOKENS
+// =====================================================================
+// Read the long comment at the top of models/RefreshToken.js first -
+// it explains WHY there are two. In short:
+//
+//   ACCESS  - 15 minutes, returned in the JSON body, kept only in a
+//             JavaScript variable in the tab. Sent as
+//             "Authorization: Bearer ..." on every request.
+//
+//   REFRESH - 30 days, set as an HttpOnly cookie that JavaScript
+//             cannot read. Its only job is to mint a new access token.
+//
+// The access token being short-lived is what makes the whole thing
+// work: even if one were somehow stolen, it is useless within minutes,
+// and the valuable long-lived credential was never reachable from JS.
+// =====================================================================
+
+const REFRESH_COOKIE_NAME = "mandi_refresh";
+
+// How long a refresh token (and therefore a "stay logged in") lasts.
+const REFRESH_TOKEN_DAYS = Number(process.env.REFRESH_TOKEN_DAYS || 30);
+
 /**
- * Builds the signed token we hand to the browser after a successful
- * login/signup.
+ * The SHORT-LIVED token the browser sends on every API call.
  *
  * We put ONLY the user's id inside it. We deliberately do NOT rely on a
  * role stored in the token - middleware/auth.js re-reads the role from
  * the database each time, so role changes take effect immediately.
  */
-function createToken(userId) {
+function createAccessToken(userId) {
   return jwt.sign(
     { id: userId }, // the "payload" - what's inside the token
     process.env.JWT_SECRET, // the secret that signs it (keep this safe!)
-    { expiresIn: process.env.JWT_EXPIRES_IN || "7d" } // auto-expires
+    // Deliberately short. This used to be 7 days, which meant a stolen
+    // token was good for a week. Now a stolen one dies in minutes, and
+    // the browser quietly asks for a fresh one using the cookie.
+    { expiresIn: process.env.JWT_EXPIRES_IN || "15m" }
   );
+}
+
+/**
+ * The options used both when SETTING and when CLEARING the refresh
+ * cookie. They must match exactly or the browser will not replace or
+ * remove the cookie - a classic "logout does not log out" bug.
+ */
+function refreshCookieOptions() {
+  const isProduction = process.env.NODE_ENV === "production";
+
+  return {
+    // THE IMPORTANT ONE. httpOnly means document.cookie cannot see it,
+    // so a script injected into our page cannot steal it.
+    httpOnly: true,
+
+    // Only ever sent over HTTPS in production. Left off in development
+    // because localhost is plain http and the cookie would be dropped.
+    secure: isProduction,
+
+    // "strict" means the browser refuses to attach this cookie to any
+    // request that started from another site, which removes CSRF as a
+    // concern for the refresh endpoint.
+    //
+    // If the frontend is ever hosted on a DIFFERENT domain from the
+    // API, this has to become "none" (with secure: true), because
+    // "strict" would block the cookie on the cross-site call. Today
+    // they share a domain, so "strict" is both safe and correct.
+    sameSite: "strict",
+
+    // Limits the cookie to the auth routes. It is pointless sending it
+    // to /api/mandi or /api/receipts, and not sending it is one fewer
+    // place it can leak from (a log, a proxy, a crash dump).
+    path: "/api/auth",
+
+    maxAge: REFRESH_TOKEN_DAYS * 24 * 60 * 60 * 1000,
+  };
+}
+
+/** Refresh tokens are random, not signed - so we hash them for storage. */
+function hashToken(token) {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+/**
+ * Creates a refresh token, records its HASH against the user, and sets
+ * the cookie on the response.
+ *
+ * Called on login, on signup, and on every refresh (rotation).
+ */
+async function issueRefreshToken(user, req, res) {
+  // 64 random bytes. Not a JWT: there is nothing to read inside it and
+  // nothing for an attacker to tamper with. It is simply a long
+  // unguessable string that points at a row in the database.
+  const token = crypto.randomBytes(64).toString("hex");
+
+  await RefreshToken.create({
+    tokenHash: hashToken(token),
+    user: user._id,
+    expiresAt: new Date(Date.now() + REFRESH_TOKEN_DAYS * 24 * 60 * 60 * 1000),
+    userAgent: String(req.headers["user-agent"] || "").slice(0, 200),
+  });
+
+  res.cookie(REFRESH_COOKIE_NAME, token, refreshCookieOptions());
 }
 
 /**
@@ -143,9 +233,15 @@ async function signup(req, res) {
 
     // Log them straight in after signing up, so they don't have to type
     // their password again on the very next screen.
+    //
+    // The refresh token goes out as an HttpOnly cookie; only the
+    // short-lived access token is in the body, and the browser keeps
+    // that in memory alone.
+    await issueRefreshToken(user, req, res);
+
     res.status(201).json({
       message: "Account created successfully",
-      token: createToken(user._id),
+      accessToken: createAccessToken(user._id),
       user: publicUserFields(user),
     });
   } catch (error) {
@@ -199,9 +295,11 @@ async function login(req, res) {
 
     await logActivity(user, "LOGIN", `${user.name} logged in`);
 
+    await issueRefreshToken(user, req, res);
+
     res.status(200).json({
       message: "Logged in successfully",
-      token: createToken(user._id),
+      accessToken: createAccessToken(user._id),
       user: publicUserFields(user),
     });
   } catch (error) {
@@ -213,13 +311,12 @@ async function login(req, res) {
 // ---------------------------------------------------------------------
 // GET /api/auth/me   (protected - needs a valid token)
 //
-// "Who am I?" The frontend calls this when the page is refreshed: the
-// browser still has the token in localStorage, but React's memory was
-// wiped by the reload, so it asks the server to confirm the token is
-// still valid and re-fetch the user's details.
+// "Who am I?" Called after /refresh has handed the tab a new access
+// token, to fill in the user's details.
 //
-// This is ALSO what stops a clever user from editing localStorage to
-// say role:"admin" - the server re-reads the real role from MongoDB.
+// The role in the answer comes straight from MongoDB every time, so
+// there is no stored copy anywhere for a user to tamper with. (There
+// used to be one in localStorage; it is gone - see AuthContext.jsx.)
 // ---------------------------------------------------------------------
 async function getMe(req, res) {
   // `protect` already looked the user up and put them on req.user,
@@ -228,15 +325,102 @@ async function getMe(req, res) {
 }
 
 // ---------------------------------------------------------------------
+// POST /api/auth/refresh   (PUBLIC - no access token needed)
+//
+// This is what keeps a farmer logged in across a page refresh now that
+// nothing is stored in the browser. The tab starts with no token at
+// all, calls this, and the HttpOnly cookie the browser attaches
+// automatically proves who it is.
+//
+// ROTATION: the old refresh token is deleted and a new one issued on
+// every call, so a refresh token is single-use. If one is ever captured
+// and replayed it has almost certainly already been spent, and the
+// replay simply fails.
+//
+// It is deliberately NOT behind `protect` - the whole point is that the
+// caller has no valid access token yet.
+// ---------------------------------------------------------------------
+async function refresh(req, res) {
+  try {
+    const token = req.cookies ? req.cookies[REFRESH_COOKIE_NAME] : null;
+
+    if (!token) {
+      return res.status(401).json({ message: "Not logged in." });
+    }
+
+    const stored = await RefreshToken.findOne({ tokenHash: hashToken(token) });
+
+    // Unknown, already-used, or expired token. Clear the cookie so the
+    // browser stops sending a dead value on every load.
+    if (!stored || stored.expiresAt < new Date()) {
+      if (stored) await RefreshToken.deleteOne({ _id: stored._id });
+      res.clearCookie(REFRESH_COOKIE_NAME, refreshCookieOptions());
+      return res
+        .status(401)
+        .json({ message: "Your session has expired. Please log in again." });
+    }
+
+    const user = await User.findById(stored.user);
+
+    // The account was deleted or deactivated since this session began.
+    // Checked here as well as in `protect`, because this route runs
+    // without `protect`.
+    if (!user || !user.isActive) {
+      await RefreshToken.deleteOne({ _id: stored._id });
+      res.clearCookie(REFRESH_COOKIE_NAME, refreshCookieOptions());
+      return res
+        .status(401)
+        .json({ message: "Your session is no longer valid. Please log in again." });
+    }
+
+    // ---- Rotate: burn the old one, hand out a new one ----
+    await RefreshToken.deleteOne({ _id: stored._id });
+    await issueRefreshToken(user, req, res);
+
+    res.status(200).json({
+      accessToken: createAccessToken(user._id),
+      user: publicUserFields(user),
+    });
+  } catch (error) {
+    console.error("Error refreshing session:", error);
+    res.status(500).json({ message: "Could not refresh your session." });
+  }
+}
+
+// ---------------------------------------------------------------------
 // POST /api/auth/logout   (protected)
 //
-// With JWTs there's nothing to "destroy" on the server - the token
-// lives in the browser, and the browser simply throws it away. So this
-// endpoint exists purely so the admin's activity feed can show logouts.
+// Unlike the old version, this now genuinely ENDS the session: the
+// refresh token row is deleted, so the cookie the browser still holds
+// is worthless the instant this returns. Previously a JWT stayed valid
+// until it expired and there was nothing the server could do about it.
 // ---------------------------------------------------------------------
 async function logout(req, res) {
+  const token = req.cookies ? req.cookies[REFRESH_COOKIE_NAME] : null;
+
+  if (token) {
+    await RefreshToken.deleteOne({ tokenHash: hashToken(token) });
+  }
+
+  res.clearCookie(REFRESH_COOKIE_NAME, refreshCookieOptions());
+
   await logActivity(req.user, "LOGOUT", `${req.user.name} logged out`);
   res.status(200).json({ message: "Logged out successfully" });
 }
 
-module.exports = { signup, login, getMe, logout };
+// ---------------------------------------------------------------------
+// POST /api/auth/logout-all   (protected)
+//
+// Ends EVERY session for this user, on every device. Worth having: if a
+// farmer thinks someone else has been in their account, this is the one
+// button that actually fixes it. It was impossible with the old scheme.
+// ---------------------------------------------------------------------
+async function logoutEverywhere(req, res) {
+  await RefreshToken.deleteMany({ user: req.user._id });
+  res.clearCookie(REFRESH_COOKIE_NAME, refreshCookieOptions());
+
+  await logActivity(req.user, "LOGOUT", `${req.user.name} logged out of all devices`);
+  res.status(200).json({ message: "Logged out of all devices" });
+}
+
+module.exports = { signup, login, getMe, refresh, logout, logoutEverywhere };

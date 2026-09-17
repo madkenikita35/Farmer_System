@@ -30,8 +30,12 @@ async function login() {
     }),
   });
   const body = await response.json();
-  if (!body.token) throw new Error("Could not log in: " + JSON.stringify(body));
-  return body.token;
+  // The login response carries the SHORT-LIVED access token. It used to
+  // be called `token`; it was renamed when the refresh-cookie flow came
+  // in, so that the long-lived credential and this one cannot be
+  // confused. See backend/controllers/authController.js.
+  if (!body.accessToken) throw new Error("Could not log in: " + JSON.stringify(body));
+  return body.accessToken;
 }
 
 async function ask(token, payload) {
@@ -104,6 +108,60 @@ const CASES = [
     },
     expect: (r) => r.intent === "nearest" && r.entities.crop === "Tomato",
     show: (r) => r.reply,
+  },
+  {
+    // REGRESSION GUARD. "nearest Mandi" with no crop named used to hit
+    // the "everything else needs a crop" rule and come back with
+    // "which crop would you like?" - which reads as the assistant
+    // ignoring a perfectly clear question. Nearest is a GEOGRAPHY
+    // question and must be answered from the mandi directory.
+    name: "Bare 'nearest mandi' - no crop - still gets an answer",
+    payload: {
+      transcript: "nearest Mandi",
+      language: "en-IN",
+      confidence: 0.9,
+      lat: 19.9975,
+      lon: 73.7898,
+    },
+    expect: (r) =>
+      r.intent === "nearest" &&
+      r.data &&
+      typeof r.data.mandiName === "string" &&
+      r.data.distanceKm > 0,
+    show: (r) => r.reply,
+    also: (r) =>
+      /which crop would you like to know about/i.test(r.reply)
+        ? "refused to answer and asked for a crop instead"
+        : null,
+  },
+  {
+    // The place slot used to swallow the crop, because " of " is one of
+    // the English place connectors: "price of onion" parsed as
+    // place="onion" and answered "no price for Onion in onion today".
+    name: "'price of onion' - crop must not land in the place slot",
+    payload: {
+      transcript: "what is the price of onion",
+      language: "en-IN",
+      confidence: 0.9,
+    },
+    expect: (r) => r.entities.crop === "Onion" && !r.entities.place,
+    show: (r) => r.reply.slice(0, 95),
+  },
+  {
+    // Hindi and Marathi put the place BEFORE the marker. The extractor
+    // sliced after it, so Hindi returned the tail of the sentence
+    // ("भाव क्या है") and it was geocoded as if it were a town.
+    name: "Hindi postpositional place is read correctly",
+    payload: {
+      transcript: "इंदौर में गेहूं का भाव क्या है",
+      language: "hi-IN",
+      confidence: 0.9,
+    },
+    expect: (r) =>
+      r.language === "hi" &&
+      r.entities.crop === "Wheat" &&
+      r.entities.place === "इंदौर",
+    show: (r) => `place=${r.entities.place} | ${r.reply.slice(0, 60)}`,
   },
   {
     // REGRESSION GUARD. This used to answer a "nearest mandi" question

@@ -200,10 +200,42 @@ const INTENT_KEYWORDS = {
 // Words that mean "in / at <place>", used to split a transcript into the
 // crop part and the place part. Longest first, so "in the" beats "in".
 const PLACE_CONNECTORS = {
-  en: [" in the ", " at the ", " in ", " at ", " of "],
-  hi: [" में ", " मे ", " की ", " का ", " के "],
-  mr: [" मध्ये ", " मधील ", " च्या ", " ची ", " चा "],
+  // English is PREpositional - the place comes AFTER the word:
+  // "price of wheat in Indore", "nearest mandi near Nashik".
+  en: [
+    " in the ", " at the ", " close to ", " nearest to ",
+    " in ", " at ", " of ", " near ", " around ", " by ",
+  ],
 };
+
+// Hindi and Marathi are POSTpositional - the place comes BEFORE the
+// marker: "इंदौर में", "नाशिक जवळ". Slicing AFTER the word, the way
+// English needs, is why these two languages used to return either
+// nothing or the tail of the sentence ("भाव क्या है"), which was then
+// geocoded as though it were the name of a town.
+//
+// Only LOCATIVE markers belong here. The possessive markers का/की/के
+// and चा/ची/च्या used to be in this list, and they are what produced
+// the garbage: in "इंदौर में गेहूं का भाव" the का belongs to the CROP,
+// not to any place.
+const PLACE_MARKERS_AFTER = {
+  hi: ["में", "मे", "पास", "नजदीक", "नज़दीक", "करीब", "आसपास"],
+  mr: [
+    "मध्ये", "मधील", "जवळ", "जवळची", "जवळचा", "जवळचे",
+    "जवळपास", "नजीक", "पासून",
+  ],
+};
+
+// Words that turn up next to a place name but are never part of one.
+// Used when walking backwards from a marker to find the actual name.
+const PLACE_NOISE = [
+  "mandi", "market", "apmc", "district", "state", "the", "a", "me", "my",
+  "भाव", "दर", "किंमत", "काय", "आहे", "क्या", "है", "कितना", "कितनी", "किती",
+  "मंडी", "मंडई", "मंडईत", "मंडईची", "मंडियां", "जिला", "जिल्हा",
+  "कोणती", "कोणत्या", "कौन", "सी", "कुठली", "सबसे", "सर्वात", "माझ्या", "मेरे",
+  // possessive markers - they attach to the crop, not the place
+  "के", "का", "की", "च्या", "ची", "चा",
+];
 
 // ---------------------------------------------------------------------
 // 3. SPOKEN REPLIES
@@ -331,6 +363,8 @@ module.exports = {
   cropDisplayName,
   INTENT_KEYWORDS,
   PLACE_CONNECTORS,
+  PLACE_MARKERS_AFTER,
+  PLACE_NOISE,
   REPLIES,
   VOICE_LANGUAGES,
 };

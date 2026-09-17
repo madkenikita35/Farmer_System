@@ -19,6 +19,7 @@ require("dotenv").config(); // loads variables from .env into process.env
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
+const cookieParser = require("cookie-parser");
 const rateLimit = require("express-rate-limit");
 const path = require("path");
 
@@ -110,6 +111,12 @@ app.use(
 // "limit" stops someone crashing the server by POSTing a 500 MB body.
 // 2mb is generous for our JSON (the OCR raw text can be long).
 app.use(express.json({ limit: "2mb" }));
+
+// --- 3b. cookie-parser: read the refresh-token cookie ---
+// The refresh token lives in an HttpOnly cookie that JavaScript in the
+// browser cannot touch. This is what lets the SERVER read it, as
+// req.cookies.mandi_refresh - see controllers/authController.js.
+app.use(cookieParser());
 
 // --- 4. A general rate limit across the whole API ---
 // The stricter login-specific limit lives in routes/authRoutes.js. This

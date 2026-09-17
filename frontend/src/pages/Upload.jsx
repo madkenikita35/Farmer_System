@@ -16,8 +16,11 @@
 import { useState } from "react";
 import { scanReceiptImage, saveReceipt } from "../api/api";
 import MandiTrendChart from "../components/MandiTrendChart";
+import { useLanguage } from "../context/LanguageContext";
 
 function Upload() {
+  const { t } = useLanguage();
+
   const [stage, setStage] = useState("idle"); // "idle" | "review" | "result"
   const [imageFile, setImageFile] = useState(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
@@ -59,7 +62,7 @@ function Upload() {
 
   async function handleScan() {
     if (!imageFile) {
-      setErrorMessage("Please choose an image first.");
+      setErrorMessage(t("up_err_choose_image"));
       return;
     }
     setErrorMessage("");
@@ -97,9 +100,7 @@ function Upload() {
       setStage("review");
     } catch (error) {
       console.error(error);
-      setErrorMessage(
-        "Could not scan the image. Make sure the backend server is running."
-      );
+      setErrorMessage(t("up_err_scan"));
     } finally {
       setIsLoading(false);
     }
@@ -112,7 +113,7 @@ function Upload() {
 
   async function handleSave() {
     if (!form.crop || !form.pricePerQuintal || !form.quantityInQuintal) {
-      setErrorMessage("Crop, quantity and price are required before saving.");
+      setErrorMessage(t("up_err_required"));
       return;
     }
     setErrorMessage("");
@@ -123,7 +124,7 @@ function Upload() {
       setStage("result");
     } catch (error) {
       console.error(error);
-      setErrorMessage("Could not save the receipt. Please try again.");
+      setErrorMessage(t("up_err_save"));
     } finally {
       setIsLoading(false);
     }
@@ -151,11 +152,8 @@ function Upload() {
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-10 animate-fadeIn">
-      <h1 className="text-2xl font-bold text-ink-900 mb-2">Upload Mandi Receipt</h1>
-      <p className="text-sm text-ink-500 mb-6">
-        Your receipt is compared against government mandi rates AND what other
-        farmers reported - and once saved, it helps other farmers too.
-      </p>
+      <h1 className="text-2xl font-bold text-ink-900 mb-2">{t("up_title")}</h1>
+      <p className="text-sm text-ink-500 mb-6">{t("up_subtitle")}</p>
 
       {errorMessage && (
         <div className="bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-3 mb-4 text-sm">
@@ -169,11 +167,11 @@ function Upload() {
           <label className="block border-2 border-dashed border-gray-300 rounded-xl p-10 text-center cursor-pointer hover:border-brand-green transition-colors">
             <input type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
             {imagePreviewUrl ? (
-              <img src={imagePreviewUrl} alt="Receipt preview" className="max-h-64 mx-auto rounded-lg" />
+              <img src={imagePreviewUrl} alt={t("up_preview_alt")} className="max-h-64 mx-auto rounded-lg" />
             ) : (
               <>
                 <div className="text-4xl mb-2">📷</div>
-                <p className="text-ink-600">Click to choose a receipt photo (.jpg / .png)</p>
+                <p className="text-ink-600">{t("up_choose_photo")}</p>
               </>
             )}
           </label>
@@ -183,7 +181,7 @@ function Upload() {
             disabled={isLoading}
             className="mt-6 w-full bg-primary-gradient text-white font-semibold py-3.5 rounded-2xl shadow-soft hover:scale-[1.01] transition-all disabled:opacity-50"
           >
-            {isLoading ? "Reading receipt..." : "🔍 Scan Receipt"}
+            {isLoading ? t("up_reading") : `🔍 ${t("up_scan_btn")}`}
           </button>
         </div>
       )}
@@ -197,38 +195,43 @@ function Upload() {
           {scanInfo && <ScanQualityBanner scanInfo={scanInfo} />}
 
           <div className="grid sm:grid-cols-2 gap-4">
-            <Field label="Crop" name="crop" value={form.crop} onChange={handleFormChange} placeholder="e.g. Wheat" />
-            <Field label="Mandi Name" name="mandiName" value={form.mandiName} onChange={handleFormChange} placeholder="e.g. Pune Mandi" />
-            <Field label="State (optional)" name="state" value={form.state} onChange={handleFormChange} placeholder="e.g. Maharashtra" />
-            <Field label="Date of Sale" name="date" type="date" value={form.date} onChange={handleFormChange} />
+            <Field label={t("up_label_crop")} name="crop" value={form.crop} onChange={handleFormChange} placeholder={t("up_placeholder_crop")} />
+            <Field label={t("up_label_mandi")} name="mandiName" value={form.mandiName} onChange={handleFormChange} placeholder={t("up_placeholder_mandi")} />
+            <Field label={t("up_label_state")} name="state" value={form.state} onChange={handleFormChange} placeholder={t("cr_placeholder_state")} />
+            <Field label={t("up_label_sale_date")} name="date" type="date" value={form.date} onChange={handleFormChange} />
             <Field
-              label="Quantity (in Quintals)"
+              label={t("up_label_quantity")}
               name="quantityInQuintal"
               type="number"
               value={form.quantityInQuintal}
               onChange={handleFormChange}
-              placeholder="e.g. 5"
+              placeholder={t("up_placeholder_quantity")}
               // Show what was actually printed on the receipt, e.g.
               // "read as 13,400 kg from the receipt" - so the farmer can
               // check our conversion rather than just trusting it.
               hint={
                 scanInfo?.detectedQuantity && scanInfo?.detectedUnit
-                  ? `Read as ${scanInfo.detectedQuantity.toLocaleString("en-IN")} ${scanInfo.detectedUnit} → converted to quintals`
+                  ? t("up_hint_quantity", {
+                      quantity: scanInfo.detectedQuantity.toLocaleString("en-IN"),
+                      unit: scanInfo.detectedUnit,
+                    })
                   : null
               }
             />
             <Field
-              label="Price you got (per Quintal, ₹)"
+              label={t("up_label_price")}
               name="pricePerQuintal"
               type="number"
               value={form.pricePerQuintal}
               onChange={handleFormChange}
-              placeholder="e.g. 1800"
+              placeholder={t("up_placeholder_price")}
               hint={
                 scanInfo?.priceSource === "calculated from the total" && scanInfo?.totalAmount
-                  ? `Worked out from the ₹${scanInfo.totalAmount.toLocaleString("en-IN")} total on the receipt`
+                  ? t("up_hint_price_total", {
+                      total: scanInfo.totalAmount.toLocaleString("en-IN"),
+                    })
                   : scanInfo?.priceSource === "printed on the receipt"
-                  ? "Read directly off the receipt"
+                  ? t("up_hint_price_printed")
                   : null
               }
             />
@@ -236,10 +239,10 @@ function Upload() {
 
           <details className="mt-4">
             <summary className="text-sm text-primary-700 cursor-pointer">
-              View raw text OCR extracted (for debugging)
+              {t("up_raw_text")}
             </summary>
             <pre className="text-xs bg-gray-50 p-3 rounded-lg mt-2 whitespace-pre-wrap">
-              {form.rawOcrText || "(no text detected)"}
+              {form.rawOcrText || t("up_no_text")}
             </pre>
           </details>
 
@@ -248,14 +251,14 @@ function Upload() {
               onClick={handleStartOver}
               className="flex-1 border border-gray-300 text-ink-600 font-semibold py-3 rounded-xl hover:bg-gray-50"
             >
-              Start Over
+              {t("up_start_over")}
             </button>
             <button
               onClick={handleSave}
               disabled={isLoading}
               className="flex-1 bg-primary-gradient text-white font-semibold py-3.5 rounded-2xl shadow-soft hover:scale-[1.01] transition-all disabled:opacity-50"
             >
-              {isLoading ? "Comparing with mandi prices..." : "✅ Save & Compare Price"}
+              {isLoading ? t("up_comparing") : `✅ ${t("up_save_compare")}`}
             </button>
           </div>
         </div>
@@ -277,27 +280,31 @@ function Upload() {
 // the farmer, and only the app knows which happened.
 // ---------------------------------------------------------------------
 function ScanQualityBanner({ scanInfo }) {
+  const { t } = useLanguage();
+
   const styles = {
-    good: { box: "bg-green-50 border-green-200 text-green-800", icon: "✅", title: "Scanned well" },
-    partial: { box: "bg-amber-50 border-amber-200 text-amber-900", icon: "⚠️", title: "Partly scanned" },
-    poor: { box: "bg-red-50 border-red-200 text-red-800", icon: "❗", title: "Hard to read" },
-    failed: { box: "bg-red-50 border-red-200 text-red-800", icon: "❌", title: "Could not read this image" },
+    good: { box: "bg-green-50 border-green-200 text-green-800", icon: "✅", titleKey: "up_scan_good" },
+    partial: { box: "bg-amber-50 border-amber-200 text-amber-900", icon: "⚠️", titleKey: "up_scan_partial" },
+    poor: { box: "bg-red-50 border-red-200 text-red-800", icon: "❗", titleKey: "up_scan_poor" },
+    failed: { box: "bg-red-50 border-red-200 text-red-800", icon: "❌", titleKey: "up_scan_failed" },
   }[scanInfo.quality] || {
     box: "bg-gray-50 border-gray-200 text-gray-700",
     icon: "ℹ️",
-    title: "Scan complete",
+    titleKey: "up_scan_complete",
   };
 
   return (
     <div className={`rounded-xl border px-4 py-3 mb-5 text-sm ${styles.box}`}>
       <p className="font-semibold mb-1">
-        {styles.icon} {styles.title} - filled in {scanInfo.fieldsFound} of 6 fields
+        {styles.icon}{" "}
+        {t("up_scan_fields", {
+          title: t(styles.titleKey),
+          found: scanInfo.fieldsFound,
+        })}
       </p>
 
       <p className="opacity-80">
-        {scanInfo.quality === "good"
-          ? "Please still glance over the values below before saving."
-          : "Please fill in anything left blank, and check the rest carefully."}
+        {scanInfo.quality === "good" ? t("up_scan_glance") : t("up_scan_check")}
       </p>
 
       {/* Anything the scanner had to assume, spelled out plainly. */}
@@ -341,6 +348,17 @@ function Field({ label, name, value, onChange, type = "text", placeholder, hint 
 
 // The verdict banner + comparison chart shown after saving a receipt.
 function ResultView({ receipt, onStartOver }) {
+  const { t, tPlural } = useLanguage();
+
+  // The verdict arrives from the backend in English and is stored that
+  // way. We keep the stored value and translate only what is drawn.
+  const VERDICT_KEYS = {
+    "Fair Price": "verdict_fair_price",
+    Underpaid: "verdict_underpaid",
+    Overpaid: "verdict_overpaid",
+    "No Data": "verdict_no_data",
+  };
+
   const verdictColors = {
     "Fair Price": "bg-green-50 text-green-800 border-green-200",
     Underpaid: "bg-red-50 text-red-800 border-red-200",
@@ -353,15 +371,19 @@ function ResultView({ receipt, onStartOver }) {
   // or the government API had nothing for this crop/date).
   const dataSourceInfo = {
     "real-exact-date": {
-      label: `✅ Real government data (${receipt.matchedMarketDate || "matching date"})`,
+      label: `✅ ${t("up_src_real", {
+        date: receipt.matchedMarketDate || t("up_matching_date"),
+      })}`,
       className: "text-green-700",
     },
     "real-nearest-date": {
-      label: `✅ Real government data (closest available date: ${receipt.matchedMarketDate || "-"})`,
+      label: `✅ ${t("up_src_real_nearest", {
+        date: receipt.matchedMarketDate || "-",
+      })}`,
       className: "text-green-700",
     },
     mock: {
-      label: "⚠️ Sample/mock data (no real match found - add a MANDI_API_KEY for live prices)",
+      label: `⚠️ ${t("up_src_mock")}`,
       className: "text-amber-700",
     },
   }[receipt.dataSource] || null;
@@ -369,12 +391,14 @@ function ResultView({ receipt, onStartOver }) {
   return (
     <div className="bg-white rounded-2xl shadow-soft p-8 border border-surface-300/60">
       <div className={`rounded-xl border p-5 mb-6 ${verdictColors[receipt.verdict]}`}>
-        <p className="text-sm uppercase tracking-wide opacity-70 mb-1">Result</p>
-        <p className="text-2xl font-bold mb-1">{receipt.verdict}</p>
+        <p className="text-sm uppercase tracking-wide opacity-70 mb-1">{t("up_result")}</p>
+        <p className="text-2xl font-bold mb-1">{t(VERDICT_KEYS[receipt.verdict] || "verdict_no_data")}</p>
         {receipt.blendedAveragePrice && (
           <p className="text-sm">
-            You got ₹{receipt.pricePerQuintal}/quintal, blended market average is ₹
-            {receipt.blendedAveragePrice}/quintal
+            {t("up_result_line", {
+              price: receipt.pricePerQuintal,
+              average: receipt.blendedAveragePrice,
+            })}
             {receipt.priceDifferencePercent != null && (
               <> ({receipt.priceDifferencePercent > 0 ? "+" : ""}{receipt.priceDifferencePercent}%)</>
             )}
@@ -385,12 +409,24 @@ function ResultView({ receipt, onStartOver }) {
         {/* Breaking the blended number down into its two ingredients,
             so the farmer can see exactly what it's based on. */}
         <div className="flex flex-wrap gap-4 mt-2 text-xs">
-          <span>🏛️ Government avg: {receipt.marketAveragePrice ? `₹${receipt.marketAveragePrice}` : "no data"}</span>
           <span>
-            🧑‍🌾 Farmer-reported avg:{" "}
-            {receipt.communityAveragePrice
-              ? `₹${receipt.communityAveragePrice} (${receipt.communityReportCount} report${receipt.communityReportCount === 1 ? "" : "s"})`
-              : "no reports yet"}
+            🏛️{" "}
+            {t("up_gov_avg_inline", {
+              value: receipt.marketAveragePrice
+                ? `₹${receipt.marketAveragePrice}`
+                : t("common_no_data"),
+            })}
+          </span>
+          <span>
+            🧑‍🌾{" "}
+            {t("up_farmer_avg_inline", {
+              value: receipt.communityAveragePrice
+                ? `₹${receipt.communityAveragePrice} (${tPlural(
+                    "report_count",
+                    receipt.communityReportCount
+                  )})`
+                : t("up_no_reports_yet"),
+            })}
           </span>
         </div>
 
@@ -400,7 +436,10 @@ function ResultView({ receipt, onStartOver }) {
       </div>
 
       <h3 className="font-semibold text-ink-900 mb-2">
-        Government price of "{receipt.crop}" across mandis on {receipt.date || "the sale date"}
+        {t("up_gov_price_across", {
+          crop: receipt.crop,
+          date: receipt.date || t("up_the_sale_date"),
+        })}
       </h3>
       <MandiTrendChart data={receipt.comparisonData} />
 
@@ -408,7 +447,7 @@ function ResultView({ receipt, onStartOver }) {
         onClick={onStartOver}
         className="mt-6 w-full bg-brand-navy hover:opacity-90 text-white font-semibold py-3 rounded-xl"
       >
-        Upload Another Receipt
+        {t("up_upload_another")}
       </button>
     </div>
   );

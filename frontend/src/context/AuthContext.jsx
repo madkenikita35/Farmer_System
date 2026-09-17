@@ -7,33 +7,36 @@
 //     const { currentUser, isAdmin, login, logout } = useAuth();
 //
 // ---------------------------------------------------------------------
-// WHAT CHANGED FROM THE OLD VERSION (worth reading)
+// NOTHING ABOUT THE USER IS STORED IN THE BROWSER
 // ---------------------------------------------------------------------
-// This used to be a fake login that stored PLAIN TEXT passwords in the
-// browser's localStorage. It's now wired to the real backend:
+// This file used to write the whole user record - name, email, phone,
+// role - into localStorage under "mandi_current_user", and api.js
+// stored the token next to it. Two things were wrong with that:
 //
-//   - Passwords are sent to the server and checked against a bcrypt
-//     hash. We never store a password in the browser at all.
-//   - The server sends back a TOKEN, which api.js attaches to every
-//     future request automatically.
-//   - The server also sends back the user's ROLE ("farmer" or "admin"),
-//     which is what makes role-based access work.
+//   1. localStorage is readable by ANY script on the page, so a single
+//      XSS bug leaked the token AND a tidy bundle of personal data.
+//   2. It sat on disk after the browser closed, on a device that may
+//      well be shared.
+//
+// Now:
+//   - The user object lives in React state below. It is gone on reload.
+//   - The access token lives in a variable in api.js. Also gone.
+//   - The only thing that survives a reload is the refresh cookie,
+//     which is HttpOnly - JavaScript cannot read it, so XSS cannot
+//     steal it.
+//
+// On load we call /auth/refresh. The cookie proves who we are, the
+// server returns a fresh access token plus the user, and we are back
+// where we were - without ever having written anything down.
 //
 // ---------------------------------------------------------------------
-// ABOUT `isAdmin` - AN IMPORTANT NOTE ON SECURITY
+// ABOUT `isAdmin`
 // ---------------------------------------------------------------------
-// We keep the user (including their role) in localStorage so a page
-// refresh doesn't log you out. A clever user COULD open dev-tools and
-// edit that stored role to "admin".
-//
-// That would let them see the admin PAGE shell - and absolutely nothing
-// else, because every admin API route is guarded server-side by
-// `adminOnly` (backend/middleware/auth.js). They'd get a wall of 403
-// errors and an empty screen.
-//
-// On top of that, `refreshUser()` below re-asks the server "who am I?"
-// every time the app loads, and overwrites the stored user with the
-// real answer - so a tampered role gets corrected within a second.
+// The role now comes from the server on every load and is never
+// persisted, so there is no stored value for anyone to edit. (Before,
+// someone could set role:"admin" in dev-tools and see the admin page
+// shell - useless, because every admin route is guarded server-side by
+// `adminOnly`, but it looked alarming.)
 //
 // THE RULE TO REMEMBER: frontend role checks are for CONVENIENCE
 // (showing the right menu, redirecting to the right page). The BACKEND
@@ -45,24 +48,23 @@ import {
   loginRequest,
   signupRequest,
   logoutRequest,
-  getMeRequest,
-  saveToken,
-  getToken,
-  clearToken,
+  logoutEverywhereRequest,
+  refreshRequest,
+  setAccessToken,
+  clearAccessToken,
+  purgeLegacyStorage,
 } from "../api/api";
 
 const AuthContext = createContext(null);
 
-const USER_KEY = "mandi_current_user";
-
 export function AuthProvider({ children }) {
-  // The logged-in user, or null. We read localStorage for the INITIAL
-  // value so that a page refresh doesn't flash "logged out" for a
-  // moment before the server confirms who we are.
-  const [currentUser, setCurrentUser] = useState(() => {
-    const raw = localStorage.getItem(USER_KEY);
-    return raw ? JSON.parse(raw) : null;
-  });
+  // The logged-in user, or null.
+  //
+  // It starts as null on EVERY load - there is deliberately no stored
+  // copy to seed it from any more. `isCheckingAuth` below is what stops
+  // that null being mistaken for "logged out" while /auth/refresh is
+  // still in flight.
+  const [currentUser, setCurrentUser] = useState(null);
 
   // "Are we still checking whether the saved token is valid?"
   // This matters a lot: without it, ProtectedRoute would see
@@ -72,40 +74,39 @@ export function AuthProvider({ children }) {
 
   // ---- Runs ONCE when the app first loads ----
   useEffect(() => {
-    async function checkSavedLogin() {
-      const token = getToken();
-
-      // No token saved? Then nobody is logged in. Nothing to check.
-      if (!token) {
-        setCurrentUser(null);
-        setIsCheckingAuth(false);
-        return;
-      }
+    async function restoreSession() {
+      // Clear out the token and user record the OLD version of this app
+      // left on this device, plus stale keys from another app that
+      // shared this dev origin. One-time cleanup - see api.js.
+      purgeLegacyStorage();
 
       try {
-        // Ask the server to confirm the token is still valid and tell
-        // us who it belongs to. This is also what corrects a tampered
-        // role in localStorage - see the long note at the top.
-        const response = await getMeRequest();
+        // The browser attaches the HttpOnly refresh cookie by itself.
+        // If it is valid we get a new access token and the user back;
+        // if there is no cookie the server answers 401 and we simply
+        // stay logged out.
+        const response = await refreshRequest();
+        setAccessToken(response.data.accessToken);
         setCurrentUser(response.data.user);
-        localStorage.setItem(USER_KEY, JSON.stringify(response.data.user));
       } catch (error) {
-        // Token expired, or the account was deleted/deactivated.
-        clearToken();
-        localStorage.removeItem(USER_KEY);
+        // No cookie, expired, or the account was deactivated.
+        clearAccessToken();
         setCurrentUser(null);
       } finally {
         setIsCheckingAuth(false);
       }
     }
 
-    checkSavedLogin();
+    restoreSession();
   }, []); // the empty [] means "only run this on first load"
 
   // A small helper so login() and signup() don't repeat themselves.
-  function storeSession(token, user) {
-    saveToken(token);
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
+  //
+  // Note what it does NOT do any more: write to localStorage. The token
+  // goes into a variable in api.js, the user into React state, and the
+  // refresh cookie was already set by the server on the response.
+  function storeSession(accessToken, user) {
+    setAccessToken(accessToken);
     setCurrentUser(user);
   }
 
@@ -116,8 +117,8 @@ export function AuthProvider({ children }) {
   async function signup({ name, email, password, phone, state }) {
     try {
       const response = await signupRequest({ name, email, password, phone, state });
-      const { token, user } = response.data;
-      storeSession(token, user);
+      const { accessToken, user } = response.data;
+      storeSession(accessToken, user);
       return { success: true, user };
     } catch (error) {
       return {
@@ -142,8 +143,8 @@ export function AuthProvider({ children }) {
   async function login({ email, password }) {
     try {
       const response = await loginRequest({ email, password });
-      const { token, user } = response.data;
-      storeSession(token, user);
+      const { accessToken, user } = response.data;
+      storeSession(accessToken, user);
       return { success: true, user };
     } catch (error) {
       return {
@@ -163,12 +164,34 @@ export function AuthProvider({ children }) {
   // ---------------------------------------------------------------
   async function logout() {
     try {
+      // This one matters now. The server deletes the refresh-token row
+      // and clears the cookie, so the session is genuinely dead rather
+      // than just forgotten by this tab.
       await logoutRequest();
     } catch (error) {
       // Ignored on purpose - see the comment above.
     } finally {
-      clearToken();
-      localStorage.removeItem(USER_KEY);
+      clearAccessToken();
+      purgeLegacyStorage();
+      setCurrentUser(null);
+    }
+  }
+
+  // ---------------------------------------------------------------
+  // logoutEverywhere - ends every session on every device.
+  //
+  // The one thing to reach for if a farmer thinks someone else has
+  // been in their account.
+  // ---------------------------------------------------------------
+  async function logoutEverywhere() {
+    try {
+      await logoutEverywhereRequest();
+    } catch (error) {
+      // Same reasoning as logout(): never trap someone in a
+      // logged-in state because the network failed.
+    } finally {
+      clearAccessToken();
+      purgeLegacyStorage();
       setCurrentUser(null);
     }
   }
@@ -184,6 +207,7 @@ export function AuthProvider({ children }) {
     signup,
     login,
     logout,
+    logoutEverywhere,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

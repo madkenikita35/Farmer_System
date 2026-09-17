@@ -76,15 +76,48 @@ export function LanguageProvider({ children }) {
    * an otherwise Marathi page can still use the app; a farmer seeing
    * "hero_title" cannot.
    */
-  function t(key) {
+  function t(key, values) {
     const activeSet = translations[effectiveLanguage] || translations[DEFAULT_LANGUAGE];
-    return activeSet[key] ?? translations[DEFAULT_LANGUAGE][key] ?? key;
+    const text = activeSet[key] ?? translations[DEFAULT_LANGUAGE][key] ?? key;
+
+    // No placeholders to fill in - the common case.
+    if (!values) return text;
+
+    // Sentences that need a number or a name dropped into them are
+    // written with {braces}, e.g.
+    //
+    //     mandis_ranked: "See all {count} mandis, best price first"
+    //     t("mandis_ranked", { count: 42 })
+    //
+    // Doing it this way rather than gluing strings together in the page
+    // matters: every language puts the number in a different place in
+    // the sentence, and only the translator can decide where.
+    return String(text).replace(/\{(\w+)\}/g, (whole, name) =>
+      values[name] === undefined || values[name] === null ? whole : String(values[name])
+    );
+  }
+
+  /**
+   * Picks between a singular and a plural sentence.
+   *
+   *     tPlural("farmer_reports", count)
+   *
+   * looks up "farmer_reports_one" when count is 1 and
+   * "farmer_reports_many" otherwise, and fills in {count} for you.
+   * English "1 report / 2 reports" was being built with a ternary in
+   * the page, which cannot work for languages that form plurals
+   * differently.
+   */
+  function tPlural(baseKey, count, values) {
+    const suffix = Number(count) === 1 ? "_one" : "_many";
+    return t(baseKey + suffix, { count, ...(values || {}) });
   }
 
   const value = {
     language: effectiveLanguage,
     setLanguage,
     t,
+    tPlural,
     // The list the navbar dropdown builds itself from.
     languages: LANGUAGES,
     // Lets the navbar hide the language picker entirely for admins.
@@ -95,7 +128,7 @@ export function LanguageProvider({ children }) {
 }
 
 // A small helper hook so components can do:
-//   const { t, language, setLanguage } = useLanguage();
+//   const { t, tPlural, language, setLanguage } = useLanguage();
 export function useLanguage() {
   return useContext(LanguageContext);
 }

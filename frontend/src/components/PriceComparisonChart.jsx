@@ -6,6 +6,7 @@
 // that works by wrapping simple components around your data array.
 // -----------------------------------------------------------------------
 
+import { useLanguage } from "../context/LanguageContext";
 import {
   BarChart,
   Bar,
@@ -20,6 +21,8 @@ import {
 // `data` looks like:
 // [{ name: "Wheat (12/5/2025)", pricePaid: 1800, marketAverage: 2000, communityAverage: 1900 }, ...]
 function PriceComparisonChart({ data }) {
+  const { t } = useLanguage();
+
   if (!data || data.length === 0) {
     return (
       <p className="text-ink-500 text-sm">
@@ -43,9 +46,9 @@ function PriceComparisonChart({ data }) {
         <YAxis label={{ value: "₹ per Quintal", angle: -90, position: "insideLeft" }} />
         <Tooltip />
         <Legend />
-        <Bar dataKey="pricePaid" name="Price You Got" fill="#1F3B57" radius={[6, 6, 0, 0]} />
-        <Bar dataKey="marketAverage" name="Government Average" fill="#2E7D32" radius={[6, 6, 0, 0]} />
-        <Bar dataKey="communityAverage" name="Farmer-Reported Average" fill="#F59E0B" radius={[6, 6, 0, 0]} />
+        <Bar dataKey="pricePaid" name={t("chart_price_you_got")} fill="#1F3B57" radius={[6, 6, 0, 0]} />
+        <Bar dataKey="marketAverage" name={t("chart_government_avg")} fill="#2E7D32" radius={[6, 6, 0, 0]} />
+        <Bar dataKey="communityAverage" name={t("chart_farmer_avg")} fill="#F59E0B" radius={[6, 6, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );

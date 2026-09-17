@@ -274,9 +274,11 @@ async function answerNearestMandis(res, parsed, say, coords, context) {
       spokenMandiName(closest.mandiName, parsed.language),
       spokenPlaceLabel((closest.district || closest.state || "").trim(), parsed.language),
       numberToWords(Math.round(closest.distanceKm), parsed.language),
-      // Passed as null when nothing is within the radius, so the
-      // template drops the clause instead of saying "zero mandis".
-      nearbyCount > 0 ? numberToWords(nearbyCount, parsed.language) : null,
+      // Null for 0 AND for 1, so the template drops the clause rather
+      // than saying "zero mandis" or "one mandis". All three languages
+      // use a plural noun in that sentence, and when the count is 1 the
+      // clause adds nothing anyway - we just named that one mandi.
+      nearbyCount > 1 ? numberToWords(nearbyCount, parsed.language) : null,
       numberToWords(NEARBY_RADIUS_KM, parsed.language)
     ),
     {

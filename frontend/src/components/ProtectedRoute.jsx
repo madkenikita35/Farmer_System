@@ -32,9 +32,11 @@
 
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const { isLoggedIn, isAdmin, isCheckingAuth } = useAuth();
+  const { t } = useLanguage();
   const location = useLocation();
 
   // ---- CASE 1: we're still asking the server "is this token valid?" ----
@@ -45,7 +47,7 @@ function ProtectedRoute({ children, adminOnly = false }) {
     return (
       <div className="flex flex-col items-center justify-center py-32 text-ink-500">
         <div className="text-4xl mb-3 animate-pulse">🌾</div>
-        <p className="text-sm">Checking your login...</p>
+        <p className="text-sm">{t("common_checking_login")}</p>
       </div>
     );
   }

@@ -19,8 +19,11 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { getMandiList } from "../api/api";
 import StatCard from "../components/StatCard";
+import { useLanguage } from "../context/LanguageContext";
 
 function Mandis() {
+  const { t } = useLanguage();
+
   // What the user has typed / picked
   const [search, setSearch] = useState("");
   const [selectedState, setSelectedState] = useState("");
@@ -55,9 +58,7 @@ function Mandis() {
       setFallbackReason(response.data.fallbackReason || null);
     } catch (error) {
       console.error(error);
-      setErrorMessage(
-        "Could not load the mandi list. Make sure the backend server is running."
-      );
+      setErrorMessage(t("md_err_load"));
     } finally {
       setIsLoading(false);
     }
@@ -76,23 +77,19 @@ function Mandis() {
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-10 animate-fadeIn">
-      <h1 className="text-2xl font-bold text-ink-900 mb-2">🏛️ Mandi Directory</h1>
-      <p className="text-ink-600 mb-6">
-        Every mandi currently reporting prices to the government's Agmarknet
-        dataset. Search for one, then open it to see all the crops it sells
-        and what they're fetching.
-      </p>
+      <h1 className="text-2xl font-bold text-ink-900 mb-2">🏛️ {t("md_title")}</h1>
+      <p className="text-ink-600 mb-6">{t("md_subtitle")}</p>
 
       {/* ---------- Summary cards ---------- */}
       <div className="grid sm:grid-cols-3 gap-4 mb-8">
         <StatCard
           icon="🏛️"
-          label="Total Mandis Registered"
+          label={t("md_total_registered")}
           value={totalMandis}
           tone="primary"
         />
-        <StatCard icon="🔍" label="Matching Your Search" value={matchCount} />
-        <StatCard icon="🗺️" label="States Covered" value={states.length} />
+        <StatCard icon="🔍" label={t("md_matching_search")} value={matchCount} />
+        <StatCard icon="🗺️" label={t("md_states_covered")} value={states.length} />
       </div>
 
       {/* ---------- Search form ---------- */}
@@ -102,19 +99,19 @@ function Mandis() {
       >
         <div className="sm:col-span-2">
           <label className="block text-sm font-medium text-ink-600 mb-1">
-            Search mandi / district
+            {t("md_search_label")}
           </label>
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="e.g. Ratnagiri, Azadpur, Indore"
+            placeholder={t("md_search_placeholder")}
             className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-ink-600 mb-1">State</label>
+          <label className="block text-sm font-medium text-ink-600 mb-1">{t("common_state")}</label>
           {/* A <select> built from the states the backend actually
               returned, so we never offer a state with zero mandis. */}
           <select
@@ -122,7 +119,7 @@ function Mandis() {
             onChange={(e) => setSelectedState(e.target.value)}
             className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
           >
-            <option value="">All states</option>
+            <option value="">{t("common_all_states")}</option>
             {states.map((s) => (
               <option key={s} value={s}>
                 {s}
@@ -137,14 +134,14 @@ function Mandis() {
             disabled={isLoading}
             className="flex-1 bg-brand-green hover:bg-brand-darkgreen text-white font-semibold px-4 py-2 rounded-xl disabled:opacity-50"
           >
-            🔍 Search
+            🔍 {t("common_search")}
           </button>
           <button
             type="button"
             onClick={handleReset}
             className="px-4 py-2 rounded-xl border border-gray-300 text-ink-600 hover:bg-gray-50"
           >
-            Reset
+            {t("common_reset")}
           </button>
         </div>
       </form>
@@ -155,20 +152,16 @@ function Mandis() {
           timed out. */}
       {dataSource === "mock" && (
         <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-4">
-          <p className="font-semibold mb-1">⚠️ Showing a small sample list, not live data.</p>
+          <p className="font-semibold mb-1">⚠️ {t("md_mock_title")}</p>
           <p>
-            {
+            {t(
               {
-                "no-api-key":
-                  "No MANDI_API_KEY is set in the backend's .env file. Add a free key from data.gov.in and restart the backend.",
-                "api-unreachable":
-                  "The government data.gov.in API did not respond in time. Your API key is fine - this is usually a slow connection or the API being busy. The app will retry automatically within 2 minutes, so just press Search again shortly.",
-                "api-returned-nothing":
-                  "The government API responded but had no mandi records to give. This can happen early in the day before mandis report. Try again later.",
-                "unexpected-error":
-                  "Something unexpected went wrong while building the mandi list. Check the backend terminal for the error.",
-              }[fallbackReason] || "Live mandi data could not be loaded right now."
-            }
+                "no-api-key": "md_mock_no_key",
+                "api-unreachable": "md_mock_unreachable",
+                "api-returned-nothing": "md_mock_nothing",
+                "unexpected-error": "md_mock_unexpected",
+              }[fallbackReason] || "md_mock_generic"
+            )}
           </p>
         </div>
       )}
@@ -183,20 +176,13 @@ function Mandis() {
       {isLoading ? (
         <div className="text-center py-16 text-ink-500">
           <div className="text-3xl mb-2 animate-pulse">🌾</div>
-          <p className="text-sm">
-            Loading mandis... the first load takes a few seconds while the
-            government data is fetched.
-          </p>
+          <p className="text-sm">{t("md_loading")}</p>
         </div>
       ) : mandis.length === 0 ? (
         <div className="text-center py-16 text-ink-500 bg-white rounded-2xl border border-gray-100">
           <div className="text-3xl mb-2">🤷</div>
-          <p className="font-medium">No mandis matched your search.</p>
-          <p className="text-sm mt-1">
-            Not every mandi reports every day, so a mandi you know may simply
-            not be in today's data. Try a different name, or Reset to see all{" "}
-            {totalMandis}.
-          </p>
+          <p className="font-medium">{t("md_none_title")}</p>
+          <p className="text-sm mt-1">{t("md_none_text", { total: totalMandis })}</p>
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -212,6 +198,8 @@ function Mandis() {
 // One clickable card per mandi. Pulled out as its own small component
 // so the main list above stays easy to read.
 function MandiCard({ mandi }) {
+  const { t } = useLanguage();
+
   // We pass the mandi name and state along in the URL, because two
   // states can each have a mandi with the same name.
   // encodeURIComponent() makes names with spaces or brackets safe to
@@ -239,15 +227,15 @@ function MandiCard({ mandi }) {
 
       <div className="flex items-center gap-2 text-xs">
         <span className="bg-green-50 text-green-700 px-2 py-1 rounded-full font-medium">
-          {mandi.cropCount} crops
+          {t("md_crop_count", { count: mandi.cropCount })}
         </span>
         {mandi.latestDate && (
-          <span className="text-ink-400">as of {mandi.latestDate}</span>
+          <span className="text-ink-400">{t("md_as_of", { date: mandi.latestDate })}</span>
         )}
       </div>
 
       <p className="text-xs text-primary-700 font-semibold mt-3">
-        View all crops &amp; prices →
+        {t("md_view_all_crops")}
       </p>
     </Link>
   );
