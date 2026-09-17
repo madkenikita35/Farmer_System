@@ -106,6 +106,28 @@ const CASES = [
     show: (r) => r.reply,
   },
   {
+    // REGRESSION GUARD. This used to answer a "nearest mandi" question
+    // with the national highest-price sentence and no hint that it had
+    // switched questions, so it sounded like the assistant was repeating
+    // its answer to the PREVIOUS question. A nearest query must always
+    // come back either with mandis nearby, or explicitly flagged as
+    // "nothing within the radius".
+    name: "Nearest with GPS always answers the NEAREST question",
+    payload: {
+      transcript: "माझ्या सर्वात जवळ कुठली मंडी आहे",
+      language: "mr-IN",
+      confidence: 0.9,
+      lat: 19.9975,
+      lon: 73.7898,
+      context: { crop: "Onion", intent: "highest" },
+    },
+    expect: (r) =>
+      r.intent === "nearest" &&
+      r.data &&
+      (r.data.mandisNearby > 0 || r.data.noneWithinRadius === true),
+    show: (r) => r.reply.slice(0, 110),
+  },
+  {
     name: "Nearest mandi WITHOUT location -> asks for it",
     payload: {
       transcript: "nearest mandi for tomato",

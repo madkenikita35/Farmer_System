@@ -220,6 +220,17 @@ const REPLIES = {
       `The highest price for ${crop} is ${price} rupees per quintal at ${mandi} in ${state}${date ? `, as of ${date}` : ""}.`,
     nearestBest: (crop, mandi, price, km) =>
       `The best nearby price for ${crop} is ${price} rupees per quintal at ${mandi}, about ${km} kilometres away.`,
+    // Used when NO mandi within the radius reported this crop today.
+    // It must say so out loud: quietly answering the "highest price
+    // anywhere" question instead sounds like the assistant replied to
+    // the farmer's PREVIOUS question.
+    noneNearby: (crop, radius, mandi, state, price, km) =>
+      `No mandi within ${radius} kilometres reported ${crop} prices today. The nearest one that did is ${mandi} in ${state}, about ${km} kilometres away, at ${price} rupees per quintal.`,
+    // Answer to a bare "which mandi is nearest?" - no crop named. This
+    // is a GEOGRAPHY question and needs no crop to answer, so answer it
+    // first and ask for the crop afterwards, rather than refusing.
+    nearestMandiList: (mandi, district, km, count, radius) =>
+      `Your nearest mandi is ${mandi} in ${district}, about ${km} kilometres away.${count ? ` There are ${count} mandis within ${radius} kilometres.` : ""} Which crop would you like the price for?`,
     priceAt: (crop, place, price) =>
       `${crop} is selling at about ${price} rupees per quintal in ${place}.`,
     priceAverage: (crop, price, count) =>
@@ -247,6 +258,10 @@ const REPLIES = {
       `${crop} का सबसे ज्यादा भाव ${price} रुपये प्रति क्विंटल है, ${state} की ${mandi} मंडी में${date ? `, ${date} तक` : ""}।`,
     nearestBest: (crop, mandi, price, km) =>
       `आपके पास ${crop} का सबसे अच्छा भाव ${price} रुपये प्रति क्विंटल है, ${mandi} मंडी में, लगभग ${km} किलोमीटर दूर।`,
+    noneNearby: (crop, radius, mandi, state, price, km) =>
+      `आज ${radius} किलोमीटर के भीतर किसी मंडी ने ${crop} का भाव दर्ज नहीं किया। सबसे नजदीकी मंडी जिसने दर्ज किया वह ${state} की ${mandi} मंडी है, लगभग ${km} किलोमीटर दूर, भाव ${price} रुपये प्रति क्विंटल।`,
+    nearestMandiList: (mandi, district, km, count, radius) =>
+      `आपकी सबसे नजदीकी मंडी ${mandi} है, ${district} में, लगभग ${km} किलोमीटर दूर।${count ? ` ${radius} किलोमीटर के भीतर ${count} मंडियां हैं।` : ""} आप किस फसल का भाव जानना चाहते हैं?`,
     priceAt: (crop, place, price) =>
       `${place} में ${crop} लगभग ${price} रुपये प्रति क्विंटल बिक रहा है।`,
     priceAverage: (crop, price, count) =>
@@ -278,6 +293,10 @@ const REPLIES = {
       `${crop} साठी सर्वात जास्त भाव ${price} रुपये प्रति क्विंटल आहे, ${state} मधील ${mandi} मंडईत${date ? `, ${date} पर्यंत` : ""}.`,
     nearestBest: (crop, mandi, price, km) =>
       `तुमच्या जवळ ${crop} साठी सर्वोत्तम भाव ${price} रुपये प्रति क्विंटल आहे, ${mandi} मंडईत, सुमारे ${km} किलोमीटर अंतरावर.`,
+    noneNearby: (crop, radius, mandi, state, price, km) =>
+      `आज ${radius} किलोमीटरच्या आत कोणत्याही मंडईने ${crop} साठी भाव नोंदवला नाही. सर्वात जवळची नोंद ${state} मधील ${mandi} मंडईची आहे, सुमारे ${km} किलोमीटर अंतरावर, भाव ${price} रुपये प्रति क्विंटल.`,
+    nearestMandiList: (mandi, district, km, count, radius) =>
+      `तुमच्या सर्वात जवळची मंडई ${mandi} आहे, ${district} मध्ये, सुमारे ${km} किलोमीटर अंतरावर.${count ? ` ${radius} किलोमीटरच्या आत ${count} मंडया आहेत.` : ""} तुम्हाला कोणत्या पिकाचा भाव हवा?`,
     priceAt: (crop, place, price) =>
       `${place} मध्ये ${crop} अंदाजे ${price} रुपये प्रति क्विंटल विकला जात आहे.`,
     priceAverage: (crop, price, count) =>

@@ -21,7 +21,15 @@
 
 const { parseVoiceQuery } = require("../services/voiceIntentService");
 const { REPLIES, cropDisplayName } = require("../config/voicePhrases");
+const {
+  spokenRupees,
+  spokenDate,
+  spokenState,
+  spokenMandiName,
+  numberToWords,
+} = require("../config/spokenForms");
 const { fetchMandiPrices } = require("../services/mandiApiService");
+const { getMandiDirectory } = require("../services/mandiDirectoryService");
 const {
   distanceInKm,
   findMandiLocation,
@@ -118,6 +126,16 @@ async function handleVoiceQuery(req, res) {
       );
     }
 
+    // ---- "Which mandi is nearest?" needs no crop at all ----
+    // Asked on its own this is a question about GEOGRAPHY, not prices,
+    // and the mandi directory answers it directly. It used to fall into
+    // the "everything else needs a crop" guard below and come back with
+    // "which crop would you like?" - which reads as the assistant
+    // dodging a perfectly clear question.
+    if (parsed.intent === "nearest" && !parsed.crop) {
+      return await answerNearestMandis(res, parsed, say, { lat, lon }, context);
+    }
+
     // ---- Everything else needs a crop ----
     if (!parsed.crop) {
       const reply = parsed.intent === "unknown" ? say.clarify : say.noCrop;
@@ -157,12 +175,16 @@ function answerHighest(res, parsed, say, priced, matchedDate, context) {
   return respond(
     res,
     parsed,
+    // SPOKEN FORMS: every value below is converted to words in the
+    // spoken language before it reaches the sentence. Feeding raw
+    // "11,250" and "16/09/2026" to SpeechSynthesis made the engine drop
+    // out of Marathi to read them. See config/spokenForms.js.
     say.highestPrice(
       cropDisplayName(parsed.crop, parsed.language),
-      best.market,
-      best.state,
-      best.modalPrice.toLocaleString("en-IN"),
-      matchedDate
+      spokenMandiName(best.market, parsed.language),
+      spokenState(best.state, parsed.language),
+      spokenRupees(best.modalPrice, parsed.language),
+      spokenDate(matchedDate, parsed.language)
     ),
     {
       crop: parsed.crop,
@@ -181,21 +203,39 @@ function answerHighest(res, parsed, say, priced, matchedDate, context) {
 }
 
 // ---------------------------------------------------------------------
-// INTENT: best price near me
+// Where is the farmer standing?
 // ---------------------------------------------------------------------
-async function answerNearest(res, parsed, say, priced, coords, context) {
-  // Work out where the farmer is: GPS if the browser gave it to us,
-  // otherwise a place name they spoke ("near Nashik").
-  let origin = null;
-
+/**
+ * GPS if the browser gave it to us, otherwise a place name they spoke
+ * ("near Nashik"). Returns null when we have neither, which the callers
+ * turn into "please allow location access, or tell me your district".
+ */
+async function resolveOrigin(coords, parsed) {
   const latNumber = Number(coords.lat);
   const lonNumber = Number(coords.lon);
   if (Number.isFinite(latNumber) && Number.isFinite(lonNumber)) {
-    origin = { lat: latNumber, lon: lonNumber };
-  } else if (parsed.place || parsed.state) {
-    const found = await geocodePlace(parsed.place || parsed.state);
-    if (found) origin = { lat: found.lat, lon: found.lon };
+    return { lat: latNumber, lon: lonNumber };
   }
+
+  if (parsed.place || parsed.state) {
+    const found = await geocodePlace(parsed.place || parsed.state);
+    if (found) return { lat: found.lat, lon: found.lon };
+  }
+
+  return null;
+}
+
+// ---------------------------------------------------------------------
+// INTENT: nearest mandi, no crop named
+// ---------------------------------------------------------------------
+/**
+ * Answers "which mandi is nearest to me?" on its own terms, from the
+ * mandi directory rather than the price feed - no crop needed. It then
+ * asks which crop they want, so the conversation carries on naturally
+ * into a price question.
+ */
+async function answerNearestMandis(res, parsed, say, coords, context) {
+  const origin = await resolveOrigin(coords, parsed);
 
   if (!origin) {
     return respond(res, parsed, say.needLocation, null, context, {
@@ -204,22 +244,139 @@ async function answerNearest(res, parsed, say, priced, coords, context) {
     });
   }
 
-  // Put every priced mandi on the map and keep the ones within reach.
-  const withDistance = [];
+  const directory = await getMandiDirectory();
+
+  const located = [];
+  for (const mandi of directory.mandis || []) {
+    const location = findMandiLocation(mandi.state, mandi.district);
+    if (!location) continue;
+    located.push({
+      ...mandi,
+      distanceKm: Math.round(distanceInKm(origin, location) * 10) / 10,
+    });
+  }
+
+  if (located.length === 0) {
+    // We could not place a single mandi on the map, so there is no
+    // honest distance to give. Fall back to the old behaviour of asking
+    // for the crop.
+    return respond(res, parsed, say.noCrop, null, context, { needsClarification: true });
+  }
+
+  located.sort((a, b) => a.distanceKm - b.distanceKm);
+  const closest = located[0];
+  const nearbyCount = located.filter((m) => m.distanceKm <= NEARBY_RADIUS_KM).length;
+
+  return respond(
+    res,
+    parsed,
+    say.nearestMandiList(
+      spokenMandiName(closest.mandiName, parsed.language),
+      spokenPlaceLabel((closest.district || closest.state || "").trim(), parsed.language),
+      numberToWords(Math.round(closest.distanceKm), parsed.language),
+      // Passed as null when nothing is within the radius, so the
+      // template drops the clause instead of saying "zero mandis".
+      nearbyCount > 0 ? numberToWords(nearbyCount, parsed.language) : null,
+      numberToWords(NEARBY_RADIUS_KM, parsed.language)
+    ),
+    {
+      mandiName: closest.mandiName,
+      district: closest.district,
+      state: closest.state,
+      distanceKm: closest.distanceKm,
+      radiusKm: NEARBY_RADIUS_KM,
+      mandisNearby: nearbyCount,
+      cropCount: closest.cropCount,
+      // The next few, so the screen can show a short ranked list.
+      alternatives: located.slice(1, 4).map((m) => ({
+        mandiName: m.mandiName,
+        district: m.district,
+        state: m.state,
+        distanceKm: m.distanceKm,
+      })),
+    },
+    context,
+    { mandi: closest.mandiName, needsClarification: true }
+  );
+}
+
+// ---------------------------------------------------------------------
+// INTENT: best price near me
+// ---------------------------------------------------------------------
+async function answerNearest(res, parsed, say, priced, coords, context) {
+  const origin = await resolveOrigin(coords, parsed);
+
+  if (!origin) {
+    return respond(res, parsed, say.needLocation, null, context, {
+      needsClarification: true,
+      needsLocation: true,
+    });
+  }
+
+  // Put every priced mandi we can locate on the map. Mandis whose
+  // district we have no coordinates for are skipped - we cannot honestly
+  // say how far away they are.
+  const located = [];
   for (const price of priced) {
     const location = findMandiLocation(price.state, price.district);
     if (!location) continue;
 
     const km = distanceInKm(origin, location);
-    if (km <= NEARBY_RADIUS_KM) {
-      withDistance.push({ ...price, distanceKm: Math.round(km * 10) / 10 });
-    }
+    located.push({ ...price, distanceKm: Math.round(km * 10) / 10 });
   }
 
+  const withDistance = located.filter((m) => m.distanceKm <= NEARBY_RADIUS_KM);
+
   if (withDistance.length === 0) {
-    // Nothing nearby today - fall back to the national best, which is
-    // still useful, rather than leaving them with nothing.
-    return answerHighest(res, parsed, say, priced, null, context);
+    // Nothing within the radius today. This happens often and for a real
+    // reason: the government feed only carries the mandis that reported
+    // that day, and whole states are frequently absent.
+    //
+    // This branch used to answer with the national best price and say
+    // nothing about having done so. The farmer asked "which mandi is
+    // nearest to me" and heard a highest-price sentence about a state
+    // 900 km away - indistinguishable from the assistant repeating the
+    // answer to their PREVIOUS question. That was the bug.
+    //
+    // Now we say plainly that nothing is nearby, then answer the
+    // question actually asked: the nearest mandi that DID report, with
+    // its real distance.
+    if (located.length === 0) {
+      // Not one mandi in today's data has a district we hold
+      // coordinates for, so no distance can be given at all. The
+      // national best is the only thing left to offer.
+      return answerHighest(res, parsed, say, priced, null, context);
+    }
+
+    const closest = located.reduce((a, b) => (b.distanceKm < a.distanceKm ? b : a));
+
+    return respond(
+      res,
+      parsed,
+      say.noneNearby(
+        cropDisplayName(parsed.crop, parsed.language),
+        numberToWords(NEARBY_RADIUS_KM, parsed.language),
+        spokenMandiName(closest.market, parsed.language),
+        spokenState(closest.state, parsed.language),
+        spokenRupees(closest.modalPrice, parsed.language),
+        numberToWords(Math.round(closest.distanceKm), parsed.language)
+      ),
+      {
+        crop: parsed.crop,
+        mandiName: closest.market,
+        district: closest.district,
+        state: closest.state,
+        modalPrice: closest.modalPrice,
+        distanceKm: closest.distanceKm,
+        radiusKm: NEARBY_RADIUS_KM,
+        mandisNearby: 0,
+        // Tells the screen (and anyone reading the JSON) that this is a
+        // "nothing nearby" answer, not a normal nearest-mandi one.
+        noneWithinRadius: true,
+      },
+      context,
+      { mandi: closest.market }
+    );
   }
 
   const best = withDistance.reduce((a, b) => (b.modalPrice > a.modalPrice ? b : a));
@@ -229,9 +386,9 @@ async function answerNearest(res, parsed, say, priced, coords, context) {
     parsed,
     say.nearestBest(
       cropDisplayName(parsed.crop, parsed.language),
-      best.market,
-      best.modalPrice.toLocaleString("en-IN"),
-      Math.round(best.distanceKm)
+      spokenMandiName(best.market, parsed.language),
+      spokenRupees(best.modalPrice, parsed.language),
+      numberToWords(Math.round(best.distanceKm), parsed.language)
     ),
     {
       crop: parsed.crop,
@@ -292,7 +449,11 @@ function answerPriceAtPlace(res, parsed, say, priced, context) {
   return respond(
     res,
     parsed,
-    say.priceAt(cropDisplayName(parsed.crop, parsed.language), placeLabel, average.toLocaleString("en-IN")),
+    say.priceAt(
+      cropDisplayName(parsed.crop, parsed.language),
+      spokenPlaceLabel(placeLabel, parsed.language),
+      spokenRupees(average, parsed.language)
+    ),
     {
       crop: parsed.crop,
       place: placeLabel,
@@ -308,6 +469,18 @@ function answerPriceAtPlace(res, parsed, say, priced, context) {
     context,
     { mandi: matches[0].market }
   );
+}
+
+/**
+ * A spoken place label. It may be a mandi name we matched, or the words
+ * the farmer said ("Indore"), so we try the state list first and fall
+ * back to mandi-name cleanup.
+ */
+function spokenPlaceLabel(label, language) {
+  if (!label || language === "en") return label;
+  const asState = spokenState(label, language);
+  if (asState !== label) return asState;
+  return spokenMandiName(label, language);
 }
 
 // ---------------------------------------------------------------------
