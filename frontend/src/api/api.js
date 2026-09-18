@@ -324,6 +324,74 @@ export function getMandiList(search, state) {
 
 // Every crop sold in ONE mandi, with the government price AND what our
 // own farmers reported paying there.
+// How many mandis list each crop today - the data behind the two
+// charts on the Mandi Directory page.
+//
+// NOTE this counts LISTINGS, not arrival quantity. The government price
+// feed carries no quantity field, so arrivals cannot be charted from
+// it. See the comment in components/CropCoverageCharts.jsx.
+// ---------------------------------------------------------------------
+// CEDA AGMARKNET  -  real price history
+//
+// The Centre for Economic Data & Analysis (Ashoka University) serves the
+// same Agmarknet data as data.gov.in but WITH HISTORY, which is what
+// makes a price trend possible at all. data.gov.in only ever holds a
+// single day.
+//
+// Showing this data obliges us to credit CEDA - see
+// components/CedaAttribution.jsx.
+// ---------------------------------------------------------------------
+
+// Every crop CEDA knows about (453 of them at the time of writing).
+export function getCedaCrops() {
+  return api.get("/crops");
+}
+
+// States and districts, for the trend page dropdowns.
+export function getCedaLocations() {
+  return api.get("/locations");
+}
+
+// The line itself. `level` is "country", "state" or "city" (a district).
+export function getCedaPriceTrend({ cropName, level = "country", location = "", from = "", to = "" }) {
+  return api.get(`/crops/${encodeURIComponent(cropName)}/price-trend`, {
+    params: { level, location, from, to },
+  });
+}
+
+// ---------------------------------------------------------------------
+// CROP PRICE TRENDS (over time)
+//
+// These read our own farmers' receipts, not the government feed - the
+// feed is a single-day snapshot and has no history to trend. See
+// backend/services/priceTrendService.js.
+// ---------------------------------------------------------------------
+
+// Every crop we hold price history for, for the /crops list page.
+export function getCropsWithTrends() {
+  return api.get("/prices/crops");
+}
+
+// The line itself: average price per date for one crop.
+// `level` is "city" (a mandi), "state", or "country".
+export function getPriceTrend({ crop, level = "country", location = "", from = "", to = "" }) {
+  return api.get("/prices/trend", {
+    params: { crop, level, location, from, to },
+  });
+}
+
+// The crop names the GOVERNMENT feed carries today, for the crop
+// dropdowns. Deliberately not the CEDA list: these pages search
+// data.gov.in, and offering a crop it does not carry would give a
+// dropdown where some choices silently return nothing.
+export function getMandiCropNames() {
+  return api.get("/mandi/crop-names");
+}
+
+export function getCropCoverage(limit = 10) {
+  return api.get("/mandi/crop-coverage", { params: { limit } });
+}
+
 export function getMandiCrops(mandi, state) {
   const params = new URLSearchParams({ mandi });
   if (state) params.append("state", state);

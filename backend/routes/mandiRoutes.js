@@ -15,6 +15,8 @@ const {
   comparePrices,
   listMandis,
   getMandiCrops,
+  getCropCoverageChart,
+  listCropNames,
 } = require("../controllers/mandiController");
 const { getNearbyMandis } = require("../controllers/nearbyController");
 
@@ -38,6 +40,20 @@ router.get("/list", listMandis);
 // GET /api/mandi/crops?mandi=Pune&state=Maharashtra
 // Every crop sold in one mandi, with both data sources' prices.
 router.get("/crops", getMandiCrops);
+
+// GET /api/mandi/crop-coverage - how many mandis list each crop today.
+// Feeds the "most listed / least listed" charts on the Mandis page.
+router.get("/crop-coverage", getCropCoverageChart);
+
+// GET /api/mandi/crop-names - the crop names the government feed
+// carries today, for the crop dropdowns on Near Me and Check Rates.
+//
+// NOT "/crops": that path is already taken by getMandiCrops above,
+// which lists the crops in ONE mandi and needs a ?mandi= parameter.
+// Express matches routes in declaration order, so a second "/crops"
+// here was simply never reached - every call fell into the first
+// handler and came back 400 "no mandi specified".
+router.get("/crop-names", listCropNames);
 
 // GET /api/mandi/nearby?crop=Onion&lat=19.99&lon=73.78
 // GET /api/mandi/nearby?crop=Onion&place=Nashik

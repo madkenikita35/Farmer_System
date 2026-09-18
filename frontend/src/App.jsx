@@ -49,6 +49,8 @@ import Dashboard from "./pages/Dashboard";
 import Mandis from "./pages/Mandis";
 import MandiDetail from "./pages/MandiDetail";
 import NearbyMandis from "./pages/NearbyMandis";
+import CropsList from "./pages/CropsList";
+import CropTrend from "./pages/CropTrend";
 
 // Public pages
 import Login from "./pages/Login";
@@ -138,6 +140,26 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <MandiDetail />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Crop price trends over time: the list of crops, and
+                  one crop's line graph. Both are farmer-facing, so they
+                  sit in the logged-in block rather than the admin one. */}
+              <Route
+                path="/crops"
+                element={
+                  <ProtectedRoute>
+                    <CropsList />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/crops/:cropName"
+                element={
+                  <ProtectedRoute>
+                    <CropTrend />
                   </ProtectedRoute>
                 }
               />

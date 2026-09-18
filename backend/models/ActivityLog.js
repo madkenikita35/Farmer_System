@@ -57,6 +57,7 @@ const activityLogSchema = new mongoose.Schema(
         "CHECK_RATES",
         "SEARCH_MANDI",
         "VIEW_MANDI",
+        "VIEW_TREND",
       ],
       required: true,
     },

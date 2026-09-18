@@ -30,6 +30,8 @@ const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const receiptRoutes = require("./routes/receiptRoutes");
 const mandiRoutes = require("./routes/mandiRoutes");
+const trendRoutes = require("./routes/trendRoutes");
+const cedaRoutes = require("./routes/cedaRoutes");
 const voiceRoutes = require("./routes/voiceRoutes");
 
 // Refuse to boot on placeholder secrets in production - see the file.
@@ -169,6 +171,16 @@ app.use("/api/auth", authRoutes);
 // so they all require a valid login token. Open any of them to see.
 app.use("/api/receipts", receiptRoutes);
 app.use("/api/mandi", mandiRoutes);
+
+// Crop price trends over time, built from our farmers' receipts.
+// (The government feed cannot serve this - it is a single-day
+// snapshot. See services/priceTrendService.js for the details.)
+app.use("/api/prices", trendRoutes);
+
+// CEDA Agmarknet: real price HISTORY, which data.gov.in cannot give us.
+// Mounted at the root of /api because the paths are /api/crops and
+// /api/locations rather than sitting under a prefix.
+app.use("/api", cedaRoutes);
 app.use("/api/voice", voiceRoutes);
 
 // ADMIN ONLY - adminRoutes.js uses router.use(protect, adminOnly)
@@ -241,7 +253,46 @@ const PORT = process.env.PORT || 5000;
 connectDB()
   .then(() => seedDefaultUsers())
   .then(() => {
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`);
     });
+
+    // ---- A failure to START must be fatal ----
+    //
+    // Without this, a bind failure is thrown asynchronously, the
+    // uncaughtException handler above catches it, logs it, and the
+    // process KEEPS RUNNING - connected to the database, holding
+    // memory, listening to nothing.
+    //
+    // That is genuinely worse than exiting. The zombie looks alive in
+    // the task list, so a restart appears to have worked while an older
+    // instance quietly carries on serving the OLD code. That wasted
+    // real debugging time: tests were passing against a server that was
+    // not the one just started.
+    //
+    // The uncaughtException guard is there to survive a bad request
+    // mid-flight. Never having started at all is not something to
+    // survive - there is nothing to serve.
+    server.on("error", (error) => {
+      if (error.code === "EADDRINUSE") {
+        console.error(
+          `❌ Port ${PORT} is already in use - another copy of this server is ` +
+            `probably still running.\n` +
+            `   Find it with:  netstat -ano | findstr :${PORT}\n` +
+            `   Then stop it:  taskkill /PID <pid> /F`
+        );
+      } else {
+        console.error("❌ Could not start the server:", error);
+      }
+
+      process.exit(1);
+    });
+  })
+  // Same reasoning for the startup chain itself: if the database is
+  // unreachable or seeding fails, there is no working server to keep
+  // alive. Without this .catch() the rejection reaches the
+  // unhandledRejection handler and leaves another do-nothing process.
+  .catch((error) => {
+    console.error("❌ Startup failed:", error);
+    process.exit(1);
   });

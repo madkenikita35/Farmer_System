@@ -32,6 +32,8 @@
 // ---------------------------------------------------------------------
 
 const axios = require("axios");
+
+const { categoriseCrop } = require("../config/cropCategories");
 const Receipt = require("../models/Receipt");
 
 const BASE_URL = "https://api.data.gov.in/resource";
@@ -79,7 +81,7 @@ async function fetchMandiListFromApi() {
 
   if (!apiKey) {
     console.log("ℹ️  No MANDI_API_KEY set - using a small sample mandi list.");
-    return { mandis: getMockMandiList(), dataSource: "mock", fallbackReason: "no-api-key" };
+    return { mandis: getMockMandiList(), crops: getMockCropCoverage(), dataSource: "mock", fallbackReason: "no-api-key" };
   }
 
   // Downloading several thousand records is a heavy request, and the
@@ -125,7 +127,7 @@ async function fetchMandiListFromApi() {
       `❌ Could not fetch the mandi list (${reason}) - falling back to the sample list. ` +
         `Will retry in ${FAILED_CACHE_LIFETIME_MS / 1000}s.`
     );
-    return { mandis: getMockMandiList(), dataSource: "mock", fallbackReason: reason };
+    return { mandis: getMockMandiList(), crops: getMockCropCoverage(), dataSource: "mock", fallbackReason: reason };
   }
 
   // ---- Collapse thousands of price rows into one row per mandi ----
@@ -133,6 +135,15 @@ async function fetchMandiListFromApi() {
   // we group by "market + state" and count how many distinct crops and
   // records each one has.
   const mandiMap = {};
+
+  // The same records, grouped the OTHER way round: one entry per CROP,
+  // holding the set of mandis that reported it. This answers "which
+  // crop is listed in the most mandis today?" - see getCropCoverage().
+  //
+  // It is built here, in the loop that already walks every record,
+  // rather than in a second pass later. One walk over ~10,000 rows
+  // instead of two, and it lands in the same cache.
+  const cropMap = {};
 
   for (const record of records) {
     const market = record.market;
@@ -158,6 +169,34 @@ async function fetchMandiListFromApi() {
 
     if (record.commodity) mandiMap[key].crops.add(record.commodity);
     mandiMap[key].recordCount += 1;
+
+    // ---- the crop-side tally ----
+    if (record.commodity) {
+      const cropName = record.commodity;
+
+      if (!cropMap[cropName]) {
+        cropMap[cropName] = {
+          crop: cropName,
+          category: categoriseCrop(cropName),
+          // A Set again, because the SAME mandi can report a crop more
+          // than once in a day (different varieties or grades). We want
+          // "how many mandis", not "how many rows".
+          mandis: new Set(),
+          recordCount: 0,
+          priceTotal: 0,
+          pricedRows: 0,
+        };
+      }
+
+      cropMap[cropName].mandis.add(key);
+      cropMap[cropName].recordCount += 1;
+
+      const price = Number(record.modal_price);
+      if (Number.isFinite(price) && price > 0) {
+        cropMap[cropName].priceTotal += price;
+        cropMap[cropName].pricedRows += 1;
+      }
+    }
   }
 
   // Turn the map into a plain array, converting each Set into a count.
@@ -177,8 +216,23 @@ async function fetchMandiListFromApi() {
     return a.state.localeCompare(b.state);
   });
 
-  console.log(`✅ Mandi directory loaded: ${mandis.length} mandis from data.gov.in`);
-  return { mandis, dataSource: "real", fallbackReason: null };
+  // Turn the crop map into an array, sorted by how many mandis carry
+  // each crop - most widely listed first.
+  const crops = Object.values(cropMap)
+    .map((c) => ({
+      crop: c.crop,
+      category: c.category,
+      mandiCount: c.mandis.size,
+      recordCount: c.recordCount,
+      averagePrice:
+        c.pricedRows > 0 ? Math.round(c.priceTotal / c.pricedRows) : null,
+    }))
+    .sort((a, b) => b.mandiCount - a.mandiCount || a.crop.localeCompare(b.crop));
+
+  console.log(
+    `✅ Mandi directory loaded: ${mandis.length} mandis, ${crops.length} crops from data.gov.in`
+  );
+  return { mandis, crops, dataSource: "real", fallbackReason: null };
 }
 
 /**
@@ -220,6 +274,7 @@ async function getMandiDirectory({ search = "", state = "" } = {}) {
       if (!cache.data) {
         cache.data = {
           mandis: getMockMandiList(),
+          crops: getMockCropCoverage(),
           dataSource: "mock",
           fallbackReason: "unexpected-error",
         };
@@ -384,6 +439,9 @@ async function getCropsInMandi(mandiName, state) {
 
     return {
       crop: cropName,
+      // Lets MandiDetail draw one chart per group instead of a single
+      // unreadable chart with 70 bars. See config/cropCategories.js.
+      category: categoriseCrop(cropName),
       governmentPrice,
       governmentMinPrice: govRows.length > 0 ? Math.min(...govRows.map((c) => c.minPrice)) : null,
       governmentMaxPrice: govRows.length > 0 ? Math.max(...govRows.map((c) => c.maxPrice)) : null,
@@ -432,8 +490,58 @@ function getMockMandiList() {
 
 // Same helper as in communityPriceService.js - keeps a mandi name with
 // brackets or dots from breaking the MongoDB regex query.
+/**
+ * "Which crops are listed in the most mandis today, and which in the
+ * fewest?" - the data behind the two charts on the Mandis page.
+ *
+ * It reuses the SAME cached download as the mandi list, so opening the
+ * page costs no extra API call.
+ *
+ * A NOTE ON WORDING: this counts where a crop is LISTED (i.e. a mandi
+ * reported a price for it today). It is not arrival volume - the
+ * government price feed does not publish quantities at all, so no
+ * honest "how much arrived" figure can be derived from it.
+ *
+ * @returns {Promise<{crops: Array, totalMandis: number, dataSource: string}>}
+ */
+async function getCropCoverage() {
+  // Calling getMandiDirectory() refreshes the shared cache if it is
+  // stale, which is exactly the work we would otherwise repeat here.
+  const directory = await getMandiDirectory();
+
+  const crops = (cache.data && cache.data.crops) || [];
+
+  return {
+    crops,
+    totalCrops: crops.length,
+    totalMandis: directory.totalMandis,
+    dataSource: directory.dataSource,
+    fallbackReason: directory.fallbackReason || null,
+  };
+}
+
+/**
+ * Coverage numbers to match getMockMandiList(), used when there is no
+ * API key yet so the charts still render something shaped correctly
+ * instead of an empty page.
+ */
+function getMockCropCoverage() {
+  const sample = [
+    ["Onion", 6], ["Tomato", 6], ["Potato", 5], ["Wheat", 4], ["Rice", 4],
+    ["Banana", 3], ["Brinjal", 3], ["Cabbage", 2], ["Mango", 2], ["Garlic", 1],
+  ];
+
+  return sample.map(([crop, mandiCount]) => ({
+    crop,
+    category: categoriseCrop(crop),
+    mandiCount,
+    recordCount: mandiCount,
+    averagePrice: null,
+  }));
+}
+
 function escapeRegex(str) {
   return String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-module.exports = { getMandiDirectory, getCropsInMandi };
+module.exports = { getMandiDirectory, getCropsInMandi, getCropCoverage };

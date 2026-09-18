@@ -24,6 +24,7 @@
 import { useState, useMemo } from "react";
 import { getNearbyMandis } from "../api/api";
 import StatCard from "../components/StatCard";
+import CropSelect from "../components/CropSelect";
 import { useLanguage } from "../context/LanguageContext";
 
 function NearbyMandis() {
@@ -80,7 +81,7 @@ function NearbyMandis() {
     e.preventDefault();
 
     if (!crop.trim()) {
-      setErrorMessage(t("nm_err_need_crop"));
+      setErrorMessage(t("nm_err_choose_crop"));
       return;
     }
     if (!coordinates && !place.trim()) {
@@ -121,13 +122,22 @@ function NearbyMandis() {
       >
         <div className="grid sm:grid-cols-2 gap-4 mb-4">
           <div>
-            <label className="block text-sm font-medium text-ink-600 mb-1">{t("common_crop")}</label>
-            <input
-              type="text"
+            <label
+              htmlFor="nearby-crop"
+              className="block text-sm font-medium text-ink-600 mb-1"
+            >
+              {t("common_crop")}
+            </label>
+            {/* A dropdown, not a text box. The crop name is matched
+                against the government feed almost exactly, so a typo -
+                or the feed's own spelling, like "Bhindi(Ladies Finger)"
+                for okra - came back as "no prices found" and read as
+                "there is no data". You cannot mistype a list. */}
+            <CropSelect
+              id="nearby-crop"
               value={crop}
-              onChange={(e) => setCrop(e.target.value)}
-              placeholder={t("nm_placeholder_crop")}
-              className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+              onChange={setCrop}
+              className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all disabled:opacity-60"
             />
           </div>
 

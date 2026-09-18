@@ -87,6 +87,7 @@ function Navbar() {
       { to: "/check-rates", label: t("nav_check_rates"), icon: "🔍" },
       { to: "/nearby", label: t("nav_nearby"), icon: "📍" },
       { to: "/mandis", label: t("nav_mandis"), icon: "🏛️" },
+      { to: "/crops", label: t("nav_crops"), icon: "📈" },
       { to: "/dashboard", label: t("nav_dashboard"), icon: "📊" },
     ];
   }

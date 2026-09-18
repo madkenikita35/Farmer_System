@@ -95,6 +95,19 @@ function createAccessToken(userId) {
  * cookie. They must match exactly or the browser will not replace or
  * remove the cookie - a classic "logout does not log out" bug.
  */
+/**
+ * The same options WITHOUT maxAge, for clearing.
+ *
+ * res.clearCookie() sets its own expiry in the past; passing maxAge as
+ * well is deprecated in Express 4 and ignored in 5. The rest of the
+ * options still have to match what was set, or the browser treats it as
+ * a different cookie and leaves the original in place.
+ */
+function clearCookieOptions() {
+  const { maxAge, ...rest } = refreshCookieOptions();
+  return rest;
+}
+
 function refreshCookieOptions() {
   const isProduction = process.env.NODE_ENV === "production";
 
@@ -354,7 +367,7 @@ async function refresh(req, res) {
     // browser stops sending a dead value on every load.
     if (!stored || stored.expiresAt < new Date()) {
       if (stored) await RefreshToken.deleteOne({ _id: stored._id });
-      res.clearCookie(REFRESH_COOKIE_NAME, refreshCookieOptions());
+      res.clearCookie(REFRESH_COOKIE_NAME, clearCookieOptions());
       return res
         .status(401)
         .json({ message: "Your session has expired. Please log in again." });
@@ -367,7 +380,7 @@ async function refresh(req, res) {
     // without `protect`.
     if (!user || !user.isActive) {
       await RefreshToken.deleteOne({ _id: stored._id });
-      res.clearCookie(REFRESH_COOKIE_NAME, refreshCookieOptions());
+      res.clearCookie(REFRESH_COOKIE_NAME, clearCookieOptions());
       return res
         .status(401)
         .json({ message: "Your session is no longer valid. Please log in again." });
@@ -402,7 +415,7 @@ async function logout(req, res) {
     await RefreshToken.deleteOne({ tokenHash: hashToken(token) });
   }
 
-  res.clearCookie(REFRESH_COOKIE_NAME, refreshCookieOptions());
+  res.clearCookie(REFRESH_COOKIE_NAME, clearCookieOptions());
 
   await logActivity(req.user, "LOGOUT", `${req.user.name} logged out`);
   res.status(200).json({ message: "Logged out successfully" });
@@ -417,7 +430,7 @@ async function logout(req, res) {
 // ---------------------------------------------------------------------
 async function logoutEverywhere(req, res) {
   await RefreshToken.deleteMany({ user: req.user._id });
-  res.clearCookie(REFRESH_COOKIE_NAME, refreshCookieOptions());
+  res.clearCookie(REFRESH_COOKIE_NAME, clearCookieOptions());
 
   await logActivity(req.user, "LOGOUT", `${req.user.name} logged out of all devices`);
   res.status(200).json({ message: "Logged out of all devices" });

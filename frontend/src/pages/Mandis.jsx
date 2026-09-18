@@ -17,9 +17,10 @@
 
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { getMandiList } from "../api/api";
+import { getMandiList, getCropCoverage } from "../api/api";
 import StatCard from "../components/StatCard";
 import { useLanguage } from "../context/LanguageContext";
+import CropCoverageCharts from "../components/CropCoverageCharts";
 
 function Mandis() {
   const { t } = useLanguage();
@@ -39,11 +40,30 @@ function Mandis() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
+  // The crop-coverage charts. Loaded separately from the mandi list
+  // because the two are independent: if the charts fail, the directory
+  // below them still works, and vice versa.
+  const [coverage, setCoverage] = useState(null);
+
   // Load the full list once, when the page first opens.
   useEffect(() => {
     loadMandis("", "");
+    loadCoverage();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // The charts are a bonus on top of the directory, so a failure here
+  // is swallowed rather than shown as a page-level error. The charts
+  // simply do not render (CropCoverageCharts returns null on no data).
+  async function loadCoverage() {
+    try {
+      const response = await getCropCoverage(10);
+      setCoverage(response.data);
+    } catch (error) {
+      console.error("Could not load crop coverage charts:", error);
+      setCoverage(null);
+    }
+  }
 
   async function loadMandis(searchTerm, stateFilter) {
     setIsLoading(true);
@@ -91,6 +111,12 @@ function Mandis() {
         <StatCard icon="🔍" label={t("md_matching_search")} value={matchCount} />
         <StatCard icon="🗺️" label={t("md_states_covered")} value={states.length} />
       </div>
+
+      {/* ---------- Which crops are everywhere, and which are rare ----------
+           Placed above the search form because it answers a question you
+           have BEFORE you start searching: what is actually trading
+           today, and where is supply thin. */}
+      <CropCoverageCharts coverage={coverage} />
 
       {/* ---------- Search form ---------- */}
       <form

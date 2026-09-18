@@ -24,6 +24,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { getMandiCrops } from "../api/api";
 import StatCard from "../components/StatCard";
 import { useLanguage } from "../context/LanguageContext";
+import CropCategoryCharts from "../components/CropCategoryCharts";
 
 function MandiDetail() {
   const { t } = useLanguage();
@@ -114,6 +115,12 @@ function MandiDetail() {
           ⚠️ {t("mdet_mock_note")}
         </p>
       )}
+
+      {/* ---------- Price charts, grouped by crop category ----------
+           These sit ABOVE the table on purpose: the chart answers
+           "what is worth selling here?" at a glance, and the table is
+           there for the exact figures once you have spotted it. */}
+      {crops.length > 0 && <CropCategoryCharts crops={crops} />}
 
       {/* ---------- The crop price table ---------- */}
       {crops.length === 0 ? (

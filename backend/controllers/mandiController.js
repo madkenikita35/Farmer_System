@@ -18,7 +18,11 @@
 
 const { fetchMandiPrices } = require("../services/mandiApiService");
 const { getCommunityPriceStats } = require("../services/communityPriceService");
-const { getMandiDirectory, getCropsInMandi } = require("../services/mandiDirectoryService");
+const {
+  getMandiDirectory,
+  getCropsInMandi,
+  getCropCoverage,
+} = require("../services/mandiDirectoryService");
 const { logActivity } = require("../services/activityService");
 
 // GET /api/mandi/prices?crop=Wheat&date=2026-09-15
@@ -247,4 +251,98 @@ async function getMandiCrops(req, res) {
   }
 }
 
-module.exports = { getPricesByCrop, comparePrices, listMandis, getMandiCrops };
+// ---------------------------------------------------------------------
+// GET /api/mandi/crop-coverage
+//
+// "Which crop is listed in the most mandis today, and which in the
+// fewest?" - the data behind the two charts on the Mandis page.
+//
+// ABOUT THE WORD "ARRIVED": this counts the mandis that LISTED a price
+// for each crop today. It is not arrival volume. The government price
+// resource publishes prices only - there is no quantity field in it at
+// all - so no honest tonnage figure can be derived from this data. The
+// response says so in `measures`, and the page repeats it on screen,
+// rather than letting a chart imply we know something we do not.
+// ---------------------------------------------------------------------
+async function getCropCoverageChart(req, res) {
+  try {
+    const coverage = await getCropCoverage();
+
+    // How many bars each chart gets. More than about a dozen and the
+    // crop names on the x-axis overlap into mush on a phone.
+    const limit = Math.min(Math.max(Number(req.query.limit) || 10, 3), 25);
+
+    // `crops` arrives sorted most-listed first (see the service), so
+    // the two ends of the same array are the two charts.
+    const mostListed = coverage.crops.slice(0, limit);
+
+    // The least-listed end, flipped so the chart reads smallest-first.
+    const leastListed = coverage.crops.slice(-limit).reverse();
+
+    res.status(200).json({
+      mostListed,
+      leastListed,
+      totalCrops: coverage.totalCrops,
+      totalMandis: coverage.totalMandis,
+      dataSource: coverage.dataSource,
+      fallbackReason: coverage.fallbackReason,
+      // Stated explicitly so nobody reads these bars as tonnage.
+      measure: "mandis_listing_the_crop",
+      arrivalQuantityAvailable: false,
+    });
+  } catch (error) {
+    console.error("Error building crop coverage:", error);
+    res.status(500).json({ message: "Failed to load the crop coverage charts." });
+  }
+}
+
+// ---------------------------------------------------------------------
+// GET /api/mandi/crops
+//
+// Every crop the GOVERNMENT feed is carrying today, for the crop
+// dropdowns.
+//
+// WHY NOT THE CEDA LIST: CEDA knows 453 commodities, but the Near Me
+// and Check Rates pages search data.gov.in, which carries about 206 and
+// spells some of them differently. Offering a crop the search cannot
+// match would produce a dropdown where some choices silently return
+// nothing - worse than a text box, because the user would have no
+// reason to doubt their own input.
+//
+// It costs no extra API call: the directory download is already cached
+// for six hours and this reads the same copy.
+// ---------------------------------------------------------------------
+async function listCropNames(req, res) {
+  try {
+    const coverage = await getCropCoverage();
+
+    // Alphabetical. The coverage list arrives sorted by popularity,
+    // which is the right order for a chart and the wrong one for a
+    // dropdown you are trying to find a name in.
+    const crops = [...coverage.crops]
+      .map((c) => ({
+        name: c.crop,
+        category: c.category,
+        mandiCount: c.mandiCount,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    res.status(200).json({
+      crops,
+      totalCrops: crops.length,
+      dataSource: coverage.dataSource,
+    });
+  } catch (error) {
+    console.error("Error listing crop names:", error);
+    res.status(500).json({ message: "Failed to load the crop list." });
+  }
+}
+
+module.exports = {
+  getPricesByCrop,
+  comparePrices,
+  listMandis,
+  getMandiCrops,
+  getCropCoverageChart,
+  listCropNames,
+};

@@ -29,6 +29,7 @@ const {
   numberToWords,
 } = require("../config/spokenForms");
 const { fetchMandiPrices } = require("../services/mandiApiService");
+const { placeMatches } = require("../config/placeMatching");
 const { getMandiDirectory } = require("../services/mandiDirectoryService");
 const {
   distanceInKm,
@@ -420,14 +421,20 @@ async function answerNearest(res, parsed, say, priced, coords, context) {
 // INTENT: price of X in <place>
 // ---------------------------------------------------------------------
 function answerPriceAtPlace(res, parsed, say, priced, context) {
-  const wanted = (parsed.place || parsed.state || "").toLowerCase();
+  const wanted = parsed.place || parsed.state || "";
 
   // A spoken place could be a mandi, a district or a state, and the
   // farmer won't say which - so match against all three.
-  const matches = priced.filter((p) => {
-    const haystack = `${p.market} ${p.district} ${p.state}`.toLowerCase();
-    return haystack.includes(wanted);
-  });
+  //
+  // WHY placeMatches AND NOT .includes(): the farmer speaks in their own
+  // script, and the government feed writes every name in Latin. Asking
+  // in Hindi gave us "इंदौर" and the record says "Indore", so a plain
+  // substring test could never be true - "इंदौर में गेहूं का भाव"
+  // answered "no price found" every single time, while the same
+  // question in English worked. See config/placeMatching.js.
+  const matches = priced.filter((p) =>
+    placeMatches(wanted, [p.market, p.district, p.state])
+  );
 
   if (matches.length === 0) {
     return respond(

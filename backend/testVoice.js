@@ -260,6 +260,73 @@ const CASES = [
     show: (r) => r.reply.slice(0, 90),
   },
   {
+    // REGRESSION GUARD, and an important one: these are the three
+    // prompts the assistant SUGGESTS to the farmer on screen. If any of
+    // them does not work, it is the first thing a new user hits.
+    //
+    // The Hindi and Marathi versions of the third one used to fail
+    // while the English one passed, because the place came through in
+    // Devanagari ("\u0907\u0902\u0926\u094c\u0930") and the government feed writes it in Latin
+    // ("Indore"), so the old substring match could never be true.
+    name: "SUGGESTED PROMPT (hi): price of wheat in Indore",
+    payload: {
+      transcript: "\u0907\u0902\u0926\u094c\u0930 \u092e\u0947\u0902 \u0917\u0947\u0939\u0942\u0902 \u0915\u093e \u092d\u093e\u0935",
+      language: "hi-IN",
+      confidence: 0.95,
+    },
+    expect: (r) =>
+      r.language === "hi" &&
+      r.entities.crop === "Wheat" &&
+      r.data &&
+      r.data.averagePrice > 0,
+    show: (r) => r.reply.slice(0, 80),
+    also: (r) =>
+      r.needsClarification ? "asked for clarification instead of answering" : null,
+  },
+  {
+    name: "SUGGESTED PROMPT (mr): price of wheat in Indore",
+    payload: {
+      transcript: "\u0907\u0902\u0926\u0942\u0930 \u092e\u0927\u094d\u092f\u0947 \u0917\u0935\u094d\u0939\u093e\u091a\u093e \u092d\u093e\u0935",
+      language: "mr-IN",
+      confidence: 0.95,
+    },
+    expect: (r) =>
+      r.language === "mr" &&
+      r.entities.crop === "Wheat" &&
+      r.data &&
+      r.data.averagePrice > 0,
+    show: (r) => r.reply.slice(0, 80),
+    also: (r) =>
+      r.needsClarification ? "asked for clarification instead of answering" : null,
+  },
+  {
+    // The terse forms the UI suggests, as opposed to the fuller
+    // sentences the other cases use. "Highest price of onion" has no
+    // question words in it at all.
+    name: "SUGGESTED PROMPT (hi): highest price of onion",
+    payload: {
+      transcript: "\u092a\u094d\u092f\u093e\u091c \u0915\u093e \u0938\u092c\u0938\u0947 \u091c\u094d\u092f\u093e\u0926\u093e \u092d\u093e\u0935",
+      language: "hi-IN",
+      confidence: 0.95,
+    },
+    expect: (r) =>
+      r.language === "hi" && r.intent === "highest" && r.entities.crop === "Onion",
+    show: (r) => r.reply.slice(0, 80),
+  },
+  {
+    name: "SUGGESTED PROMPT (mr): nearest mandi for tomato",
+    payload: {
+      transcript: "\u092e\u093e\u091d\u094d\u092f\u093e \u091c\u0935\u0933\u091a\u0940 \u091f\u094b\u092e\u0945\u091f\u094b \u092e\u0902\u0921\u0908",
+      language: "mr-IN",
+      confidence: 0.95,
+      lat: 19.9975,
+      lon: 73.7898,
+    },
+    expect: (r) =>
+      r.language === "mr" && r.intent === "nearest" && r.entities.crop === "Tomato",
+    show: (r) => r.reply.slice(0, 80),
+  },
+  {
     name: "Goodbye ends the session",
     payload: { transcript: "धन्यवाद", language: "mr-IN", confidence: 0.9 },
     expect: (r) => r.intent === "goodbye" && r.endSession === true,
