@@ -100,12 +100,42 @@ if (process.env.NODE_ENV === "production") {
 // Before, this was a bare cors() - meaning ANY website on the internet
 // could call our API from a user's browser. Now we name the exact
 // origin our frontend runs on, so nobody else's site can.
-const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:5173").split(",");
+//
+// The value is CLEANED before use. A browser's Origin header is always
+// bare - "https://site.com", never "https://site.com/" and never with
+// spaces - so a trailing slash or a stray space in CLIENT_URL matches
+// nothing at all. That failure is invisible from the outside: the
+// preflight still returns 204, it just omits the allow-origin header,
+// and the browser reports a generic network error. Cleaning the value
+// costs one line and removes the whole problem.
+const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:5173")
+  .split(",")
+  .map((origin) => origin.trim().replace(/\/+$/, ""))
+  .filter(Boolean);
+
+console.log(`🌐 CORS allows: ${allowedOrigins.join(", ")}`);
 
 app.use(
   cors({
-    origin: allowedOrigins,
-    credentials: true, // allow the Authorization header through
+    // A function rather than the array, so a rejection can be LOGGED.
+    // With a plain array, cors() silently declines and the only clue is
+    // in the browser console of whoever hit it - which is no use when
+    // the person debugging is reading server logs.
+    origin(origin, callback) {
+      // No Origin header: curl, Render's health check, server-to-server.
+      // Not a browser cross-site request, so there is nothing to guard.
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+
+      console.warn(
+        `⛔ CORS blocked "${origin}" - CLIENT_URL allows [${allowedOrigins.join(", ")}]`
+      );
+      // `false`, not an Error: an Error becomes a 500 and hides the real
+      // cause. This just omits the header, which is the correct refusal.
+      return callback(null, false);
+    },
+    credentials: true, // let the browser send the refresh-token cookie
   })
 );
 
