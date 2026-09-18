@@ -15,12 +15,13 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { compareMandiPrices } from "../api/api";
-import StatCard from "../components/StatCard";
+import { compareMandiPrices, getMandiList } from "../api/api";
 import MandiTrendChart from "../components/MandiTrendChart";
 import CommunityPriceChart from "../components/CommunityPriceChart";
 import { useLanguage } from "../context/LanguageContext";
 import ScopeComparisonCards from "../components/ScopeComparisonCards";
+import CropSelect from "../components/CropSelect";
+import PickList from "../components/PickList";
 
 function CheckRates() {
   const { t } = useLanguage();
@@ -47,6 +48,22 @@ function CheckRates() {
   // falling back to somewhere they are not.
   const [coordinates, setCoordinates] = useState(null);
   const [radiusKm, setRadiusKm] = useState(50);
+
+  // The states that actually have mandis reporting, for the dropdown.
+  // Asked for once when the page opens rather than on every search -
+  // the list does not change while someone is standing here.
+  const [states, setStates] = useState([]);
+
+  useEffect(() => {
+    getMandiList("", "")
+      .then((response) => setStates(response.data.states || []))
+      .catch((error) => {
+        // A missing list is not worth an error message on screen: the
+        // dropdown simply shows "All states" and the search still
+        // works without a state filter.
+        console.error("Could not load the state list:", error);
+      });
+  }, []);
 
   function handleUseMyLocation() {
     if (!navigator.geolocation) {
@@ -144,22 +161,21 @@ function CheckRates() {
       >
         <div className="sm:col-span-2">
           <label className="block text-sm font-medium text-ink-600 mb-1">{t("common_crop")}</label>
-          <input
-            type="text"
-            value={crop}
-            onChange={(e) => setCrop(e.target.value)}
-            placeholder={t("cr_placeholder_crop")}
-            className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
-          />
+          {/* Was a text box. "Tomatoe" and "onoin" came back as "no
+              prices found", which is indistinguishable from there
+              genuinely being no prices. Same dropdown as Near Me. */}
+          <CropSelect value={crop} onChange={setCrop} />
         </div>
         <div>
           <label className="block text-sm font-medium text-ink-600 mb-1">{t("cr_label_state")}</label>
-          <input
-            type="text"
+          {/* Built from the states the backend actually returned, so it
+              can never offer one with no mandis in it. */}
+          <PickList
             value={state}
-            onChange={(e) => setState(e.target.value)}
-            placeholder={t("cr_placeholder_state")}
-            className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+            onChange={setState}
+            options={states}
+            placeholder={t("common_all_states")}
+            isLoading={states.length === 0}
           />
         </div>
         <div>
@@ -188,6 +204,12 @@ function CheckRates() {
         </div>
       )}
 
+      {/* ---------- The headline numbers ---------- */}
+      {/* One slim row rather than three tall cards. They are context,
+          not the answer - so they get a line, and the comparison cards
+          below get the room. */}
+      {result && <QuickStats result={result} />}
+
       {/* ---------- The three-scope comparison ---------- */}
       {/* Above ResultsView because it answers the question the farmer
           came with - where should I sell - while the charts below are
@@ -205,6 +227,54 @@ function CheckRates() {
 
       {/* ---------- Results ---------- */}
       {result && <ResultsView result={result} />}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------
+// The slim headline row: government average, farmer average, and how
+// many farmer reports it was built from.
+//
+// It replaced three <StatCard>s in a grid. Those are the right shape
+// for a dashboard, where the numbers ARE the page; here they pushed the
+// thing the farmer actually came for below the fold on a phone.
+//
+// Written as one wrapping flex row rather than a 3-column grid so the
+// items sit side by side on a phone and only wrap when they truly have
+// to.
+// ---------------------------------------------------------------------
+function QuickStats({ result }) {
+  const { t } = useLanguage();
+  const { government, community } = result;
+
+  const items = [
+    { icon: "🏛️", label: t("cr_gov_average"), value: government.averagePrice, isPrice: true },
+    { icon: "🧑‍🌾", label: t("cr_farmer_average"), value: community.averagePrice, isPrice: true },
+    { icon: "📝", label: t("cr_reports_found"), value: community.reportCount, isPrice: false },
+  ];
+
+  return (
+    <div
+      className="flex flex-wrap items-center gap-x-6 gap-y-3 bg-card rounded-2xl
+        shadow-soft border border-surface-300/60 px-5 py-3.5 mb-6"
+    >
+      {items.map((item) => (
+        <div key={item.label} className="flex items-center gap-2.5 min-w-0">
+          <span className="text-lg leading-none shrink-0">{item.icon}</span>
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-400 truncate">
+              {item.label}
+            </p>
+            <p className="font-bold text-ink-900 leading-tight">
+              {item.value == null
+                ? "-"
+                : item.isPrice
+                ? `₹${Number(item.value).toLocaleString("en-IN")}`
+                : item.value}
+            </p>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -228,26 +298,9 @@ function ResultsView({ result }) {
 
   return (
     <div>
-      {/* ---- Top-level averages from each data source ---- */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-        <StatCard
-          icon="🏛️"
-          label={t("cr_gov_average")}
-          value={government.averagePrice ?? "-"}
-          tone="primary"
-        />
-        <StatCard
-          icon="🧑‍🌾"
-          label={t("cr_farmer_average")}
-          value={community.averagePrice ?? "-"}
-          tone="accent"
-        />
-        <StatCard
-          icon="📝"
-          label={t("cr_reports_found")}
-          value={community.reportCount}
-        />
-      </div>
+      {/* The three averages that used to sit here are now the slim
+          QuickStats row above the comparison cards - same numbers,
+          a quarter of the height, and above the thing they describe. */}
 
       {/* ---- WHERE SHOULD YOU SELL? The highest vs lowest mandi ---- */}
       {/* This is the most actionable thing on the page, so it sits
@@ -259,18 +312,37 @@ function ResultsView({ result }) {
           shows the same comparison plus the distance it was missing -
           so keeping it here as well would say the same thing twice. */}
 
-      {priceGap > 0 && (
-        <div className="bg-warning-50 border border-warning-200 rounded-xl px-5 py-4 mb-6 text-sm text-warning-900">
-          💡{" "}
-          {t("cr_gap_note", {
-            gap: priceGap.toLocaleString("en-IN"),
-            percent: priceGapPercent,
-            total: (priceGap * 10).toLocaleString("en-IN"),
-          })}
-        </div>
-      )}
+      {/* ---- Why this number, and where it came from ---- */}
+      {/* Both of these are worth reading once and then never again, so
+          they fold away together instead of sitting on top of every
+          search forever. Open by default the first time, because the
+          price gap is genuinely the most useful sentence on the page -
+          it is what a farmer is losing by going to the wrong mandi. */}
+      <details open className="group mb-6">
+        <summary
+          className="cursor-pointer list-none flex items-center gap-2 px-4 py-2.5
+            rounded-xl bg-warning-50 border border-warning-200 text-sm
+            font-semibold text-warning-900 hover:bg-warning-100 transition-colors"
+        >
+          {/* Rotates to point down when the block is open. */}
+          <span className="text-ink-400 transition-transform group-open:rotate-90">▶</span>
+          💡 {t("cr_insights")}
+        </summary>
 
-      <p className="text-xs text-ink-500 mb-6">{govtSourceLabel}</p>
+        <div className="px-4 pt-3 space-y-2">
+          {priceGap > 0 && (
+            <p className="text-sm text-warning-900">
+              {t("cr_gap_note", {
+                gap: priceGap.toLocaleString("en-IN"),
+                percent: priceGapPercent,
+                total: (priceGap * 10).toLocaleString("en-IN"),
+              })}
+            </p>
+          )}
+
+          <p className="text-xs text-ink-500">{govtSourceLabel}</p>
+        </div>
+      </details>
 
       {/* ---- The full ranking, best to worst ---- */}
       {rankedMandis && rankedMandis.length > 2 && (
@@ -315,18 +387,36 @@ function ResultsView({ result }) {
         </details>
       )}
 
-      {/* ---- The two charts, side by side on wide screens ---- */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        <div className="bg-card rounded-2xl shadow-soft p-6 border border-surface-300/60">
-          <h2 className="font-semibold text-ink-900 mb-3">🏛️ {t("cr_chart_gov")}</h2>
-          <MandiTrendChart data={government.prices} />
-        </div>
+      {/* ---- The two charts ---- */}
+      {/* CLOSED by default. This is the biggest single decluttering on
+          the page: two charts is a lot of screen, and they answer
+          "how has this been moving?" - a question you ask after you
+          already know today's price, if at all. Nothing is removed,
+          it is one tap away.
 
-        <div className="bg-card rounded-2xl shadow-soft p-6 border border-surface-300/60">
-          <h2 className="font-semibold text-ink-900 mb-3">🧑‍🌾 {t("cr_chart_farmers")}</h2>
-          <CommunityPriceChart data={community.records} />
+          <details>/<summary> is plain HTML: a collapsible section with
+          no JavaScript and no state to keep. */}
+      <details className="group bg-card rounded-2xl shadow-soft border border-surface-300/60">
+        <summary
+          className="cursor-pointer list-none flex items-center gap-2 px-6 py-4
+            font-semibold text-ink-900"
+        >
+          <span className="text-ink-400 transition-transform group-open:rotate-90">▶</span>
+          📈 {t("cr_charts")}
+        </summary>
+
+        <div className="grid lg:grid-cols-2 gap-6 px-6 pb-6">
+          <div>
+            <h2 className="font-semibold text-ink-900 mb-3">🏛️ {t("cr_chart_gov")}</h2>
+            <MandiTrendChart data={government.prices} />
+          </div>
+
+          <div>
+            <h2 className="font-semibold text-ink-900 mb-3">🧑‍🌾 {t("cr_chart_farmers")}</h2>
+            <CommunityPriceChart data={community.records} />
+          </div>
         </div>
-      </div>
+      </details>
     </div>
   );
 }

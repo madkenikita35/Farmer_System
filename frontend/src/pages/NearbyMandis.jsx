@@ -301,10 +301,23 @@ function NearbyResults({ result, sortBy, onSortChange }) {
       )}
 
       {/* ---- Where we searched from ---- */}
-      <div className="grid sm:grid-cols-3 gap-4 mb-6">
-        <StatCard icon="🏛️" label={t("nm_mandis_found")} value={result.totalFound} tone="primary" />
-        <StatCard icon="📏" label={t("nm_search_radius")} value={`${radiusKm} km`} />
-        <StatCard icon="📍" label={t("nm_searched_around")} value={shortLabel(origin.label)} />
+      {/* One quiet line. This is a caption on the results, not a result:
+          three tall cards to say "23 mandis, within 150 km, around Pune"
+          was pushing the ranked list itself off a phone screen. */}
+      <div
+        className="flex flex-wrap items-center gap-x-5 gap-y-2 mb-6 px-4 py-3
+          rounded-xl bg-surface-200/60 text-sm text-ink-600"
+      >
+        <span className="flex items-center gap-1.5">
+          🏛️ <strong className="font-semibold text-ink-900">{result.totalFound}</strong>
+          {t("nm_mandis_found")}
+        </span>
+        <span className="flex items-center gap-1.5">
+          📏 <strong className="font-semibold text-ink-900">{radiusKm} km</strong>
+        </span>
+        <span className="flex items-center gap-1.5 min-w-0">
+          📍 <span className="truncate">{shortLabel(origin.label)}</span>
+        </span>
       </div>
 
       {/* ---- The full ranked list ---- */}

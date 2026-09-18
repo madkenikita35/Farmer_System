@@ -10,9 +10,28 @@
 
 import axios from "axios";
 
-// This is the backend server's address. During development, Vite runs
-// on port 5173 and our backend runs on port 5000.
-const API_BASE_URL = "http://localhost:5000/api";
+// The backend server's address.
+//
+// In development this is localhost:5000, which is why that is the
+// fallback. In production the backend lives on a completely different
+// host, so the URL has to come from the ENVIRONMENT rather than being
+// written here - a deployed build that says "localhost" is asking the
+// browser to call the user's OWN machine, which fails for everyone.
+//
+// Vite only exposes variables whose name starts with VITE_, and it
+// substitutes them AT BUILD TIME, not when the page runs. So this must
+// be set before `npm run build` - changing it on the host afterwards
+// does nothing until the site is rebuilt.
+//
+//   local:  create frontend/.env with
+//             VITE_API_URL=http://localhost:5000/api
+//   hosted: set VITE_API_URL in the host's environment variables, e.g.
+//             VITE_API_URL=https://farmer-system-1-mm8g.onrender.com/api
+//
+// Note the trailing "/api" - every path in this file is written
+// relative to it ("/auth/login", not "/api/auth/login").
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const api = axios.create({
   baseURL: API_BASE_URL,

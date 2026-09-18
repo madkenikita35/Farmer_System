@@ -10,8 +10,13 @@
 //
 // It's also where we wrap the whole app with our two Context Providers
 // (see src/context/):
+//   - ThemeProvider: which accent colour the app is using.
 //   - LanguageProvider: lets any page/component read/change EN vs MR.
 //   - AuthProvider: lets any page/component know who's logged in.
+//
+// ThemeProvider is OUTERMOST because it depends on nothing - it reads
+// two words from localStorage and writes them onto <html>. It does not
+// need to know who is logged in or what language they read.
 //
 // ---------------------------------------------------------------------
 // HOW THE ROUTES ARE PROTECTED (read this part!)
@@ -76,136 +81,135 @@ function App() {
     <ThemeProvider>
       <AuthProvider>
         <LanguageProvider>
-        <AppShell>
-          <Routes>
-            {/* ---------- 1. PUBLIC ---------- */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
+          <AppShell>
+            <Routes>
+              {/* ---------- 1. PUBLIC ---------- */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
 
-            {/* ---------- 2. LOGGED IN (farmer or admin) ---------- */}
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Home />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/upload"
-              element={
-                <ProtectedRoute>
-                  <Upload />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/check-rates"
-              element={
-                <ProtectedRoute>
-                  <CheckRates />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/mandis"
-              element={
-                <ProtectedRoute>
-                  <Mandis />
-                </ProtectedRoute>
-              }
-            />
-            {/* "Which mandi near me pays the most?" - needs a login
-                like every other farmer page. */}
-            <Route
-              path="/nearby"
-              element={
-                <ProtectedRoute>
-                  <NearbyMandis />
-                </ProtectedRoute>
-              }
-            />
-            {/* The mandi name is passed as ?mandi=...&state=... rather
-                than in the path, because real mandi names contain
-                spaces and brackets that are awkward in a URL path. */}
-            <Route
-              path="/mandis/view"
-              element={
-                <ProtectedRoute>
-                  <MandiDetail />
-                </ProtectedRoute>
-              }
-            />
+              {/* ---------- 2. LOGGED IN (farmer or admin) ---------- */}
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <Home />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/upload"
+                element={
+                  <ProtectedRoute>
+                    <Upload />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/check-rates"
+                element={
+                  <ProtectedRoute>
+                    <CheckRates />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/mandis"
+                element={
+                  <ProtectedRoute>
+                    <Mandis />
+                  </ProtectedRoute>
+                }
+              />
+              {/* "Which mandi near me pays the most?" - needs a login
+                  like every other farmer page. */}
+              <Route
+                path="/nearby"
+                element={
+                  <ProtectedRoute>
+                    <NearbyMandis />
+                  </ProtectedRoute>
+                }
+              />
+              {/* The mandi name is passed as ?mandi=...&state=... rather
+                  than in the path, because real mandi names contain
+                  spaces and brackets that are awkward in a URL path. */}
+              <Route
+                path="/mandis/view"
+                element={
+                  <ProtectedRoute>
+                    <MandiDetail />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Crop price trends over time: the list of crops, and
-                one crop's line graph. Both are farmer-facing, so they
-                sit in the logged-in block rather than the admin one. */}
-            <Route
-              path="/crops"
-              element={
-                <ProtectedRoute>
-                  <CropsList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/crops/:cropName"
-              element={
-                <ProtectedRoute>
-                  <CropTrend />
-                </ProtectedRoute>
-              }
-            />
+              {/* Crop price trends over time: the list of crops, and
+                  one crop's line graph. Both are farmer-facing, so they
+                  sit in the logged-in block rather than the admin one. */}
+              <Route
+                path="/crops"
+                element={
+                  <ProtectedRoute>
+                    <CropsList />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/crops/:cropName"
+                element={
+                  <ProtectedRoute>
+                    <CropTrend />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* ---------- 3. ADMIN ONLY ---------- */}
-            <Route
-              path="/admin"
-              element={
-                <ProtectedRoute adminOnly>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/farmers"
-              element={
-                <ProtectedRoute adminOnly>
-                  <AdminFarmers />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/activity"
-              element={
-                <ProtectedRoute adminOnly>
-                  <AdminActivity />
-                </ProtectedRoute>
-              }
-            />
+              {/* ---------- 3. ADMIN ONLY ---------- */}
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute adminOnly>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/farmers"
+                element={
+                  <ProtectedRoute adminOnly>
+                    <AdminFarmers />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/activity"
+                element={
+                  <ProtectedRoute adminOnly>
+                    <AdminActivity />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* ---------- Anything else: a friendly 404 ---------- */}
-            {/* path="*" is react-router's "none of the above" case. */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+              {/* ---------- Anything else: a friendly 404 ---------- */}
+              {/* path="*" is react-router's "none of the above" case. */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
 
-          {/* The voice assistant floats above every page. It's for
-              FARMERS - the admin panel is a desk tool in English, and a
-              mic orb there would just be in the way. FarmerOnlyVoice
-              below makes that call. */}
-          <FarmerOnlyVoice />
-        </AppShell>
+            {/* The voice assistant floats above every page. It's for
+                FARMERS - the admin panel is a desk tool in English, and a
+                mic orb there would just be in the way. FarmerOnlyVoice
+                below makes that call. */}
+            <FarmerOnlyVoice />
+          </AppShell>
         </LanguageProvider>
       </AuthProvider>
     </ThemeProvider>
-    </AuthProvider>
   );
 }
 

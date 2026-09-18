@@ -24,6 +24,8 @@
 // -----------------------------------------------------------------------
 
 import { useState, useEffect, useMemo } from "react";
+
+import PickList from "../components/PickList";
 import { Link } from "react-router-dom";
 
 import { getCedaCrops } from "../api/api";
@@ -87,6 +89,13 @@ function CropsList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Just the names, for the dropdown. Sorted so a crop is always in
+  // the same place in the list however the API happened to order them.
+  const cropNames = useMemo(
+    () => crops.map((c) => c.name).sort((a, b) => a.localeCompare(b)),
+    [crops]
+  );
+
   // Filter the FULL list, not the visible slice. useMemo so typing does
   // not re-filter 453 entries on every unrelated re-render.
   const matches = useMemo(() => {
@@ -104,17 +113,22 @@ function CropsList() {
 
       {/* ---------- Search ---------- */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setVisibleCount(PAGE_SIZE); // a new search starts at the top
-          }}
-          placeholder={t("crops_search_placeholder")}
-          className="w-full sm:w-80 border border-ink-200 rounded-xl px-3.5 py-2.5 bg-card
-            focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
-        />
+        {/* Was a text box searching 453 crop names. Picking is both
+            faster and impossible to get wrong - and the native dropdown
+            still supports type-ahead, so anyone who preferred typing
+            can press "o" to jump to Onion. */}
+        <div className="w-full sm:w-80">
+          <PickList
+            value={search}
+            onChange={(name) => {
+              setSearch(name);
+              setVisibleCount(PAGE_SIZE); // a new choice starts at the top
+            }}
+            options={cropNames}
+            placeholder={t("crops_all")}
+            isLoading={isLoading}
+          />
+        </div>
 
         {!isLoading && (
           <span className="text-sm text-ink-500">

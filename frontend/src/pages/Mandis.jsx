@@ -15,12 +15,14 @@
 // instant. That's why we show a clear "Loading..." state below.
 // -----------------------------------------------------------------------
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { getMandiList, getCropCoverage } from "../api/api";
 import StatCard from "../components/StatCard";
+import CollapsibleSection from "../components/CollapsibleSection";
 import { useLanguage } from "../context/LanguageContext";
 import CropCoverageCharts from "../components/CropCoverageCharts";
+import PickList from "../components/PickList";
 
 function Mandis() {
   const { t } = useLanguage();
@@ -34,6 +36,11 @@ function Mandis() {
   const [totalMandis, setTotalMandis] = useState(0);
   const [matchCount, setMatchCount] = useState(0);
   const [states, setStates] = useState([]);
+
+  // The UNFILTERED mandi list, kept so the dropdown always offers every
+  // mandi rather than only the ones matching the current search - which
+  // would mean you could never widen a search once you had narrowed it.
+  const [allMandis, setAllMandis] = useState([]);
   const [dataSource, setDataSource] = useState("");
   const [fallbackReason, setFallbackReason] = useState(null);
 
@@ -74,6 +81,11 @@ function Mandis() {
       setTotalMandis(response.data.totalMandis);
       setMatchCount(response.data.matchCount);
       setStates(response.data.states);
+
+      // Capture the full list the first time it arrives unfiltered.
+      if (!searchTerm && !stateFilter) {
+        setAllMandis(response.data.mandis || []);
+      }
       setDataSource(response.data.dataSource);
       setFallbackReason(response.data.fallbackReason || null);
     } catch (error) {
@@ -83,6 +95,30 @@ function Mandis() {
       setIsLoading(false);
     }
   }
+
+  // { "Maharashtra": ["Pune", "Nashik"], ... } for the dropdown.
+  //
+  // useMemo because this runs over every mandi in India and the result
+  // only changes when the list does - without it, the whole thing would
+  // be rebuilt on every keystroke elsewhere on the page.
+  const mandiOptionsByState = useMemo(() => {
+    const grouped = {};
+
+    for (const mandi of allMandis) {
+      const stateName = mandi.state || "-";
+      if (!grouped[stateName]) grouped[stateName] = [];
+      grouped[stateName].push(mandi.mandiName);
+    }
+
+    // Sorted so the same mandi is always in the same place in the list.
+    for (const stateName of Object.keys(grouped)) {
+      grouped[stateName].sort();
+    }
+
+    return Object.fromEntries(
+      Object.entries(grouped).sort((a, b) => a[0].localeCompare(b[0]))
+    );
+  }, [allMandis]);
 
   function handleSearch(e) {
     e.preventDefault();
@@ -113,10 +149,25 @@ function Mandis() {
       </div>
 
       {/* ---------- Which crops are everywhere, and which are rare ----------
-           Placed above the search form because it answers a question you
-           have BEFORE you start searching: what is actually trading
-           today, and where is supply thin. */}
-      <CropCoverageCharts coverage={coverage} />
+           FOLDED AWAY by default. It used to be two permanently-open bar
+           charts sitting above the search box, so the page you opened to
+           look something up began with something else entirely.
+
+           It is genuinely interesting - just not what most people came
+           for - so it keeps its place in the order and loses its claim
+           on the screen. */}
+      {coverage && (
+        <CollapsibleSection
+          title={`📊 ${t("md_charts_title")}`}
+          subtitle={t("md_charts_note", {
+            mandis: coverage.totalMandis,
+            crops: coverage.totalCrops,
+          })}
+          className="mb-8"
+        >
+          <CropCoverageCharts coverage={coverage} />
+        </CollapsibleSection>
+      )}
 
       {/* ---------- Search form ---------- */}
       <form
@@ -127,12 +178,23 @@ function Mandis() {
           <label className="block text-sm font-medium text-ink-600 mb-1">
             {t("md_search_label")}
           </label>
-          <input
-            type="text"
+          {/* Was a text box. Mandi names in the government feed are
+              spelled in ways nobody would guess - "Ratnagiri Nachane",
+              "Bhindi(Ladies Finger)" - so typing one correctly was
+              mostly luck. Grouped by state to keep the list navigable.
+
+              Picking one searches for it immediately: with a dropdown
+              there is nothing left to finish typing, so making someone
+              press Search as well would just be an extra tap. */}
+          <PickList
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t("md_search_placeholder")}
-            className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+            onChange={(name) => {
+              setSearch(name);
+              loadMandis(name, selectedState);
+            }}
+            groups={mandiOptionsByState}
+            placeholder={t("md_all_mandis")}
+            isLoading={allMandis.length === 0}
           />
         </div>
 

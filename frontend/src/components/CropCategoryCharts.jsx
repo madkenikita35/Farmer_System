@@ -53,6 +53,7 @@ import {
   formatRupees,
   axisTick,
   gridStroke,
+  readToken,
 } from "./chartTheme";
 
 // Above this many crops a category is trimmed, with a button to open it
@@ -265,7 +266,7 @@ function CategoryChart({ rows, colour, categoryKey }) {
               dataKey="government"
               position="right"
               formatter={formatRupees}
-              style={{ fontSize: 11, fill: "#334155", fontWeight: 600 }}
+              style={{ fontSize: 11, fill: readToken("ink-800", "#334155"), fontWeight: 600 }}
             />
           </Bar>
 

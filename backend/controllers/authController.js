@@ -122,13 +122,29 @@ function refreshCookieOptions() {
 
     // "strict" means the browser refuses to attach this cookie to any
     // request that started from another site, which removes CSRF as a
-    // concern for the refresh endpoint.
+    // concern for the refresh endpoint. That is what we want in
+    // development, where the site and the API are both on localhost.
     //
-    // If the frontend is ever hosted on a DIFFERENT domain from the
-    // API, this has to become "none" (with secure: true), because
-    // "strict" would block the cookie on the cross-site call. Today
-    // they share a domain, so "strict" is both safe and correct.
-    sameSite: "strict",
+    // IN PRODUCTION THEY ARE ON DIFFERENT DOMAINS - the site is on its
+    // host, the API is on Render. That is a "cross-site" request, and
+    // "strict" makes the browser drop this cookie silently: no error,
+    // no warning, just a user who is logged out again on every refresh.
+    // So deployed, it has to be "none".
+    //
+    // "none" REQUIRES secure: true. The browser rejects the cookie
+    // outright otherwise, which is why these two are set from the same
+    // flag and must stay that way.
+    //
+    // What we give up is the browser refusing to SEND the cookie from
+    // another site. What still protects /api/auth/refresh:
+    //   - CORS names the exact allowed origin (CLIENT_URL), so another
+    //     site's script cannot read the response, and the new access
+    //     token it returns stays unreadable to them
+    //   - refresh tokens are single-use and rotate, so a replayed one
+    //     is already dead
+    //   - the cookie is scoped to /api/auth, so it is never sent
+    //     anywhere else
+    sameSite: isProduction ? "none" : "strict",
 
     // Limits the cookie to the auth routes. It is pointless sending it
     // to /api/mandi or /api/receipts, and not sending it is one fewer

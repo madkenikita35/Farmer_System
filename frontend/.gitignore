@@ -1,2 +1,8 @@
 node_modules/
 dist/
+
+# Local environment. Never committed - .env.example is the template,
+# and real values belong in the host's environment settings.
+.env
+.env.local
+.env.*.local

@@ -153,7 +153,13 @@ function OptionCard({ icon, title, text, linkTo, linkLabel, buttonClass }) {
 function FeatureCard({ icon, title, text }) {
   return (
     <div className="bg-card rounded-2xl shadow-soft p-6 border border-surface-300/60 hover-lift animate-popIn">
-      <div className="text-3xl mb-2 animate-float">{icon}</div>
+      {/* Static on purpose. These three icons used to drift up and
+          down forever (animate-float). On a page you are meant to READ,
+          permanent motion next to the text pulls the eye away from the
+          words - and there is nothing here that movement was explaining.
+          The card still lifts on hover, which is motion that answers a
+          question. */}
+      <div className="text-3xl mb-2">{icon}</div>
       <h3 className="font-semibold text-ink-900 mb-1">{title}</h3>
       <p className="text-sm text-ink-500 leading-relaxed">{text}</p>
     </div>

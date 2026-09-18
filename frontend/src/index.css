@@ -36,9 +36,8 @@ body {
      It's subtle on purpose - you shouldn't notice it as a "gradient",
      just that the page has a little depth to it.
 
-     Reading the surface tokens rather than three hex codes is what lets
-     dark mode reuse this rule unchanged: the same three steps simply
-     hold near-black values instead of cream. */
+     Reading the surface tokens rather than three hex codes means this
+     rule never has to be touched again when the palette changes. */
   background: linear-gradient(
     180deg,
     rgb(var(--surface-50)) 0%,
@@ -97,15 +96,11 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Tells the BROWSER which mode we are in. Without this, the bits the
-   browser draws itself - date pickers, autofill highlights, default
-   form controls, the scrollbar on Firefox - stay stubbornly light while
-   everything around them goes dark. */
-html[data-mode="light"] {
+/* Tells the BROWSER the app is light, so the bits it draws itself -
+   date pickers, autofill highlights, default form controls - match the
+   page instead of following the operating system into dark. */
+html {
   color-scheme: light;
-}
-html[data-mode="dark"] {
-  color-scheme: dark;
 }
 
 /* =======================================================================

@@ -56,6 +56,7 @@ import {
   categoryColour,
   axisTick,
   gridStroke,
+  readToken,
 } from "./chartTheme";
 
 function CropCoverageCharts({ coverage }) {
@@ -74,17 +75,9 @@ function CropCoverageCharts({ coverage }) {
   );
 
   return (
-    <div className="mb-8">
-      <h2 className="font-semibold text-ink-900 mb-1">📊 {t("md_charts_title")}</h2>
-
-      {/* The honest caveat, on screen and not just in the code. */}
-      <p className="text-xs text-ink-500 mb-3">
-        {t("md_charts_note", {
-          mandis: coverage.totalMandis,
-          crops: coverage.totalCrops,
-        })}
-      </p>
-
+    // The title and the caveat are rendered by the CollapsibleSection
+    // that wraps this on the Mandis page, so they are not repeated here.
+    <div>
       {/* ---- Category legend ---- */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mb-4">
         {categoriesShown.map((category) => (
@@ -183,7 +176,7 @@ function CoverageChart({ title, subtitle, icon, rows, totalMandis }) {
             <LabelList
               dataKey="mandis"
               position="right"
-              style={{ fontSize: 11, fill: "#334155", fontWeight: 600 }}
+              style={{ fontSize: 11, fill: readToken("ink-800", "#334155"), fontWeight: 600 }}
             />
           </Bar>
         </BarChart>

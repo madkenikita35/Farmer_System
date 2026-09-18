@@ -8,6 +8,7 @@
 import { useEffect, useState } from "react";
 import { getDashboardStats, getAllReceipts } from "../api/api";
 import StatCard from "../components/StatCard";
+import CollapsibleSection from "../components/CollapsibleSection";
 import PriceComparisonChart from "../components/PriceComparisonChart";
 import VerdictPieChart from "../components/VerdictPieChart";
 import ReceiptTable from "../components/ReceiptTable";
@@ -64,19 +65,24 @@ function Dashboard() {
 
       {/* ---- Data-quality transparency: how many receipts were
            compared against REAL government data vs mock/sample data ---- */}
+      {/* Folded by default. This is honesty about the data, not a
+          number anyone acts on - and it says the same thing on every
+          visit. The charts and stat cards stay open, because on a
+          dashboard those ARE the page. */}
       {stats.totalReceipts > 0 && (
-        <div className="mb-8 bg-card rounded-2xl shadow-sm p-4 border border-border flex flex-wrap items-center gap-4 text-sm">
-          <span className="font-semibold text-ink-900">{t("dash_data_quality")}</span>
-          <span className="text-positive-700">
-            ✅ {t("dash_compared_real", { count: stats.realDataCount })}
-          </span>
-          <span className="text-warning-700">
-            ⚠️ {t("dash_used_mock", { count: stats.mockDataCount })}
-          </span>
-          {stats.mockDataCount > 0 && (
-            <span className="text-ink-500">{t("dash_add_key_hint")}</span>
-          )}
-        </div>
+        <CollapsibleSection title={t("dash_data_quality")} className="mb-8">
+          <div className="flex flex-wrap items-center gap-4 text-sm">
+            <span className="text-positive-700">
+              ✅ {t("dash_compared_real", { count: stats.realDataCount })}
+            </span>
+            <span className="text-warning-700">
+              ⚠️ {t("dash_used_mock", { count: stats.mockDataCount })}
+            </span>
+            {stats.mockDataCount > 0 && (
+              <span className="text-ink-500">{t("dash_add_key_hint")}</span>
+            )}
+          </div>
+        </CollapsibleSection>
       )}
 
       {/* ---- Charts ---- */}

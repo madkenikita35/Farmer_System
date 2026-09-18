@@ -132,13 +132,16 @@ function AppShell({ children }) {
               target for closing - much easier to hit than a × while
               holding a phone one-handed. */}
           <div
-            className="lg:hidden fixed inset-0 z-40 bg-ink-950/40 animate-fadeIn"
+            // z-[60] puts it over the floating voice orb (z-50), which
+            // would otherwise sit on top of the dimmed page looking
+            // like it was still usable.
+            className="lg:hidden fixed inset-0 z-[60] bg-black/50 animate-fadeIn"
             onClick={() => setIsDrawerOpen(false)}
             aria-hidden="true"
           />
 
           <aside
-            className="lg:hidden fixed inset-y-0 left-0 z-50 w-72 bg-card border-r
+            className="lg:hidden fixed inset-y-0 left-0 z-[70] w-72 bg-card border-r
               border-surface-300 shadow-lifted flex flex-col animate-fadeInLeft"
           >
             <div className="flex items-center justify-between pr-2">

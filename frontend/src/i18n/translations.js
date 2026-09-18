@@ -202,7 +202,6 @@ export const translations = {
     rt_data_source: "Data Source",
     cr_title: "Check Mandi Rates",
     cr_subtitle: "Before you sell, see what price your crop is fetching - both the official government rate and what other farmers nearby actually got paid.",
-    cr_placeholder_crop: "e.g. Wheat, Onion, Tomato",
     cr_label_state: "State (optional)",
     cr_placeholder_state: "e.g. Maharashtra",
     cr_btn_check: "Check Rates",
@@ -274,7 +273,6 @@ export const translations = {
     md_matching_search: "Matching Your Search",
     md_states_covered: "States Covered",
     md_search_label: "Search mandi / district",
-    md_search_placeholder: "e.g. Ratnagiri, Azadpur, Indore",
     md_err_load: "Could not load the mandi list. Make sure the backend server is running.",
     md_mock_title: "Showing a small sample list, not live data.",
     md_mock_no_key: "No MANDI_API_KEY is set in the backend .env file. Add a free key from data.gov.in and restart the backend.",
@@ -371,19 +369,21 @@ export const translations = {
     nav_expand: "Expand menu",
     nav_close: "Close",
 
-    // ---- Theme toggle (stage 3) ----
-    theme_appearance: "Appearance",
+    // ---- Accent colour picker ----
     theme_colour: "Colour",
     theme_green: "Green",
-    theme_blue: "Blue",
     theme_earth: "Earth",
-    theme_mode: "Mode",
-    theme_light: "Light",
-    theme_dark: "Dark",
+
+    // ---- Check Rates decluttering (stage 4) ----
+    cr_insights: "Details and data source",
+    cr_charts: "Price charts",
+
+    // ---- Search dropdowns ----
+    md_all_mandis: "All mandis",
+    crops_all: "All crops",
     crops_total: "Crops With Price History",
     crops_chartable: "Enough Data To Draw A Line",
     crops_no_history_note: "Every crop here has receipts from only ONE date so far, so no line can be drawn yet. Trends appear once the same crop is uploaded on two or more different dates. The government price feed cannot fill this in - it only ever holds a single day.",
-    crops_search_placeholder: "Search a crop...",
     crops_none_title: "No crops matched.",
     crops_none_text: "Try a different spelling — the list uses the government's own crop names, e.g. \"Bengal Gram(Gram)(Whole)\".",
     crops_badge_trend: "Trend ready",
@@ -635,7 +635,6 @@ export const translations = {
     rt_data_source: "डेटा स्रोत",
     cr_title: "मंडी भाव जांचें",
     cr_subtitle: "बेचने से पहले देखें कि आपकी फसल का क्या भाव चल रहा है - सरकारी दर भी और आसपास के किसानों को असल में मिला भाव भी।",
-    cr_placeholder_crop: "जैसे गेहूं, प्याज, टमाटर",
     cr_label_state: "राज्य (वैकल्पिक)",
     cr_placeholder_state: "जैसे महाराष्ट्र",
     cr_btn_check: "भाव जांचें",
@@ -707,7 +706,6 @@ export const translations = {
     md_matching_search: "आपकी खोज से मेल खाती",
     md_states_covered: "शामिल राज्य",
     md_search_label: "मंडी / जिला खोजें",
-    md_search_placeholder: "जैसे रत्नागिरी, आजादपुर, इंदौर",
     md_err_load: "मंडी सूची लोड नहीं हो सकी। सुनिश्चित करें कि बैकएंड सर्वर चल रहा है।",
     md_mock_title: "छोटी नमूना सूची दिख रही है, लाइव डेटा नहीं।",
     md_mock_no_key: "बैकएंड की .env फाइल में कोई MANDI_API_KEY नहीं है। data.gov.in से मुफ्त key लेकर बैकएंड दोबारा चालू करें।",
@@ -804,19 +802,21 @@ export const translations = {
     nav_expand: "मेन्यू बड़ा करें",
     nav_close: "बंद करें",
 
-    // ---- Theme toggle (stage 3) ----
-    theme_appearance: "दिखावट",
+    // ---- Accent colour picker ----
     theme_colour: "रंग",
     theme_green: "हरा",
-    theme_blue: "नीला",
     theme_earth: "मिट्टी",
-    theme_mode: "मोड",
-    theme_light: "उजाला",
-    theme_dark: "अँधेरा",
+
+    // ---- Check Rates decluttering (stage 4) ----
+    cr_insights: "जानकारी और स्रोत",
+    cr_charts: "भाव चार्ट",
+
+    // ---- Search dropdowns ----
+    md_all_mandis: "सभी मंडियाँ",
+    crops_all: "सभी फसलें",
     crops_total: "भाव इतिहास वाली फसलें",
     crops_chartable: "रेखा बनाने लायक डेटा",
     crops_no_history_note: "यहाँ हर फसल की रसीदें अभी सिर्फ एक ही तारीख की हैं, इसलिए अभी कोई रेखा नहीं बन सकती। जब वही फसल दो या ज्यादा अलग तारीखों पर अपलोड होगी तब रुझान दिखेगा। सरकारी सेवा इसमें मदद नहीं कर सकती - उसके पास हमेशा सिर्फ एक दिन का डेटा होता है।",
-    crops_search_placeholder: "फसल खोजें...",
     crops_none_title: "कोई फसल नहीं मिली।",
     crops_none_text: "दूसरी वर्तनी आजमाएं — सूची में सरकारी नाम इस्तेमाल होते हैं, जैसे \"Bengal Gram(Gram)(Whole)\"।",
     crops_badge_trend: "रुझान तैयार",
@@ -1068,7 +1068,6 @@ export const translations = {
     rt_data_source: "माहितीचा स्रोत",
     cr_title: "मंडईचे भाव तपासा",
     cr_subtitle: "विकण्यापूर्वी तुमच्या पिकाला काय भाव मिळतो आहे ते पहा - सरकारी दरही आणि जवळच्या शेतकऱ्यांना प्रत्यक्षात मिळालेला भावही.",
-    cr_placeholder_crop: "उदा. गहू, कांदा, टोमॅटो",
     cr_label_state: "राज्य (ऐच्छिक)",
     cr_placeholder_state: "उदा. महाराष्ट्र",
     cr_btn_check: "भाव तपासा",
@@ -1140,7 +1139,6 @@ export const translations = {
     md_matching_search: "तुमच्या शोधाशी जुळणाऱ्या",
     md_states_covered: "समाविष्ट राज्ये",
     md_search_label: "मंडई / जिल्हा शोधा",
-    md_search_placeholder: "उदा. रत्नागिरी, आझादपूर, इंदूर",
     md_err_load: "मंडईची यादी लोड होऊ शकली नाही. बॅकएंड सर्व्हर चालू आहे याची खात्री करा.",
     md_mock_title: "छोटी नमुना यादी दिसत आहे, थेट माहिती नाही.",
     md_mock_no_key: "बॅकएंडच्या .env फाइलमध्ये MANDI_API_KEY नाही. data.gov.in वरून मोफत key घ्या आणि बॅकएंड पुन्हा चालू करा.",
@@ -1237,19 +1235,21 @@ export const translations = {
     nav_expand: "मेनू मोठा करा",
     nav_close: "बंद करा",
 
-    // ---- Theme toggle (stage 3) ----
-    theme_appearance: "दिसणे",
+    // ---- Accent colour picker ----
     theme_colour: "रंग",
     theme_green: "हिरवा",
-    theme_blue: "निळा",
     theme_earth: "मातकट",
-    theme_mode: "मोड",
-    theme_light: "उजेड",
-    theme_dark: "अंधार",
+
+    // ---- Check Rates decluttering (stage 4) ----
+    cr_insights: "माहिती व स्रोत",
+    cr_charts: "भाव तक्ते",
+
+    // ---- Search dropdowns ----
+    md_all_mandis: "सर्व मंड्या",
+    crops_all: "सर्व पिके",
     crops_total: "भाव इतिहास असलेली पिके",
     crops_chartable: "रेषा काढण्याइतकी माहिती",
     crops_no_history_note: "इथल्या प्रत्येक पिकाच्या पावत्या सध्या फक्त एकाच तारखेच्या आहेत, त्यामुळे अजून रेषा काढता येत नाही. तेच पीक दोन किंवा अधिक वेगळ्या तारखांना अपलोड झाल्यावर कल दिसेल. सरकारी सेवा यात मदत करू शकत नाही - तिच्याकडे नेहमी फक्त एका दिवसाची माहिती असते.",
-    crops_search_placeholder: "पीक शोधा...",
     crops_none_title: "कोणतेही पीक सापडले नाही.",
     crops_none_text: "वेगळे स्पेलिंग वापरून पहा — यादीत सरकारी नावे आहेत, उदा. \"Bengal Gram(Gram)(Whole)\".",
     crops_badge_trend: "कल तयार",
@@ -1501,7 +1501,6 @@ export const translations = {
     rt_data_source: "માહિતીનો સ્રોત",
     cr_title: "મંડી ભાવ તપાસો",
     cr_subtitle: "વેચતા પહેલાં જુઓ કે તમારા પાકને શું ભાવ મળી રહ્યો છે - સરકારી દર પણ અને નજીકના ખેડૂતોને ખરેખર મળેલો ભાવ પણ.",
-    cr_placeholder_crop: "દા.ત. ઘઉં, ડુંગળી, ટામેટા",
     cr_label_state: "રાજ્ય (વૈકલ્પિક)",
     cr_placeholder_state: "દા.ત. મહારાષ્ટ્ર",
     cr_btn_check: "ભાવ તપાસો",
@@ -1573,7 +1572,6 @@ export const translations = {
     md_matching_search: "તમારી શોધ સાથે મળતી",
     md_states_covered: "આવરી લેવાયેલા રાજ્યો",
     md_search_label: "મંડી / જિલ્લો શોધો",
-    md_search_placeholder: "દા.ત. રત્નાગિરી, આઝાદપુર, ઇન્દોર",
     md_err_load: "મંડીની યાદી લોડ થઈ શકી નહીં. ખાતરી કરો કે બેકએન્ડ સર્વર ચાલુ છે.",
     md_mock_title: "નાની નમૂના યાદી દેખાય છે, જીવંત માહિતી નહીં.",
     md_mock_no_key: "બેકએન્ડની .env ફાઇલમાં MANDI_API_KEY નથી. data.gov.in પરથી મફત key લઈને બેકએન્ડ ફરી ચાલુ કરો.",
@@ -1670,19 +1668,21 @@ export const translations = {
     nav_expand: "મેનુ મોટું કરો",
     nav_close: "બંધ કરો",
 
-    // ---- Theme toggle (stage 3) ----
-    theme_appearance: "દેખાવ",
+    // ---- Accent colour picker ----
     theme_colour: "રંગ",
     theme_green: "લીલો",
-    theme_blue: "વાદળી",
     theme_earth: "માટી",
-    theme_mode: "મોડ",
-    theme_light: "ઉજાસ",
-    theme_dark: "અંધારું",
+
+    // ---- Check Rates decluttering (stage 4) ----
+    cr_insights: "વિગત અને સ્રોત",
+    cr_charts: "ભાવ ચાર્ટ",
+
+    // ---- Search dropdowns ----
+    md_all_mandis: "બધી મંડીઓ",
+    crops_all: "બધા પાક",
     crops_total: "ભાવ ઇતિહાસ ધરાવતા પાક",
     crops_chartable: "રેખા દોરવા પૂરતી માહિતી",
     crops_no_history_note: "અહીંના દરેક પાકની પાવતીઓ હાલ ફક્ત એક જ તારીખની છે, તેથી હજી કોઈ રેખા દોરી શકાતી નથી. એ જ પાક બે કે વધુ અલગ તારીખે અપલોડ થશે ત્યારે વલણ દેખાશે. સરકારી સેવા આમાં મદદ કરી શકતી નથી - તેની પાસે હંમેશા ફક્ત એક દિવસની માહિતી હોય છે.",
-    crops_search_placeholder: "પાક શોધો...",
     crops_none_title: "કોઈ પાક મળ્યો નથી.",
     crops_none_text: "બીજી જોડણી અજમાવો — યાદીમાં સરકારી નામ છે, દા.ત. \"Bengal Gram(Gram)(Whole)\".",
     crops_badge_trend: "વલણ તૈયાર",
@@ -1934,7 +1934,6 @@ export const translations = {
     rt_data_source: "ਜਾਣਕਾਰੀ ਦਾ ਸਰੋਤ",
     cr_title: "ਮੰਡੀ ਦੇ ਭਾਅ ਵੇਖੋ",
     cr_subtitle: "ਵੇਚਣ ਤੋਂ ਪਹਿਲਾਂ ਵੇਖੋ ਕਿ ਤੁਹਾਡੀ ਫ਼ਸਲ ਦਾ ਕੀ ਭਾਅ ਚੱਲ ਰਿਹਾ ਹੈ - ਸਰਕਾਰੀ ਰੇਟ ਵੀ ਅਤੇ ਨੇੜਲੇ ਕਿਸਾਨਾਂ ਨੂੰ ਅਸਲ ਵਿੱਚ ਮਿਲਿਆ ਭਾਅ ਵੀ।",
-    cr_placeholder_crop: "ਜਿਵੇਂ ਕਣਕ, ਪਿਆਜ਼, ਟਮਾਟਰ",
     cr_label_state: "ਰਾਜ (ਚੋਣਵਾਂ)",
     cr_placeholder_state: "ਜਿਵੇਂ ਮਹਾਰਾਸ਼ਟਰ",
     cr_btn_check: "ਭਾਅ ਵੇਖੋ",
@@ -2006,7 +2005,6 @@ export const translations = {
     md_matching_search: "ਤੁਹਾਡੀ ਖੋਜ ਨਾਲ ਮੇਲ ਖਾਂਦੀਆਂ",
     md_states_covered: "ਸ਼ਾਮਲ ਰਾਜ",
     md_search_label: "ਮੰਡੀ / ਜ਼ਿਲ੍ਹਾ ਖੋਜੋ",
-    md_search_placeholder: "ਜਿਵੇਂ ਰਤਨਾਗਿਰੀ, ਆਜ਼ਾਦਪੁਰ, ਇੰਦੌਰ",
     md_err_load: "ਮੰਡੀ ਸੂਚੀ ਲੋਡ ਨਹੀਂ ਹੋ ਸਕੀ। ਯਕੀਨੀ ਬਣਾਓ ਕਿ ਬੈਕਐਂਡ ਸਰਵਰ ਚੱਲ ਰਿਹਾ ਹੈ।",
     md_mock_title: "ਛੋਟੀ ਨਮੂਨਾ ਸੂਚੀ ਦਿਖ ਰਹੀ ਹੈ, ਲਾਈਵ ਜਾਣਕਾਰੀ ਨਹੀਂ।",
     md_mock_no_key: "ਬੈਕਐਂਡ ਦੀ .env ਫ਼ਾਈਲ ਵਿੱਚ ਕੋਈ MANDI_API_KEY ਨਹੀਂ ਹੈ। data.gov.in ਤੋਂ ਮੁਫ਼ਤ key ਲੈ ਕੇ ਬੈਕਐਂਡ ਦੁਬਾਰਾ ਚਾਲੂ ਕਰੋ।",
@@ -2103,19 +2101,21 @@ export const translations = {
     nav_expand: "ਮੀਨੂ ਵੱਡਾ ਕਰੋ",
     nav_close: "ਬੰਦ ਕਰੋ",
 
-    // ---- Theme toggle (stage 3) ----
-    theme_appearance: "ਦਿੱਖ",
+    // ---- Accent colour picker ----
     theme_colour: "ਰੰਗ",
     theme_green: "ਹਰਾ",
-    theme_blue: "ਨੀਲਾ",
     theme_earth: "ਮਿੱਟੀ",
-    theme_mode: "ਮੋਡ",
-    theme_light: "ਚਾਨਣ",
-    theme_dark: "ਹਨੇਰਾ",
+
+    // ---- Check Rates decluttering (stage 4) ----
+    cr_insights: "ਵੇਰਵਾ ਅਤੇ ਸਰੋਤ",
+    cr_charts: "ਭਾਅ ਚਾਰਟ",
+
+    // ---- Search dropdowns ----
+    md_all_mandis: "ਸਾਰੀਆਂ ਮੰਡੀਆਂ",
+    crops_all: "ਸਾਰੀਆਂ ਫਸਲਾਂ",
     crops_total: "ਭਾਅ ਇਤਿਹਾਸ ਵਾਲੀਆਂ ਫ਼ਸਲਾਂ",
     crops_chartable: "ਲਕੀਰ ਬਣਾਉਣ ਜੋਗੀ ਜਾਣਕਾਰੀ",
     crops_no_history_note: "ਇੱਥੇ ਹਰ ਫ਼ਸਲ ਦੀਆਂ ਰਸੀਦਾਂ ਹਾਲੇ ਸਿਰਫ਼ ਇੱਕੋ ਤਾਰੀਖ਼ ਦੀਆਂ ਹਨ, ਇਸ ਲਈ ਹਾਲੇ ਕੋਈ ਲਕੀਰ ਨਹੀਂ ਬਣ ਸਕਦੀ। ਉਹੀ ਫ਼ਸਲ ਦੋ ਜਾਂ ਵੱਧ ਵੱਖ ਤਾਰੀਖ਼ਾਂ ਤੇ ਅਪਲੋਡ ਹੋਣ ਤੇ ਰੁਝਾਨ ਦਿਖੇਗਾ। ਸਰਕਾਰੀ ਸੇਵਾ ਇਸ ਵਿੱਚ ਮਦਦ ਨਹੀਂ ਕਰ ਸਕਦੀ - ਉਸ ਕੋਲ ਹਮੇਸ਼ਾ ਸਿਰਫ਼ ਇੱਕ ਦਿਨ ਦੀ ਜਾਣਕਾਰੀ ਹੁੰਦੀ ਹੈ।",
-    crops_search_placeholder: "ਫ਼ਸਲ ਖੋਜੋ...",
     crops_none_title: "ਕੋਈ ਫ਼ਸਲ ਨਹੀਂ ਮਿਲੀ।",
     crops_none_text: "ਹੋਰ ਸਪੈਲਿੰਗ ਅਜ਼ਮਾਓ — ਸੂਚੀ ਵਿੱਚ ਸਰਕਾਰੀ ਨਾਂ ਹਨ, ਜਿਵੇਂ \"Bengal Gram(Gram)(Whole)\"।",
     crops_badge_trend: "ਰੁਝਾਨ ਤਿਆਰ",
@@ -2367,7 +2367,6 @@ export const translations = {
     rt_data_source: "তথ্যের উৎস",
     cr_title: "মান্ডির দাম দেখুন",
     cr_subtitle: "বিক্রির আগে দেখে নিন আপনার ফসলের কী দাম চলছে - সরকারি হারও, আর কাছাকাছি কৃষকরা আসলে কত পেয়েছেন তাও।",
-    cr_placeholder_crop: "যেমন গম, পেঁয়াজ, টমেটো",
     cr_label_state: "রাজ্য (ঐচ্ছিক)",
     cr_placeholder_state: "যেমন মহারাষ্ট্র",
     cr_btn_check: "দাম দেখুন",
@@ -2439,7 +2438,6 @@ export const translations = {
     md_matching_search: "আপনার খোঁজের সঙ্গে মিলেছে",
     md_states_covered: "অন্তর্ভুক্ত রাজ্য",
     md_search_label: "মান্ডি / জেলা খুঁজুন",
-    md_search_placeholder: "যেমন রত্নাগিরি, আজাদপুর, ইন্দোর",
     md_err_load: "মান্ডির তালিকা লোড করা যায়নি। নিশ্চিত করুন যে ব্যাকএন্ড সার্ভার চালু আছে।",
     md_mock_title: "ছোট একটি নমুনা তালিকা দেখানো হচ্ছে, সরাসরি তথ্য নয়।",
     md_mock_no_key: "ব্যাকএন্ডের .env ফাইলে কোনো MANDI_API_KEY নেই। data.gov.in থেকে বিনামূল্যে key নিয়ে ব্যাকএন্ড আবার চালু করুন।",
@@ -2536,19 +2534,21 @@ export const translations = {
     nav_expand: "মেনু বড় করুন",
     nav_close: "বন্ধ করুন",
 
-    // ---- Theme toggle (stage 3) ----
-    theme_appearance: "চেহারা",
+    // ---- Accent colour picker ----
     theme_colour: "রঙ",
     theme_green: "সবুজ",
-    theme_blue: "নীল",
     theme_earth: "মাটি",
-    theme_mode: "মোড",
-    theme_light: "আলো",
-    theme_dark: "অন্ধকার",
+
+    // ---- Check Rates decluttering (stage 4) ----
+    cr_insights: "বিবরণ ও উৎস",
+    cr_charts: "দামের চার্ট",
+
+    // ---- Search dropdowns ----
+    md_all_mandis: "সব মান্ডি",
+    crops_all: "সব ফসল",
     crops_total: "দামের ইতিহাস আছে এমন ফসল",
     crops_chartable: "রেখা আঁকার মতো যথেষ্ট তথ্য",
     crops_no_history_note: "এখানে প্রতিটি ফসলের রসিদ এখনো শুধু একটি তারিখের, তাই এখনো কোনো রেখা আঁকা যায় না। একই ফসল দুই বা তার বেশি ভিন্ন তারিখে আপলোড হলে প্রবণতা দেখা যাবে। সরকারি পরিষেবা এতে সাহায্য করতে পারে না - তার কাছে সবসময় শুধু একদিনের তথ্য থাকে।",
-    crops_search_placeholder: "ফসল খুঁজুন...",
     crops_none_title: "কোনো ফসল মেলেনি।",
     crops_none_text: "অন্য বানান চেষ্টা করুন — তালিকায় সরকারি নাম আছে, যেমন \"Bengal Gram(Gram)(Whole)\"।",
     crops_badge_trend: "প্রবণতা প্রস্তুত",
@@ -2800,7 +2800,6 @@ export const translations = {
     rt_data_source: "தரவு ஆதாரம்",
     cr_title: "மண்டி விலைகளைப் பாருங்கள்",
     cr_subtitle: "விற்பதற்கு முன் உங்கள் பயிருக்கு என்ன விலை கிடைக்கிறது என்று பாருங்கள் - அரசு விலையும், அருகிலுள்ள விவசாயிகளுக்கு உண்மையில் கிடைத்த விலையும்.",
-    cr_placeholder_crop: "எ.கா. கோதுமை, வெங்காயம், தக்காளி",
     cr_label_state: "மாநிலம் (விருப்பத்திற்குரியது)",
     cr_placeholder_state: "எ.கா. மகாராஷ்டிரா",
     cr_btn_check: "விலை பார்",
@@ -2872,7 +2871,6 @@ export const translations = {
     md_matching_search: "உங்கள் தேடலுக்குப் பொருந்தியவை",
     md_states_covered: "உள்ளடங்கிய மாநிலங்கள்",
     md_search_label: "மண்டி / மாவட்டம் தேடு",
-    md_search_placeholder: "எ.கா. ரத்னகிரி, ஆசாத்பூர், இந்தூர்",
     md_err_load: "மண்டி பட்டியலை ஏற்ற முடியவில்லை. பின்தள சேவையகம் இயங்குகிறதா எனப் பாருங்கள்.",
     md_mock_title: "சிறிய மாதிரிப் பட்டியல் காட்டப்படுகிறது, நேரடித் தரவு அல்ல.",
     md_mock_no_key: "பின்தளத்தின் .env கோப்பில் MANDI_API_KEY இல்லை. data.gov.in இலிருந்து இலவச key பெற்று பின்தளத்தை மீண்டும் தொடங்குங்கள்.",
@@ -2969,19 +2967,21 @@ export const translations = {
     nav_expand: "மெனுவை விரி",
     nav_close: "மூடு",
 
-    // ---- Theme toggle (stage 3) ----
-    theme_appearance: "தோற்றம்",
+    // ---- Accent colour picker ----
     theme_colour: "நிறம்",
     theme_green: "பச்சை",
-    theme_blue: "நீலம்",
     theme_earth: "மண்",
-    theme_mode: "முறை",
-    theme_light: "வெளிச்சம்",
-    theme_dark: "இருள்",
+
+    // ---- Check Rates decluttering (stage 4) ----
+    cr_insights: "விவரம் மற்றும் மூலம்",
+    cr_charts: "விலை விளக்கப்படம்",
+
+    // ---- Search dropdowns ----
+    md_all_mandis: "அனைத்து மண்டிகள்",
+    crops_all: "அனைத்து பயிர்கள்",
     crops_total: "விலை வரலாறு உள்ள பயிர்கள்",
     crops_chartable: "கோடு வரைய போதுமான தரவு",
     crops_no_history_note: "இங்குள்ள ஒவ்வொரு பயிரின் ரசீதுகளும் இப்போது ஒரே தேதியைச் சேர்ந்தவை, எனவே இன்னும் கோடு வரைய முடியாது. அதே பயிர் இரண்டு அல்லது அதற்கு மேற்பட்ட வெவ்வேறு தேதிகளில் பதிவேற்றப்பட்டால் போக்கு தெரியும். அரசு சேவை இதில் உதவ முடியாது - அதனிடம் எப்போதும் ஒரு நாள் தரவு மட்டுமே உள்ளது.",
-    crops_search_placeholder: "பயிரைத் தேடுங்கள்...",
     crops_none_title: "எந்தப் பயிரும் பொருந்தவில்லை.",
     crops_none_text: "வேறு எழுத்துப்பிழை முயலுங்கள் — பட்டியலில் அரசு பெயர்கள் உள்ளன, எ.கா. \"Bengal Gram(Gram)(Whole)\".",
     crops_badge_trend: "போக்கு தயார்",
@@ -3233,7 +3233,6 @@ export const translations = {
     rt_data_source: "సమాచార మూలం",
     cr_title: "మండి ధరలు చూడండి",
     cr_subtitle: "అమ్మే ముందు మీ పంటకు ఏ ధర వస్తోందో చూడండి - ప్రభుత్వ ధర, అలాగే దగ్గరి రైతులకు నిజంగా వచ్చిన ధర కూడా.",
-    cr_placeholder_crop: "ఉదా. గోధుమ, ఉల్లి, టమాటా",
     cr_label_state: "రాష్ట్రం (ఐచ్ఛికం)",
     cr_placeholder_state: "ఉదా. మహారాష్ట్ర",
     cr_btn_check: "ధరలు చూడండి",
@@ -3305,7 +3304,6 @@ export const translations = {
     md_matching_search: "మీ వెతుకులాటకు సరిపోయినవి",
     md_states_covered: "కవర్ అయిన రాష్ట్రాలు",
     md_search_label: "మండి / జిల్లా వెతకండి",
-    md_search_placeholder: "ఉదా. రత్నగిరి, ఆజాద్‌పూర్, ఇండోర్",
     md_err_load: "మండి జాబితా లోడ్ కాలేదు. బ్యాకెండ్ సర్వర్ నడుస్తోందో లేదో చూడండి.",
     md_mock_title: "చిన్న నమూనా జాబితా చూపుతున్నాం, ప్రత్యక్ష సమాచారం కాదు.",
     md_mock_no_key: "బ్యాకెండ్ .env ఫైల్‌లో MANDI_API_KEY లేదు. data.gov.in నుండి ఉచిత key తీసుకుని బ్యాకెండ్ మళ్లీ ప్రారంభించండి.",
@@ -3402,19 +3400,21 @@ export const translations = {
     nav_expand: "మెనూ విస్తరించు",
     nav_close: "మూసివేయి",
 
-    // ---- Theme toggle (stage 3) ----
-    theme_appearance: "రూపం",
+    // ---- Accent colour picker ----
     theme_colour: "రంగు",
     theme_green: "ఆకుపచ్చ",
-    theme_blue: "నీలం",
     theme_earth: "మట్టి",
-    theme_mode: "మోడ్",
-    theme_light: "వెలుతురు",
-    theme_dark: "చీకటి",
+
+    // ---- Check Rates decluttering (stage 4) ----
+    cr_insights: "వివరాలు మరియు మూలం",
+    cr_charts: "ధరల చార్ట్",
+
+    // ---- Search dropdowns ----
+    md_all_mandis: "అన్ని మండీలు",
+    crops_all: "అన్ని పంటలు",
     crops_total: "ధరల చరిత్ర ఉన్న పంటలు",
     crops_chartable: "గీత గీయడానికి సరిపడా సమాచారం",
     crops_no_history_note: "ఇక్కడి ప్రతి పంట రసీదులు ప్రస్తుతం ఒకే తేదీవి మాత్రమే, కాబట్టి ఇంకా గీత గీయలేము. అదే పంట రెండు లేదా అంతకంటే ఎక్కువ వేర్వేరు తేదీల్లో అప్‌లోడ్ అయితే ధోరణి కనిపిస్తుంది. ప్రభుత్వ సేవ ఇందులో సహాయపడదు - దాని దగ్గర ఎప్పుడూ ఒక రోజు సమాచారమే ఉంటుంది.",
-    crops_search_placeholder: "పంట వెతకండి...",
     crops_none_title: "ఏ పంటా సరిపోలలేదు.",
     crops_none_text: "వేరే స్పెల్లింగ్ ప్రయత్నించండి — జాబితాలో ప్రభుత్వ పేర్లు ఉన్నాయి, ఉదా. \"Bengal Gram(Gram)(Whole)\".",
     crops_badge_trend: "ధోరణి సిద్ధం",
@@ -3666,7 +3666,6 @@ export const translations = {
     rt_data_source: "ಮಾಹಿತಿ ಮೂಲ",
     cr_title: "ಮಂಡಿ ಬೆಲೆ ನೋಡಿ",
     cr_subtitle: "ಮಾರುವ ಮೊದಲು ನಿಮ್ಮ ಬೆಳೆಗೆ ಏನು ಬೆಲೆ ಸಿಗುತ್ತಿದೆ ಎಂದು ನೋಡಿ - ಸರ್ಕಾರಿ ದರವೂ, ಹತ್ತಿರದ ರೈತರಿಗೆ ನಿಜವಾಗಿ ಸಿಕ್ಕ ಬೆಲೆಯೂ.",
-    cr_placeholder_crop: "ಉದಾ. ಗೋಧಿ, ಈರುಳ್ಳಿ, ಟೊಮೇಟೊ",
     cr_label_state: "ರಾಜ್ಯ (ಐಚ್ಛಿಕ)",
     cr_placeholder_state: "ಉದಾ. ಮಹಾರಾಷ್ಟ್ರ",
     cr_btn_check: "ಬೆಲೆ ನೋಡಿ",
@@ -3738,7 +3737,6 @@ export const translations = {
     md_matching_search: "ನಿಮ್ಮ ಹುಡುಕಾಟಕ್ಕೆ ಹೊಂದುವವು",
     md_states_covered: "ಒಳಗೊಂಡ ರಾಜ್ಯಗಳು",
     md_search_label: "ಮಂಡಿ / ಜಿಲ್ಲೆ ಹುಡುಕಿ",
-    md_search_placeholder: "ಉದಾ. ರತ್ನಗಿರಿ, ಆಜಾದ್‌ಪುರ್, ಇಂದೋರ್",
     md_err_load: "ಮಂಡಿ ಪಟ್ಟಿ ಲೋಡ್ ಆಗಲಿಲ್ಲ. ಬ್ಯಾಕೆಂಡ್ ಸರ್ವರ್ ಚಾಲನೆಯಲ್ಲಿದೆಯೇ ಎಂದು ನೋಡಿ.",
     md_mock_title: "ಸಣ್ಣ ಮಾದರಿ ಪಟ್ಟಿ ತೋರಿಸಲಾಗುತ್ತಿದೆ, ನೇರ ಮಾಹಿತಿ ಅಲ್ಲ.",
     md_mock_no_key: "ಬ್ಯಾಕೆಂಡ್‌ನ .env ಫೈಲ್‌ನಲ್ಲಿ MANDI_API_KEY ಇಲ್ಲ. data.gov.in ನಿಂದ ಉಚಿತ key ಪಡೆದು ಬ್ಯಾಕೆಂಡ್ ಮತ್ತೆ ಪ್ರಾರಂಭಿಸಿ.",
@@ -3835,19 +3833,21 @@ export const translations = {
     nav_expand: "ಮೆನು ವಿಸ್ತರಿಸಿ",
     nav_close: "ಮುಚ್ಚಿ",
 
-    // ---- Theme toggle (stage 3) ----
-    theme_appearance: "ನೋಟ",
+    // ---- Accent colour picker ----
     theme_colour: "ಬಣ್ಣ",
     theme_green: "ಹಸಿರು",
-    theme_blue: "ನೀಲಿ",
     theme_earth: "ಮಣ್ಣು",
-    theme_mode: "ಮೋಡ್",
-    theme_light: "ಬೆಳಕು",
-    theme_dark: "ಕತ್ತಲೆ",
+
+    // ---- Check Rates decluttering (stage 4) ----
+    cr_insights: "ವಿವರ ಮತ್ತು ಮೂಲ",
+    cr_charts: "ಬೆಲೆ ಚಾರ್ಟ್",
+
+    // ---- Search dropdowns ----
+    md_all_mandis: "ಎಲ್ಲಾ ಮಂಡಿಗಳು",
+    crops_all: "ಎಲ್ಲಾ ಬೆಳೆಗಳು",
     crops_total: "ಬೆಲೆ ಇತಿಹಾಸ ಇರುವ ಬೆಳೆಗಳು",
     crops_chartable: "ಗೆರೆ ಎಳೆಯಲು ಸಾಕಷ್ಟು ಮಾಹಿತಿ",
     crops_no_history_note: "ಇಲ್ಲಿನ ಪ್ರತಿ ಬೆಳೆಯ ರಸೀದಿಗಳು ಸದ್ಯಕ್ಕೆ ಒಂದೇ ದಿನಾಂಕದವು, ಆದ್ದರಿಂದ ಇನ್ನೂ ಗೆರೆ ಎಳೆಯಲಾಗದು. ಅದೇ ಬೆಳೆ ಎರಡು ಅಥವಾ ಹೆಚ್ಚು ಬೇರೆ ದಿನಾಂಕಗಳಲ್ಲಿ ಅಪ್‌ಲೋಡ್ ಆದಾಗ ಪ್ರವೃತ್ತಿ ಕಾಣಿಸುತ್ತದೆ. ಸರ್ಕಾರಿ ಸೇವೆ ಇದರಲ್ಲಿ ಸಹಾಯ ಮಾಡಲಾಗದು - ಅದರ ಬಳಿ ಯಾವಾಗಲೂ ಒಂದು ದಿನದ ಮಾಹಿತಿ ಮಾತ್ರ ಇರುತ್ತದೆ.",
-    crops_search_placeholder: "ಬೆಳೆ ಹುಡುಕಿ...",
     crops_none_title: "ಯಾವ ಬೆಳೆಯೂ ಹೊಂದಲಿಲ್ಲ.",
     crops_none_text: "ಬೇರೆ ಕಾಗುಣಿತ ಪ್ರಯತ್ನಿಸಿ — ಪಟ್ಟಿಯಲ್ಲಿ ಸರ್ಕಾರಿ ಹೆಸರುಗಳಿವೆ, ಉದಾ. \"Bengal Gram(Gram)(Whole)\".",
     crops_badge_trend: "ಪ್ರವೃತ್ತಿ ಸಿದ್ಧ",
@@ -4099,7 +4099,6 @@ export const translations = {
     rt_data_source: "വിവര ഉറവിടം",
     cr_title: "മണ്ടി വില പരിശോധിക്കുക",
     cr_subtitle: "വിൽക്കുന്നതിന് മുമ്പ് നിങ്ങളുടെ വിളയ്ക്ക് എന്ത് വില കിട്ടുന്നു എന്ന് നോക്കൂ - സർക്കാർ നിരക്കും, അടുത്തുള്ള കർഷകർക്ക് യഥാർത്ഥത്തിൽ കിട്ടിയ വിലയും.",
-    cr_placeholder_crop: "ഉദാ. ഗോതമ്പ്, ഉള്ളി, തക്കാളി",
     cr_label_state: "സംസ്ഥാനം (ഐച്ഛികം)",
     cr_placeholder_state: "ഉദാ. മഹാരാഷ്ട്ര",
     cr_btn_check: "വില പരിശോധിക്കുക",
@@ -4171,7 +4170,6 @@ export const translations = {
     md_matching_search: "നിങ്ങളുടെ തിരച്ചിലുമായി യോജിക്കുന്നവ",
     md_states_covered: "ഉൾപ്പെട്ട സംസ്ഥാനങ്ങൾ",
     md_search_label: "മണ്ടി / ജില്ല തിരയുക",
-    md_search_placeholder: "ഉദാ. രത്നഗിരി, ആസാദ്പൂർ, ഇൻഡോർ",
     md_err_load: "മണ്ടി പട്ടിക ലോഡ് ചെയ്യാനായില്ല. ബാക്കെൻഡ് സെർവർ പ്രവർത്തിക്കുന്നുണ്ടോ എന്ന് നോക്കുക.",
     md_mock_title: "ചെറിയ മാതൃകാ പട്ടിക കാണിക്കുന്നു, തത്സമയ വിവരമല്ല.",
     md_mock_no_key: "ബാക്കെൻഡിന്റെ .env ഫയലിൽ MANDI_API_KEY ഇല്ല. data.gov.in ൽ നിന്ന് സൗജന്യ key എടുത്ത് ബാക്കെൻഡ് വീണ്ടും തുടങ്ങുക.",
@@ -4268,19 +4266,21 @@ export const translations = {
     nav_expand: "മെനു വികസിപ്പിക്കുക",
     nav_close: "അടയ്ക്കുക",
 
-    // ---- Theme toggle (stage 3) ----
-    theme_appearance: "കാഴ്ച",
+    // ---- Accent colour picker ----
     theme_colour: "നിറം",
     theme_green: "പച്ച",
-    theme_blue: "നീല",
     theme_earth: "മണ്ണ്",
-    theme_mode: "മോഡ്",
-    theme_light: "വെളിച്ചം",
-    theme_dark: "ഇരുട്ട്",
+
+    // ---- Check Rates decluttering (stage 4) ----
+    cr_insights: "വിവരവും ഉറവിടവും",
+    cr_charts: "വില ചാർട്ട്",
+
+    // ---- Search dropdowns ----
+    md_all_mandis: "എല്ലാ മണ്ഡികളും",
+    crops_all: "എല്ലാ വിളകളും",
     crops_total: "വില ചരിത്രമുള്ള വിളകൾ",
     crops_chartable: "വര വരയ്ക്കാൻ മതിയായ വിവരം",
     crops_no_history_note: "ഇവിടെയുള്ള എല്ലാ വിളയുടെയും രസീതുകൾ ഇപ്പോൾ ഒരേ തീയതിയിലുള്ളവയാണ്, അതിനാൽ ഇനിയും വര വരയ്ക്കാനാവില്ല. അതേ വിള രണ്ടോ അതിലധികമോ വ്യത്യസ്ത തീയതികളിൽ അപ്‌ലോഡ് ചെയ്യുമ്പോൾ പ്രവണത കാണാം. സർക്കാർ സേവനത്തിന് ഇതിൽ സഹായിക്കാനാവില്ല - അതിന്റെ കയ്യിൽ എപ്പോഴും ഒരു ദിവസത്തെ വിവരം മാത്രമേയുള്ളൂ.",
-    crops_search_placeholder: "വിള തിരയുക...",
     crops_none_title: "ഒരു വിളയും യോജിച്ചില്ല.",
     crops_none_text: "മറ്റൊരു അക്ഷരവിന്യാസം പരീക്ഷിക്കുക — പട്ടികയിൽ സർക്കാർ പേരുകളാണ്, ഉദാ. \"Bengal Gram(Gram)(Whole)\".",
     crops_badge_trend: "പ്രവണത തയ്യാർ",
@@ -4550,7 +4550,6 @@ export const translations = {
     rt_data_source: "ତଥ୍ୟ ଉତ୍ସ",
     cr_title: "ମଣ୍ଡି ଦର ଦେଖନ୍ତୁ",
     cr_subtitle: "ବିକ୍ରି କରିବା ପୂର୍ବରୁ ଆପଣଙ୍କ ଫସଲର କଣ ଦର ଚାଲିଛି ଦେଖନ୍ତୁ - ସରକାରୀ ଦର ମଧ୍ୟ, ଏବଂ ପାଖ ଚାଷୀମାନେ ପ୍ରକୃତରେ ଯାହା ପାଇଛନ୍ତି ତାହା ମଧ୍ୟ।",
-    cr_placeholder_crop: "ଯଥା ଗହମ, ପିଆଜ, ଟମାଟୋ",
     cr_label_state: "ରାଜ୍ୟ (ଐଚ୍ଛିକ)",
     cr_placeholder_state: "ଯଥା ମହାରାଷ୍ଟ୍ର",
     cr_btn_check: "ଦର ଦେଖନ୍ତୁ",
@@ -4622,7 +4621,6 @@ export const translations = {
     md_matching_search: "ଆପଣଙ୍କ ଖୋଜ ସହିତ ମେଳ ଖାଉଥିବା",
     md_states_covered: "ଅନ୍ତର୍ଭୁକ୍ତ ରାଜ୍ୟ",
     md_search_label: "ମଣ୍ଡି / ଜିଲ୍ଲା ଖୋଜନ୍ତୁ",
-    md_search_placeholder: "ଯଥା ରତ୍ନାଗିରି, ଆଜାଦପୁର, ଇନ୍ଦୋର",
     md_err_load: "ମଣ୍ଡି ତାଲିକା ଲୋଡ୍ ହେଲା ନାହିଁ। ବ୍ୟାକଏଣ୍ଡ ସର୍ଭର ଚାଲୁଛି କି ନାହିଁ ଦେଖନ୍ତୁ।",
     md_mock_title: "ଛୋଟ ନମୁନା ତାଲିକା ଦେଖାଯାଉଛି, ସିଧା ତଥ୍ୟ ନୁହେଁ।",
     md_mock_no_key: "ବ୍ୟାକଏଣ୍ଡର .env ଫାଇଲରେ MANDI_API_KEY ନାହିଁ। data.gov.in ରୁ ମାଗଣା key ନେଇ ବ୍ୟାକଏଣ୍ଡ ପୁଣି ଆରମ୍ଭ କରନ୍ତୁ।",
@@ -4701,19 +4699,21 @@ export const translations = {
     nav_expand: "ମେନୁ ବଡ଼ କରନ୍ତୁ",
     nav_close: "ବନ୍ଦ କରନ୍ତୁ",
 
-    // ---- Theme toggle (stage 3) ----
-    theme_appearance: "ରୂପ",
+    // ---- Accent colour picker ----
     theme_colour: "ରଙ୍ଗ",
     theme_green: "ସବୁଜ",
-    theme_blue: "ନୀଳ",
     theme_earth: "ମାଟି",
-    theme_mode: "ମୋଡ୍",
-    theme_light: "ଆଲୋକ",
-    theme_dark: "ଅନ୍ଧକାର",
+
+    // ---- Check Rates decluttering (stage 4) ----
+    cr_insights: "ବିବରଣୀ ଓ ଉତ୍ସ",
+    cr_charts: "ଦର ଚାର୍ଟ",
+
+    // ---- Search dropdowns ----
+    md_all_mandis: "ସମସ୍ତ ମଣ୍ଡି",
+    crops_all: "ସମସ୍ତ ଫସଲ",
     crops_total: "ଦର ଇତିହାସ ଥିବା ଫସଲ",
     crops_chartable: "ରେଖା ଆଙ୍କିବା ପାଇଁ ଯଥେଷ୍ଟ ତଥ୍ୟ",
     crops_no_history_note: "ଏଠାରେ ପ୍ରତ୍ୟେକ ଫସଲର ରସିଦ ବର୍ତ୍ତମାନ କେବଳ ଗୋଟିଏ ତାରିଖର, ତେଣୁ ଏପର୍ଯ୍ୟନ୍ତ କୌଣସି ରେଖା ଆଙ୍କାଯାଇପାରିବ ନାହିଁ। ସେହି ଫସଲ ଦୁଇ କିମ୍ବା ଅଧିକ ଭିନ୍ନ ତାରିଖରେ ଅପଲୋଡ୍ ହେଲେ ଧାରା ଦେଖାଯିବ। ସରକାରୀ ସେବା ଏଥିରେ ସାହାଯ୍ୟ କରିପାରିବ ନାହିଁ - ତା ପାଖରେ ସର୍ବଦା କେବଳ ଗୋଟିଏ ଦିନର ତଥ୍ୟ ଥାଏ।",
-    crops_search_placeholder: "ଫସଲ ଖୋଜନ୍ତୁ...",
     crops_none_title: "କୌଣସି ଫସଲ ମେଳ ଖାଇଲା ନାହିଁ।",
     crops_none_text: "ଅନ୍ୟ ବନାନ ଚେଷ୍ଟା କରନ୍ତୁ — ତାଲିକାରେ ସରକାରୀ ନାମ ଅଛି, ଯଥା \"Bengal Gram(Gram)(Whole)\"।",
     crops_badge_trend: "ଧାରା ପ୍ରସ୍ତୁତ",

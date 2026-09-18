@@ -37,7 +37,16 @@ import { getMandiCropNames } from "../api/api";
 import { useLanguage } from "../context/LanguageContext";
 import { CATEGORY_ORDER, CATEGORY_LABEL_KEYS } from "./chartTheme";
 
-function CropSelect({ value, onChange, className = "", id }) {
+// The app's standard input styling. It lives here as the DEFAULT rather
+// than being passed in by every caller, because a caller who forgets it
+// gets an unstyled browser <select> that looks broken next to the boxes
+// beside it - and nothing warns you.
+const DEFAULT_CLASS =
+  "w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-card " +
+  "focus:outline-none focus:ring-2 focus:ring-primary-500 " +
+  "focus:border-primary-500 transition-all disabled:opacity-60";
+
+function CropSelect({ value, onChange, className = DEFAULT_CLASS, id }) {
   const { t } = useLanguage();
 
   const [crops, setCrops] = useState([]);
@@ -95,6 +104,15 @@ function CropSelect({ value, onChange, className = "", id }) {
     (category) => grouped[category] && grouped[category].length > 0
   );
 
+  // A crop can arrive from the URL - /check-rates?crop=Onion, which is
+  // how the Mandi pages link here - and the feed does not always carry
+  // it today. Without an option to match, the <select> would show the
+  // placeholder while the search still ran on the URL's crop: the box
+  // would say one thing and the results another. So the current value
+  // always gets an option, even if it is not in the list.
+  const isValueMissing =
+    value && !crops.some((crop) => crop.name === value);
+
   return (
     <select
       id={id}
@@ -106,6 +124,8 @@ function CropSelect({ value, onChange, className = "", id }) {
       <option value="">
         {isLoading ? t("crop_select_loading") : t("crop_select_placeholder")}
       </option>
+
+      {isValueMissing && <option value={value}>{value}</option>}
 
       {categoriesPresent.map((category) => (
         <optgroup key={category} label={t(CATEGORY_LABEL_KEYS[category])}>

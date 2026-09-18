@@ -43,19 +43,13 @@ export function readToken(name, fallback) {
   return raw ? `rgb(${raw})` : fallback;
 }
 
-/** True when the dark theme is on. Set by ThemeContext on <html>. */
-function isDark() {
-  if (typeof document === "undefined") return false;
-  return document.documentElement.dataset.mode === "dark";
-}
-
 // One colour per crop category. Chosen to be distinguishable from each
 // other AND to feel like the thing they describe: leafy green for
 // vegetables, ripe red for fruit, grain-gold for cereals.
 //
 // These deliberately do NOT follow the accent. If someone picks the
-// blue theme, fruit must stay red - the colour is carrying meaning, and
-// meaning should not change because of a preference.
+// earth theme, fruit must stay red - the colour is carrying meaning,
+// and meaning should not change because of a preference.
 export const CATEGORY_COLOURS = {
   vegetables: "#2E7D32",
   fruits: "#E53935",
@@ -65,21 +59,6 @@ export const CATEGORY_COLOURS = {
   spices: "#8E24AA",
   flowers: "#D81B60",
   other: "#546E7A",
-};
-
-// The same eight meanings, lifted for a dark background. They are not
-// different colours - each is the same hue turned up, because the
-// light-mode versions are chosen to sit on cream and go muddy on
-// near-black.
-export const CATEGORY_COLOURS_DARK = {
-  vegetables: "#4CAF50",
-  fruits: "#FF6B68",
-  cereals: "#FFCA3A",
-  pulses: "#FF9E45",
-  oilseeds: "#D4D95A",
-  spices: "#C264DB",
-  flowers: "#FF6094",
-  other: "#90A4AE",
 };
 
 // The category key -> its translation key, so headings and legends
@@ -109,8 +88,7 @@ export const CATEGORY_ORDER = [
 ];
 
 export function categoryColour(category) {
-  const palette = isDark() ? CATEGORY_COLOURS_DARK : CATEGORY_COLOURS;
-  return palette[category] || palette.other;
+  return CATEGORY_COLOURS[category] || CATEGORY_COLOURS.other;
 }
 
 /** ₹12,345 - Indian digit grouping, which is what these numbers mean. */
@@ -124,9 +102,10 @@ export function formatRupees(value) {
 //
 // These are FUNCTIONS, not constants, and must be called inside the
 // component that renders the chart: `tick={axisTick()}`. A constant
-// would be evaluated once when the module first loads and then keep the
-// colours of whichever theme happened to be on at the time - the axis
-// labels would stay dark grey after switching to dark mode.
+// would be evaluated once when the module first loads, which is fine
+// today but silently wrong the moment any of these colours becomes
+// theme-dependent - and that is a bug that looks like nothing until
+// someone changes a token.
 export function axisTick() {
   return {
     fontSize: 11,

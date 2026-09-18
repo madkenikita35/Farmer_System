@@ -11,8 +11,8 @@
 // WHY THE COLOURS MOVED OUT
 // A hex code written here is baked into the stylesheet at build time, so
 // it can never change while the app is running. That makes a theme
-// toggle impossible - you would have to ship three whole stylesheets and
-// swap them, or repaint every component from JavaScript. Pointing at a
+// toggle impossible - you would have to ship a whole second stylesheet
+// and swap it, or repaint every component from JavaScript. Pointing at a
 // variable instead means switching theme is one attribute on <html> and
 // the browser repaints everything itself.
 //
@@ -63,18 +63,19 @@ export default {
     extend: {
       colors: {
         // ---- PRIMARY: the accent colour, whichever theme is on. -----
-        // Green by default; blue and earth swap the same variables.
+        // Green by default; earth swaps the same variables.
         primary: {
           ...scale("primary", FULL_SCALE),
           DEFAULT: token("primary-600"),
-          // What sits ON a primary button. In light mode it is white;
-          // in dark mode the button is bright and this goes dark, which
-          // is why buttons say text-primary-foreground and not
-          // text-white.
+          // What sits ON a primary button. White today - but named for
+          // the JOB it does, so buttons say text-primary-foreground and
+          // not text-white, and a palette change is one token away
+          // instead of a hunt through every button in the app.
           foreground: token("primary-foreground"),
-          // The hover shade. It needs its own token because "darker"
-          // in light mode is "lighter" in dark mode, and a fixed shade
-          // number cannot mean both.
+          // The hover shade. It gets its own token rather than a shade
+          // number because each accent darkens by a different amount -
+          // hover:bg-primary-700 is too subtle on earth, too heavy on
+          // green.
           hover: token("primary-hover"),
         },
 
@@ -84,14 +85,13 @@ export default {
         accent: scale("accent", FULL_SCALE),
 
         // ---- INK: deep slate blue. Headings and body text. ---------
-        // Reads as "black" but carries a hint of the brand's blue. In
-        // dark mode the scale reverses, so text-ink-900 still means
-        // "the strongest text" without any component knowing.
+        // Reads as "black" but carries a hint of blue, which is softer
+        // than pure black on a warm paper background.
         ink: scale("ink", FULL_SCALE),
 
         // ---- SURFACE: warm paper. Page and card backgrounds. -------
-        // Also reverses in dark mode, which is what keeps
-        // border-surface-300 visible in both.
+        // A slightly warm off-white rather than pure white, so the
+        // screen feels closer to paper than to a spreadsheet.
         surface: scale("surface", SURFACE_SCALE),
 
         // ---- SEMANTIC: the three verdicts the app keeps showing -----
@@ -121,11 +121,10 @@ export default {
         input: token("input"),
         ring: token("ring"),
 
-        // A dark slate panel - the secondary button, the footer, the
-        // hero gradient. It has its own tokens rather than borrowing
-        // ink-900, because ink REVERSES in dark mode and those panels
-        // would have turned near-white underneath their own white
-        // text. "A dark panel" is a role, not a shade of ink.
+        // A dark slate panel - the secondary button and the footer.
+        // It has its own tokens rather than borrowing ink-900, because
+        // "a dark panel" is a ROLE: the day the text scale is retuned,
+        // the footer should not change with it.
         secondary: {
           DEFAULT: token("secondary"),
           strong: token("secondary-strong"),
@@ -142,14 +141,12 @@ export default {
         //     border-amber-200 -> border-warning-200
         //     bg-sky-50      ->  bg-info-50
         //
-        // In light mode these hold Tailwind's own values, so nothing
-        // moved. In dark mode the low steps go near-black and the high
-        // steps go bright, which is what keeps an error box
-        // (bg-negative-50 text-negative-700) readable in both without
-        // the component knowing anything about themes.
+        // The values ARE Tailwind's own red/green/amber/sky, so the
+        // swap changed nothing visible - it just gave those colours
+        // names that say what they mean.
         //
         // They deliberately do NOT follow the accent: an error stays
-        // red when someone picks the blue theme.
+        // red when someone picks the earth theme.
         positive: scale("positive", FULL_SCALE),
         negative: scale("negative", FULL_SCALE),
         warning: scale("warning", FULL_SCALE),
@@ -170,9 +167,9 @@ export default {
       // Softer, warmer shadows than Tailwind's default grey ones, so
       // cards feel lifted off the paper rather than cut out of it.
       //
-      // --shadow-strength is a multiplier, not a colour: a shadow that
-      // looks right on cream is invisible on near-black, so dark mode
-      // turns it up rather than redefining all three of these.
+      // --shadow-strength is a multiplier, not a colour. It is the one
+      // dial that makes every shadow heavier or lighter at once, rather
+      // than retuning all three of these by hand.
       boxShadow: {
         soft: [
           "0 2px 8px -2px rgb(var(--shadow-color) / calc(0.08 * var(--shadow-strength)))",

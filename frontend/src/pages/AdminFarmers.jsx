@@ -338,7 +338,7 @@ function VerdictBadge({ verdict }) {
   const styles = {
     "Fair Price": "bg-positive-100 text-positive-700",
     Underpaid: "bg-negative-100 text-negative-700",
-    Overpaid: "bg-blue-100 text-blue-700",
+    Overpaid: "bg-info-100 text-info-700",
     "No Data": "bg-muted text-ink-600",
   };
 
