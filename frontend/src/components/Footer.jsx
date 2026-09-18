@@ -13,7 +13,7 @@ function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-ink-gradient text-white mt-20 relative">
+    <footer className="bg-secondary-gradient text-secondary-foreground mt-20 relative">
       {/* A thin accent stripe along the top, so the footer reads as a
           deliberate edge to the page rather than the content just
           running out into a dark block. */}

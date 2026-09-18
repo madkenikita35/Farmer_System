@@ -41,13 +41,13 @@ function Home() {
             <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start animate-fadeInUp stagger-3">
               <Link
                 to="/check-rates"
-                className="bg-ink-gradient text-white font-semibold px-7 py-3.5 rounded-2xl shadow-soft text-center hover-lift"
+                className="bg-secondary-gradient text-secondary-foreground font-semibold px-7 py-3.5 rounded-2xl shadow-soft text-center hover-lift"
               >
                 🔍 {t("hero_cta_primary")}
               </Link>
               <Link
                 to="/upload"
-                className="bg-primary-gradient text-white font-semibold px-7 py-3.5 rounded-2xl shadow-soft text-center hover-lift"
+                className="bg-primary-gradient text-primary-foreground font-semibold px-7 py-3.5 rounded-2xl shadow-soft text-center hover-lift"
               >
                 📤 {t("hero_cta_secondary")}
               </Link>
@@ -61,7 +61,7 @@ function Home() {
 
       {/* ================= STATS STRIP ================= */}
       <FadeInSection className="max-w-6xl mx-auto px-6 py-10">
-        <div className="bg-white rounded-3xl shadow-soft border border-surface-300/60 grid grid-cols-2 sm:grid-cols-4 gap-6 py-9 px-6">
+        <div className="bg-card rounded-3xl shadow-soft border border-surface-300/60 grid grid-cols-2 sm:grid-cols-4 gap-6 py-9 px-6">
           <CountUpStat target={12500} suffix="+" label={t("stats_farmers")} />
           <CountUpStat target={38000} suffix="+" label={t("stats_receipts")} />
           <CountUpStat target={50} suffix="+" label={t("stats_crops")} />
@@ -83,7 +83,7 @@ function Home() {
             text={t("option_upload_text")}
             linkTo="/upload"
             linkLabel={t("option_upload_link")}
-            buttonClass="bg-primary-gradient"
+            buttonClass="bg-primary-gradient text-primary-foreground"
           />
           <OptionCard
             icon="🔍"
@@ -91,7 +91,7 @@ function Home() {
             text={t("option_check_text")}
             linkTo="/check-rates"
             linkLabel={t("option_check_link")}
-            buttonClass="bg-ink-gradient"
+            buttonClass="bg-secondary-gradient text-secondary-foreground"
           />
         </div>
 
@@ -121,7 +121,7 @@ function Home() {
       </FadeInSection>
 
       {/* ================= TESTIMONIALS ================= */}
-      <FadeInSection className="bg-white border-y border-surface-300/60 py-16">
+      <FadeInSection className="bg-card border-y border-surface-300/60 py-16">
         <div className="max-w-5xl mx-auto px-6">
           <h2 className="text-3xl font-bold text-ink-900 text-center mb-10">
             {t("testimonials_title")}
@@ -136,13 +136,13 @@ function Home() {
 // One of the two big call-to-action cards.
 function OptionCard({ icon, title, text, linkTo, linkLabel, buttonClass }) {
   return (
-    <div className="bg-white rounded-3xl shadow-soft p-8 border border-surface-300/60 flex flex-col hover-lift animate-popIn">
+    <div className="bg-card rounded-3xl shadow-soft p-8 border border-surface-300/60 flex flex-col hover-lift animate-popIn">
       <div className="text-4xl mb-3">{icon}</div>
       <h2 className="text-xl font-bold text-ink-900 mb-2">{title}</h2>
       <p className="text-ink-600 text-sm leading-relaxed mb-6 flex-1">{text}</p>
       <Link
         to={linkTo}
-        className={`${buttonClass} text-white font-semibold px-6 py-3.5 rounded-2xl shadow-soft transition-all text-center hover:scale-[1.02]`}
+        className={`${buttonClass} font-semibold px-6 py-3.5 rounded-2xl shadow-soft transition-all text-center hover:scale-[1.02]`}
       >
         {linkLabel}
       </Link>
@@ -152,7 +152,7 @@ function OptionCard({ icon, title, text, linkTo, linkLabel, buttonClass }) {
 
 function FeatureCard({ icon, title, text }) {
   return (
-    <div className="bg-white rounded-2xl shadow-soft p-6 border border-surface-300/60 hover-lift animate-popIn">
+    <div className="bg-card rounded-2xl shadow-soft p-6 border border-surface-300/60 hover-lift animate-popIn">
       <div className="text-3xl mb-2 animate-float">{icon}</div>
       <h3 className="font-semibold text-ink-900 mb-1">{title}</h3>
       <p className="text-sm text-ink-500 leading-relaxed">{text}</p>

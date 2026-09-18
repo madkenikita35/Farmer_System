@@ -36,7 +36,7 @@ const slides = [
       "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=1600&q=80&auto=format&fit=crop",
     captionKey: "hero_slide_1_caption",
     fallbackEmoji: "🌾",
-    fallbackFrom: "from-amber-400",
+    fallbackFrom: "from-warning-400",
     fallbackTo: "to-yellow-600",
   },
   {
@@ -44,7 +44,7 @@ const slides = [
       "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=1600&q=80&auto=format&fit=crop",
     captionKey: "hero_slide_2_caption",
     fallbackEmoji: "🧑‍🌾",
-    fallbackFrom: "from-green-500",
+    fallbackFrom: "from-positive-500",
     fallbackTo: "to-emerald-700",
   },
   {
@@ -53,14 +53,14 @@ const slides = [
     captionKey: "hero_slide_3_caption",
     fallbackEmoji: "🧾",
     fallbackFrom: "from-orange-400",
-    fallbackTo: "to-red-500",
+    fallbackTo: "to-negative-500",
   },
   {
     imageUrl:
       "https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=1600&q=80&auto=format&fit=crop",
     captionKey: "hero_slide_4_caption",
     fallbackEmoji: "📈",
-    fallbackFrom: "from-sky-500",
+    fallbackFrom: "from-info-500",
     fallbackTo: "to-blue-700",
   },
 ];
@@ -201,7 +201,7 @@ function HeroCarousel({ t }) {
             onClick={() => setActiveIndex(index)}
             aria-label={`Go to slide ${index + 1}`}
             className={`h-2.5 rounded-full transition-all duration-300 ${
-              index === activeIndex ? "bg-white w-7" : "bg-white/50 w-2.5 hover:bg-white/80"
+              index === activeIndex ? "bg-card w-7" : "bg-white/50 w-2.5 hover:bg-white/80"
             }`}
           />
         ))}

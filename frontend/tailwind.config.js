@@ -4,32 +4,57 @@
 // -----------------------------------------------------------------------
 // THE APP'S COLOUR SYSTEM.
 //
-// It used to be four flat colours - one green, one dark green, one cream,
-// one navy. That works until you need a hover state, a soft background, a
-// border, or a muted label. Then you're reaching for Tailwind's generic
-// grays and greens, and the app slowly stops looking like one thing.
+// The actual colours are NOT in this file any more. They live in
+// src/styles/tokens.css as CSS variables, and this file only says which
+// variable each Tailwind class should read.
 //
-// So each colour is now a full SHADE SCALE from 50 (almost white) to 950
-// (almost black), the same way Tailwind's own colours work:
+// WHY THE COLOURS MOVED OUT
+// A hex code written here is baked into the stylesheet at build time, so
+// it can never change while the app is running. That makes a theme
+// toggle impossible - you would have to ship three whole stylesheets and
+// swap them, or repaint every component from JavaScript. Pointing at a
+// variable instead means switching theme is one attribute on <html> and
+// the browser repaints everything itself.
+//
+// So the shade scales work exactly as before:
 //
 //     bg-primary-50     a barely-there tint, good for panel backgrounds
 //     text-primary-700  strong enough to read as body text
 //     bg-primary-600    the main button colour
-//     hover:bg-primary-700   its hover state - one step darker, always
+//     hover:bg-primary-hover   its hover state
 //
-// HOW TO PICK A SHADE (the rule of thumb):
+// HOW TO PICK A SHADE (the rule of thumb, unchanged):
 //     50-100   page and panel backgrounds
 //     200-300  borders and dividers
 //     400-500  icons, accents, decorative fills
-//     600-700  buttons and links (600 normal, 700 hover)
+//     600-700  buttons and links
 //     800-950  headings and body text
 //
-// THE OLD NAMES STILL WORK. `brand-green`, `brand-navy`, `brand-cream`
-// and `brand-darkgreen` are kept at the bottom as aliases pointing into
-// the new scales - about 130 places in the app use them, and repainting
-// them all by hand would have been 130 chances to miss one. They now
-// resolve to the new colours automatically.
+// WHAT `<alpha-value>` IS DOING
+// Tailwind substitutes the opacity into that slot, so bg-primary-600/50
+// still works. It only works if the variable holds SEPARATE channels
+// ("18 129 74") rather than a hex string - which is why tokens.css looks
+// the way it does.
 // -----------------------------------------------------------------------
+
+// Reads one CSS variable, in the form Tailwind needs for opacity support.
+function token(name) {
+  return `rgb(var(--${name}) / <alpha-value>)`;
+}
+
+// Builds a whole shade scale from a variable prefix, so the 50-950 list
+// is written once instead of seven times.
+function scale(prefix, steps) {
+  const result = {};
+  for (const step of steps) {
+    result[step] = token(`${prefix}-${step}`);
+  }
+  return result;
+}
+
+const FULL_SCALE = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
+const SURFACE_SCALE = [50, 100, 200, 300, 400];
+const VERDICT_SCALE = [50, 100, 500, 600, 700]; // fair / under / over
 
 export default {
   // Tailwind scans these files to figure out which CSS classes to generate.
@@ -37,120 +62,143 @@ export default {
   theme: {
     extend: {
       colors: {
-        // ---- PRIMARY: leaf green. Growth, crops, "go". -------------
-        // The main identity colour. Buttons, links, active states.
+        // ---- PRIMARY: the accent colour, whichever theme is on. -----
+        // Green by default; blue and earth swap the same variables.
         primary: {
-          50: "#EDFBF1",
-          100: "#D3F5DD",
-          200: "#A9EABE",
-          300: "#72D898",
-          400: "#3FBF74",
-          500: "#1FA25B",
-          600: "#12814A", // the main brand green
-          700: "#10673D",
-          800: "#115233",
-          900: "#0F442C",
-          950: "#052617",
+          ...scale("primary", FULL_SCALE),
+          DEFAULT: token("primary-600"),
+          // What sits ON a primary button. In light mode it is white;
+          // in dark mode the button is bright and this goes dark, which
+          // is why buttons say text-primary-foreground and not
+          // text-white.
+          foreground: token("primary-foreground"),
+          // The hover shade. It needs its own token because "darker"
+          // in light mode is "lighter" in dark mode, and a fixed shade
+          // number cannot mean both.
+          hover: token("primary-hover"),
         },
 
         // ---- ACCENT: harvest amber. Warmth, grain, attention. ------
         // Used sparingly - for the ONE thing on a screen that matters
         // most. An accent used everywhere stops being an accent.
-        accent: {
-          50: "#FFF8EC",
-          100: "#FFEECB",
-          200: "#FFDA92",
-          300: "#FFC259",
-          400: "#FFAA2B",
-          500: "#F98A07",
-          600: "#DD6502",
-          700: "#B74606",
-          800: "#94360C",
-          900: "#7A2E0E",
-          950: "#451703",
-        },
+        accent: scale("accent", FULL_SCALE),
 
         // ---- INK: deep slate blue. Headings and body text. ---------
-        // Pure black text on a warm background looks harsh. This reads
-        // as "black" but carries a hint of the brand's blue.
-        ink: {
-          50: "#F5F7FA",
-          100: "#EAEFF5",
-          200: "#D0DCE9",
-          300: "#A9BFD5",
-          400: "#7B9CBB",
-          500: "#587DA2",
-          600: "#436489",
-          700: "#37526F",
-          800: "#30455C",
-          900: "#1E3A56", // the old "navy"
-          950: "#12253A",
-        },
+        // Reads as "black" but carries a hint of the brand's blue. In
+        // dark mode the scale reverses, so text-ink-900 still means
+        // "the strongest text" without any component knowing.
+        ink: scale("ink", FULL_SCALE),
 
         // ---- SURFACE: warm paper. Page and card backgrounds. -------
-        // A slightly warm off-white rather than pure white, so the
-        // screen feels closer to paper than to a spreadsheet.
-        surface: {
-          50: "#FFFDF8",
-          100: "#FCF9F2", // the page background
-          200: "#F4EFE3",
-          300: "#E8E0CE",
-          400: "#D8CDB3",
-        },
+        // Also reverses in dark mode, which is what keeps
+        // border-surface-300 visible in both.
+        surface: scale("surface", SURFACE_SCALE),
 
         // ---- SEMANTIC: the three verdicts the app keeps showing -----
         // Naming these by MEANING rather than colour means a "Fair
         // Price" badge is written as bg-fair-100, which says what it is.
-        // If the colours ever change, the meaning doesn't.
-        fair: {
-          50: "#EDFBF1",
-          100: "#D3F5DD",
-          500: "#1FA25B",
-          600: "#12814A",
-          700: "#10673D",
+        fair: scale("fair", VERDICT_SCALE),
+        under: scale("under", VERDICT_SCALE),
+        over: scale("over", VERDICT_SCALE),
+
+        // ---- ROLE COLOURS ------------------------------------------
+        // Named for the job they do rather than the shade they pick, so
+        // they survive a theme change. Prefer these in new code:
+        //   bg-card        a raised panel   (was bg-white)
+        //   bg-muted       a recessed strip (was bg-gray-50)
+        //   border-border  any divider      (was border-gray-200)
+        background: token("background"),
+        foreground: token("foreground"),
+        card: {
+          DEFAULT: token("card"),
+          foreground: token("card-foreground"),
         },
-        under: {
-          50: "#FEF2F2",
-          100: "#FEE2E2",
-          500: "#EF4444",
-          600: "#DC2626",
-          700: "#B91C1C",
+        muted: {
+          DEFAULT: token("muted"),
+          foreground: token("muted-foreground"),
         },
-        over: {
-          50: "#FFF8EC",
-          100: "#FFEECB",
-          500: "#F98A07",
-          600: "#DD6502",
-          700: "#B74606",
+        border: token("border"),
+        input: token("input"),
+        ring: token("ring"),
+
+        // A dark slate panel - the secondary button, the footer, the
+        // hero gradient. It has its own tokens rather than borrowing
+        // ink-900, because ink REVERSES in dark mode and those panels
+        // would have turned near-white underneath their own white
+        // text. "A dark panel" is a role, not a shade of ink.
+        secondary: {
+          DEFAULT: token("secondary"),
+          strong: token("secondary-strong"),
+          foreground: token("secondary-foreground"),
         },
 
+        // ---- ROLE RAMPS --------------------------------------------
+        // These replaced the raw red/green/amber/sky classes that were
+        // scattered through the pages. Same shade numbers, so the swap
+        // was one-for-one:
+        //
+        //     bg-red-50      ->  bg-negative-50
+        //     text-green-700 ->  text-positive-700
+        //     border-amber-200 -> border-warning-200
+        //     bg-sky-50      ->  bg-info-50
+        //
+        // In light mode these hold Tailwind's own values, so nothing
+        // moved. In dark mode the low steps go near-black and the high
+        // steps go bright, which is what keeps an error box
+        // (bg-negative-50 text-negative-700) readable in both without
+        // the component knowing anything about themes.
+        //
+        // They deliberately do NOT follow the accent: an error stays
+        // red when someone picks the blue theme.
+        positive: scale("positive", FULL_SCALE),
+        negative: scale("negative", FULL_SCALE),
+        warning: scale("warning", FULL_SCALE),
+        info: scale("info", FULL_SCALE),
+
         // ---- LEGACY ALIASES ----------------------------------------
-        // Kept so the ~130 existing `brand-*` classes keep working, now
-        // pointing at the new palette. Prefer the scales above in new
-        // code - these exist to avoid a risky 21-file find-and-replace.
+        // Kept so the remaining `brand-*` classes keep working. They now
+        // point at tokens, so they follow the theme like everything
+        // else. Prefer the scales above in new code.
         brand: {
-          green: "#12814A", // -> primary-600
-          darkgreen: "#10673D", // -> primary-700
-          cream: "#FCF9F2", // -> surface-100
-          navy: "#1E3A56", // -> ink-900
+          green: token("primary-600"),
+          darkgreen: token("primary-700"),
+          cream: token("surface-100"),
+          navy: token("ink-900"),
         },
       },
 
       // Softer, warmer shadows than Tailwind's default grey ones, so
       // cards feel lifted off the paper rather than cut out of it.
+      //
+      // --shadow-strength is a multiplier, not a colour: a shadow that
+      // looks right on cream is invisible on near-black, so dark mode
+      // turns it up rather than redefining all three of these.
       boxShadow: {
-        soft: "0 2px 8px -2px rgba(30, 58, 86, 0.08), 0 4px 16px -4px rgba(30, 58, 86, 0.06)",
-        lifted: "0 12px 28px -12px rgba(30, 58, 86, 0.25)",
-        glow: "0 0 0 3px rgba(18, 129, 74, 0.15)",
+        soft: [
+          "0 2px 8px -2px rgb(var(--shadow-color) / calc(0.08 * var(--shadow-strength)))",
+          "0 4px 16px -4px rgb(var(--shadow-color) / calc(0.06 * var(--shadow-strength)))",
+        ].join(", "),
+        lifted:
+          "0 12px 28px -12px rgb(var(--shadow-color) / calc(0.25 * var(--shadow-strength)))",
+        glow: "0 0 0 3px rgb(var(--ring) / 0.15)",
       },
 
       // A couple of ready-made gradients, so the same one isn't written
-      // slightly differently in five places.
+      // slightly differently in five places. No <alpha-value> here -
+      // gradients are not opacity utilities, so they read the variables
+      // directly.
       backgroundImage: {
-        "primary-gradient": "linear-gradient(135deg, #12814A 0%, #10673D 100%)",
-        "ink-gradient": "linear-gradient(135deg, #1E3A56 0%, #12253A 100%)",
-        "accent-gradient": "linear-gradient(135deg, #FFAA2B 0%, #DD6502 100%)",
-        "page-gradient": "linear-gradient(180deg, #FFFDF8 0%, #FCF9F2 40%, #F4EFE3 100%)",
+        "primary-gradient":
+          "linear-gradient(135deg, rgb(var(--primary-600)) 0%, rgb(var(--primary-700)) 100%)",
+        // Was "ink-gradient". Renamed because it is a dark panel in both
+        // modes, and the ink scale no longer means "dark" once the theme
+        // flips.
+        "secondary-gradient":
+          "linear-gradient(135deg, rgb(var(--secondary)) 0%, rgb(var(--secondary-strong)) 100%)",
+        "accent-gradient":
+          "linear-gradient(135deg, rgb(var(--accent-400)) 0%, rgb(var(--accent-600)) 100%)",
+        "page-gradient":
+          "linear-gradient(180deg, rgb(var(--surface-50)) 0%, rgb(var(--surface-100)) 40%, rgb(var(--surface-200)) 100%)",
       },
 
       fontFamily: {

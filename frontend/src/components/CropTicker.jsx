@@ -31,20 +31,20 @@ import { Link } from "react-router-dom";
 // straight to the Check Rates page as a search term, so it must match a
 // crop name the government dataset actually uses.
 const crops = [
-  { name: "Wheat", emoji: "🌾", from: "from-amber-100", to: "to-yellow-200", text: "text-amber-900" },
+  { name: "Wheat", emoji: "🌾", from: "from-warning-100", to: "to-yellow-200", text: "text-warning-900" },
   { name: "Onion", emoji: "🧅", from: "from-purple-100", to: "to-fuchsia-200", text: "text-purple-900" },
-  { name: "Tomato", emoji: "🍅", from: "from-red-100", to: "to-rose-200", text: "text-red-900" },
-  { name: "Potato", emoji: "🥔", from: "from-orange-100", to: "to-amber-200", text: "text-orange-900" },
-  { name: "Rice", emoji: "🍚", from: "from-slate-100", to: "to-gray-200", text: "text-slate-800" },
-  { name: "Cotton", emoji: "🌱", from: "from-emerald-100", to: "to-green-200", text: "text-emerald-900" },
-  { name: "Maize", emoji: "🌽", from: "from-yellow-100", to: "to-amber-200", text: "text-yellow-900" },
-  { name: "Chilli", emoji: "🌶️", from: "from-red-100", to: "to-orange-200", text: "text-red-900" },
+  { name: "Tomato", emoji: "🍅", from: "from-negative-100", to: "to-rose-200", text: "text-negative-900" },
+  { name: "Potato", emoji: "🥔", from: "from-orange-100", to: "to-warning-200", text: "text-orange-900" },
+  { name: "Rice", emoji: "🍚", from: "from-slate-100", to: "to-gray-200", text: "text-ink-800" },
+  { name: "Cotton", emoji: "🌱", from: "from-emerald-100", to: "to-positive-200", text: "text-emerald-900" },
+  { name: "Maize", emoji: "🌽", from: "from-yellow-100", to: "to-warning-200", text: "text-yellow-900" },
+  { name: "Chilli", emoji: "🌶️", from: "from-negative-100", to: "to-orange-200", text: "text-negative-900" },
   { name: "Banana", emoji: "🍌", from: "from-yellow-100", to: "to-lime-200", text: "text-yellow-900" },
   { name: "Mango", emoji: "🥭", from: "from-orange-100", to: "to-yellow-200", text: "text-orange-900" },
   { name: "Garlic", emoji: "🧄", from: "from-stone-100", to: "to-neutral-200", text: "text-stone-800" },
   { name: "Grapes", emoji: "🍇", from: "from-violet-100", to: "to-purple-200", text: "text-violet-900" },
-  { name: "Coconut", emoji: "🥥", from: "from-amber-100", to: "to-orange-200", text: "text-amber-900" },
-  { name: "Soyabean", emoji: "🫘", from: "from-lime-100", to: "to-green-200", text: "text-lime-900" },
+  { name: "Coconut", emoji: "🥥", from: "from-warning-100", to: "to-orange-200", text: "text-warning-900" },
+  { name: "Soyabean", emoji: "🫘", from: "from-lime-100", to: "to-positive-200", text: "text-lime-900" },
 ];
 
 function CropTicker({ t }) {

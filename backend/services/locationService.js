@@ -238,4 +238,271 @@ async function geocodePlace(placeName) {
   }
 }
 
-module.exports = { distanceInKm, findMandiLocation, geocodePlace };
+// =====================================================================
+// PINCODE -> A PLACE ON THE MAP
+// =====================================================================
+// India Post publishes a free pincode directory at
+// api.postalpincode.in. No key, no signup, no rate limit published.
+//
+// It gives the post office, block/taluka, district and state - but NO
+// COORDINATES. That is fine, because we already hold coordinates for
+// 345 districts: the pincode tells us the district, and our own table
+// turns the district into a point. One light API call, and the
+// coordinate step never leaves the process.
+//
+// This is why the pincode path does not use Nominatim, which is
+// throttled to one request a second and already shared with the typed
+// town box and the address fields.
+//
+// TWO TRAPS IN THIS API, both confirmed against the live service:
+//
+//   1. An unknown pincode returns HTTP *200* with
+//      { Status: "Error", Message: "No records found" }.
+//      Checking the status code alone would treat it as a success and
+//      then fall over reading PostOffice[0].
+//
+//   2. One pincode covers MANY post offices - 411001 returns 8, and
+//      282001 returns 19. They share a district, so any of them will
+//      do for our purpose; we take the first and keep the count so the
+//      caller can say "Pune (8 post offices)" rather than implying we
+//      pinpointed a building.
+// =====================================================================
+
+const PINCODE_PATTERN = /^[1-9][0-9]{5}$/;
+
+/**
+ * Turns a 6-digit Indian pincode into a point on the map.
+ *
+ * @param {string} pincode
+ * @returns {Promise<{lat, lon, label, district, state, source}|null>}
+ */
+async function resolvePincode(pincode) {
+  const clean = String(pincode || "").trim();
+
+  // A pincode never starts with 0, which is why the pattern is
+  // [1-9] and not \d for the first digit.
+  if (!PINCODE_PATTERN.test(clean)) return null;
+
+  const cacheKey = `pin:${clean}`;
+  if (placeCache.has(cacheKey)) return placeCache.get(cacheKey);
+
+  try {
+    const response = await axios.get(`https://api.postalpincode.in/pincode/${clean}`, {
+      timeout: 15000,
+      headers: { "User-Agent": NOMINATIM_USER_AGENT },
+    });
+
+    const body = Array.isArray(response.data) ? response.data[0] : response.data;
+
+    // Trap 1: success is in the BODY, not the status code.
+    if (!body || body.Status !== "Success" || !Array.isArray(body.PostOffice) || body.PostOffice.length === 0) {
+      placeCache.set(cacheKey, null);
+      return null;
+    }
+
+    const office = body.PostOffice[0];
+    const district = (office.District || "").trim();
+    const state = (office.State || "").trim();
+
+    // Our own table turns the district into coordinates - no second
+    // network call.
+    const point = findMandiLocation(state, district);
+    if (!point) {
+      placeCache.set(cacheKey, null);
+      return null;
+    }
+
+    const found = {
+      lat: point.lat,
+      lon: point.lon,
+      label: `${clean} - ${district}, ${state}`,
+      district,
+      state,
+      // Said plainly: a pincode gets you to the district, not the
+      // doorstep, and the distances shown are only as precise as that.
+      accuracy: point.accuracy || "district",
+      postOfficeCount: body.PostOffice.length,
+      source: "india-post",
+    };
+
+    placeCache.set(cacheKey, found);
+    return found;
+  } catch (error) {
+    console.warn(`⚠️  Pincode lookup failed for ${clean}:`, error.message);
+    return null;
+  }
+}
+
+// =====================================================================
+// A STRUCTURED ADDRESS -> A PLACE ON THE MAP
+// =====================================================================
+// Four fields (address, post office, taluka, district) joined into one
+// query for the geocoder we already use.
+//
+// Ordered narrowest to widest, which is what Nominatim expects, and
+// blank fields are dropped so a farmer who only knows their taluka and
+// district still gets an answer instead of a query full of commas.
+// =====================================================================
+
+/**
+ * @param {{address, postOffice, taluka, district, state}} parts
+ * @returns {Promise<{lat, lon, label, source}|null>}
+ */
+async function geocodeAddress(parts = {}) {
+  const pieces = [parts.address, parts.postOffice, parts.taluka, parts.district, parts.state]
+    .map((piece) => String(piece || "").trim())
+    .filter(Boolean);
+
+  if (pieces.length === 0) return null;
+
+  // geocodePlace already checks our district list first, throttles to
+  // Nominatim's one-per-second policy, and caches both hits and misses.
+  // Reusing it means the address path inherits all of that.
+  const query = pieces.join(", ");
+  const found = await geocodePlace(query);
+
+  if (found) return { ...found, source: found.source || "openstreetmap", query };
+
+  // Nothing matched the full address. Retry with just the wide parts -
+  // a mistyped village should not lose the district we were also told.
+  const wide = [parts.taluka, parts.district, parts.state]
+    .map((piece) => String(piece || "").trim())
+    .filter(Boolean)
+    .join(", ");
+
+  if (wide && wide !== query) {
+    const fallback = await geocodePlace(wide);
+    if (fallback) return { ...fallback, query: wide, broadened: true };
+  }
+
+  return null;
+}
+
+// =====================================================================
+// WHICH STATE IS THIS LAT/LON IN?
+// =====================================================================
+// The Check Rates page needs the farmer's state to build its
+// state-level comparison, and all it has is coordinates from the
+// browser.
+//
+// The obvious answer is reverse geocoding - ask Nominatim what is at
+// this point. We deliberately do NOT, for two reasons:
+//
+//   1. Nominatim's usage policy is one request per second. A page that
+//      searches on every "Check Rates" click would either queue behind
+//      that or risk being blocked.
+//   2. We already hold coordinates for 345 districts. The nearest one
+//      to any point in India is, in practice, in the right state.
+//
+// So this is a nearest-neighbour lookup over data already in memory:
+// no network, no rate limit, no new dependency, and an answer in under
+// a millisecond.
+//
+// THE LIMIT OF THIS APPROACH: near a state border the nearest district
+// centroid can belong to the neighbouring state - a farmer just inside
+// Karnataka could be assigned to Maharashtra. `confidenceKm` is
+// returned so the caller can see how far away the match was, and the
+// page lets the farmer override it by typing a state.
+// =====================================================================
+
+/**
+ * The state whose nearest district centroid is closest to a point.
+ *
+ * @param {{lat:number, lon:number}} origin
+ * @returns {{state, district, confidenceKm}|null}
+ */
+function findStateForCoordinates(origin) {
+  if (!origin || !Number.isFinite(origin.lat) || !Number.isFinite(origin.lon)) {
+    return null;
+  }
+
+  let best = null;
+
+  for (const [key, value] of Object.entries(districtCoordinates)) {
+    const [state, district] = key.split("|||");
+    const km = distanceInKm(origin, value);
+
+    if (!best || km < best.confidenceKm) {
+      best = { state, district, confidenceKm: Math.round(km * 10) / 10 };
+    }
+  }
+
+  return best;
+}
+
+// =====================================================================
+// SANITY CHECK: is this "nearest" answer plausible?
+// =====================================================================
+// A farmer in Pune was told the nearest mandi was 144 km away, in
+// Ratnagiri. The maths was right and the coordinates were right - the
+// government feed simply had no Pune mandi that morning. Of ~7,000
+// mandis in India it carried 267 that hour, exactly one of them in
+// Maharashtra.
+//
+// That is a data problem rather than a code problem, but it LOOKS
+// identical to a real bug from the outside: swapped lat/lon, a wrong
+// formula, or a hardcoded fallback location would all produce the same
+// symptom - a nearest mandi that is implausibly far away.
+//
+// So we log it. If this warning appears for a big city, check in this
+// order:
+//   1. How many mandis reported at all? (the usual answer)
+//   2. Does the origin lat/lon look right, or are they swapped?
+//      A swap puts Pune (18.5, 73.9) in the Arabian Sea off Somalia.
+//   3. Does findMandiLocation resolve the nearby districts?
+//
+// Deliberately console.warn and not something shown to the user: a
+// farmer does not need our diagnostics, and the reply text already
+// explains the situation in their own language.
+// =====================================================================
+
+// Past this, a "nearest" mandi is suspicious. No Indian city is 100 km
+// from every mandi on a normal day.
+const IMPLAUSIBLE_NEAREST_KM = 100;
+
+/**
+ * Logs a warning when the nearest mandi found is improbably distant.
+ *
+ * @param {object} details
+ * @param {number} details.km            - distance to the nearest found
+ * @param {string} [details.mandiName]
+ * @param {object} [details.origin]      - { lat, lon } we searched from
+ * @param {string} [details.originLabel]
+ * @param {number} [details.candidateCount] - how many mandis we considered
+ * @param {string} [details.source]      - which feature asked
+ * @returns {boolean} true when the warning fired
+ */
+function warnIfNearestImplausible({
+  km,
+  mandiName = "",
+  origin = null,
+  originLabel = "",
+  candidateCount = null,
+  source = "nearest-mandi",
+}) {
+  if (!Number.isFinite(km) || km <= IMPLAUSIBLE_NEAREST_KM) return false;
+
+  const where = originLabel || (origin ? `${origin.lat}, ${origin.lon}` : "unknown origin");
+
+  console.warn(
+    `⚠️  [${source}] Nearest mandi is ${Math.round(km)} km away ` +
+      `(${mandiName || "unnamed"}) from ${where}. ` +
+      `That is further than expected` +
+      (candidateCount != null ? ` - only ${candidateCount} mandi(s) had usable locations.` : ".") +
+      ` Check: how many mandis reported today, then whether lat/lon are the right way round.`
+  );
+
+  return true;
+}
+
+module.exports = {
+  distanceInKm,
+  findMandiLocation,
+  findStateForCoordinates,
+  geocodePlace,
+  resolvePincode,
+  geocodeAddress,
+  PINCODE_PATTERN,
+  warnIfNearestImplausible,
+  IMPLAUSIBLE_NEAREST_KM,
+};

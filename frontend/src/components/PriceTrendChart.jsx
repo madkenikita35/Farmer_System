@@ -36,7 +36,7 @@ import {
 } from "recharts";
 
 import { useLanguage } from "../context/LanguageContext";
-import { AXIS_TICK, GRID_STROKE, formatRupees } from "./chartTheme";
+import { axisTick, gridStroke, formatRupees } from "./chartTheme";
 
 const LINE_COLOUR = "#2E7D32";
 
@@ -54,7 +54,7 @@ function PriceTrendChart({ points, isLoading, crop }) {
   // ---- 1. Loading ----
   if (isLoading) {
     return (
-      <div className="bg-white rounded-2xl shadow-soft p-6 border border-surface-300/60">
+      <div className="bg-card rounded-2xl shadow-soft p-6 border border-surface-300/60">
         <div className="animate-pulse">
           <div className="h-3 w-32 bg-surface-200 rounded mb-6" />
           {/* Bars of varying height read as "a chart is coming", which
@@ -117,7 +117,7 @@ function PriceTrendChart({ points, isLoading, crop }) {
   }));
 
   return (
-    <div className="bg-white rounded-2xl shadow-soft p-5 pr-3 border border-surface-300/60">
+    <div className="bg-card rounded-2xl shadow-soft p-5 pr-3 border border-surface-300/60">
       <ResponsiveContainer width="100%" height={340}>
         <LineChart data={rows} margin={{ top: 10, right: 20, left: 4, bottom: 5 }}>
           <defs>
@@ -127,18 +127,18 @@ function PriceTrendChart({ points, isLoading, crop }) {
             </linearGradient>
           </defs>
 
-          <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke={gridStroke()} vertical={false} />
 
           <XAxis
             dataKey="label"
-            tick={AXIS_TICK}
+            tick={axisTick()}
             axisLine={false}
             tickLine={false}
             minTickGap={16}
           />
 
           <YAxis
-            tick={AXIS_TICK}
+            tick={axisTick()}
             axisLine={false}
             tickLine={false}
             width={72}
@@ -215,7 +215,7 @@ function pointSourceLabel(t, point) {
 // rather than like an error.
 function EmptyPanel({ icon, title, text, detail }) {
   return (
-    <div className="bg-white rounded-2xl shadow-soft border border-surface-300/60 py-14 px-6 text-center">
+    <div className="bg-card rounded-2xl shadow-soft border border-surface-300/60 py-14 px-6 text-center">
       <div className="text-4xl mb-3">{icon}</div>
       <p className="font-semibold text-ink-900 mb-1">{title}</p>
       <p className="text-sm text-ink-500 max-w-md mx-auto">{text}</p>

@@ -32,6 +32,7 @@ const receiptRoutes = require("./routes/receiptRoutes");
 const mandiRoutes = require("./routes/mandiRoutes");
 const trendRoutes = require("./routes/trendRoutes");
 const cedaRoutes = require("./routes/cedaRoutes");
+const locationRoutes = require("./routes/locationRoutes");
 const voiceRoutes = require("./routes/voiceRoutes");
 
 // Refuse to boot on placeholder secrets in production - see the file.
@@ -181,6 +182,10 @@ app.use("/api/prices", trendRoutes);
 // Mounted at the root of /api because the paths are /api/crops and
 // /api/locations rather than sitting under a prefix.
 app.use("/api", cedaRoutes);
+
+// Pincode / address / lat-lon -> one set of coordinates, so the rest of
+// the app never learns there are several ways to say where you are.
+app.use("/api/location", locationRoutes);
 app.use("/api/voice", voiceRoutes);
 
 // ADMIN ONLY - adminRoutes.js uses router.use(protect, adminOnly)

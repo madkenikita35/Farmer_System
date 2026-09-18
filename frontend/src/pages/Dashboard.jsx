@@ -65,12 +65,12 @@ function Dashboard() {
       {/* ---- Data-quality transparency: how many receipts were
            compared against REAL government data vs mock/sample data ---- */}
       {stats.totalReceipts > 0 && (
-        <div className="mb-8 bg-white rounded-2xl shadow-sm p-4 border border-gray-100 flex flex-wrap items-center gap-4 text-sm">
+        <div className="mb-8 bg-card rounded-2xl shadow-sm p-4 border border-border flex flex-wrap items-center gap-4 text-sm">
           <span className="font-semibold text-ink-900">{t("dash_data_quality")}</span>
-          <span className="text-green-700">
+          <span className="text-positive-700">
             ✅ {t("dash_compared_real", { count: stats.realDataCount })}
           </span>
-          <span className="text-amber-700">
+          <span className="text-warning-700">
             ⚠️ {t("dash_used_mock", { count: stats.mockDataCount })}
           </span>
           {stats.mockDataCount > 0 && (
@@ -81,19 +81,19 @@ function Dashboard() {
 
       {/* ---- Charts ---- */}
       <div className="grid lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white rounded-2xl shadow-soft p-6 border border-surface-300/60">
+        <div className="bg-card rounded-2xl shadow-soft p-6 border border-surface-300/60">
           <h2 className="font-semibold text-ink-900 mb-3">{t("dash_chart_price_title")}</h2>
           <PriceComparisonChart data={stats.priceComparisonChart} />
         </div>
 
-        <div className="bg-white rounded-2xl shadow-soft p-6 border border-surface-300/60">
+        <div className="bg-card rounded-2xl shadow-soft p-6 border border-surface-300/60">
           <h2 className="font-semibold text-ink-900 mb-3">{t("dash_chart_verdict_title")}</h2>
           <VerdictPieChart data={stats.verdictBreakdown} />
         </div>
       </div>
 
       {/* ---- Table of all receipts ---- */}
-      <div className="bg-white rounded-2xl shadow-soft p-6 border border-surface-300/60">
+      <div className="bg-card rounded-2xl shadow-soft p-6 border border-surface-300/60">
         <h2 className="font-semibold text-ink-900 mb-3">{t("dash_all_receipts")}</h2>
         <ReceiptTable receipts={receipts} />
       </div>

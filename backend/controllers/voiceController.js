@@ -35,6 +35,7 @@ const {
   distanceInKm,
   findMandiLocation,
   geocodePlace,
+  warnIfNearestImplausible,
 } = require("../services/locationService");
 const { logActivity } = require("../services/activityService");
 
@@ -155,12 +156,40 @@ async function handleVoiceQuery(req, res) {
       return await answerNearest(res, parsed, say, priced, { lat, lon }, context);
     }
 
+    if (parsed.intent === "lowest") {
+      return answerLowest(res, parsed, say, priced, government.matchedDate, context);
+    }
+
+    // ---- We know they want an extreme, but not which end ----
+    // Ask, in their language. The old code had no way to reach this
+    // state: it simply answered "highest" and hoped.
+    if (parsed.intent === "price_direction_unclear") {
+      return respond(
+        res,
+        parsed,
+        say.clarifyDirection(cropDisplayName(parsed.crop, parsed.language)),
+        null,
+        context,
+        { needsClarification: true }
+      );
+    }
+
     if (parsed.intent === "price" && (parsed.place || parsed.state)) {
       return answerPriceAtPlace(res, parsed, say, priced, context);
     }
 
-    // "highest", and any plain price question with no place named.
-    return answerHighest(res, parsed, say, priced, government.matchedDate, context);
+    if (parsed.intent === "highest") {
+      return answerHighest(res, parsed, say, priced, government.matchedDate, context);
+    }
+
+    // ---- A plain "what is the price of onion", no place, no direction ----
+    //
+    // This used to fall into answerHighest, which is how a neutral
+    // question got answered with the single dearest mandi in India -
+    // true of one market and misleading about the crop. The AVERAGE
+    // across every reporting mandi is the honest answer to "what is the
+    // price", and it is not a guess about what they meant.
+    return answerAveragePrice(res, parsed, say, priced, context);
   } catch (error) {
     console.error("Error handling voice query:", error);
     res.status(500).json({ message: "Failed to handle that voice query." });
@@ -200,6 +229,74 @@ function answerHighest(res, parsed, say, priced, matchedDate, context) {
     },
     context,
     { mandi: best.market }
+  );
+}
+
+// ---------------------------------------------------------------------
+// INTENT: lowest price anywhere
+// ---------------------------------------------------------------------
+// The mirror of answerHighest. Worth having as its own function rather
+// than a flag on that one: the reply template differs, and a boolean
+// argument called `lowest` reads badly at every call site.
+//
+// WHO ASKS THIS: a farmer does not usually want to SELL at the lowest
+// price - they are checking where the market is weak, or they are
+// buying (seed, fodder, produce to resell). Either way it is a real
+// question, and until now it returned the exact opposite answer.
+// ---------------------------------------------------------------------
+function answerLowest(res, parsed, say, priced, matchedDate, context) {
+  const cheapest = priced.reduce((a, b) => (b.modalPrice < a.modalPrice ? b : a));
+
+  return respond(
+    res,
+    parsed,
+    say.lowestPrice(
+      cropDisplayName(parsed.crop, parsed.language),
+      spokenMandiName(cheapest.market, parsed.language),
+      spokenState(cheapest.state, parsed.language),
+      spokenRupees(cheapest.modalPrice, parsed.language),
+      spokenDate(matchedDate, parsed.language)
+    ),
+    {
+      crop: parsed.crop,
+      mandiName: cheapest.market,
+      district: cheapest.district,
+      state: cheapest.state,
+      modalPrice: cheapest.modalPrice,
+      minPrice: cheapest.minPrice,
+      maxPrice: cheapest.maxPrice,
+      arrivalDate: cheapest.arrivalDate,
+      mandisCompared: priced.length,
+      direction: "lowest",
+    },
+    context,
+    { mandi: cheapest.market }
+  );
+}
+
+// ---------------------------------------------------------------------
+// INTENT: a plain price question, no place and no direction
+// ---------------------------------------------------------------------
+function answerAveragePrice(res, parsed, say, priced, context) {
+  const average = Math.round(
+    priced.reduce((sum, p) => sum + p.modalPrice, 0) / priced.length
+  );
+
+  return respond(
+    res,
+    parsed,
+    say.priceAverage(
+      cropDisplayName(parsed.crop, parsed.language),
+      spokenRupees(average, parsed.language),
+      numberToWords(priced.length, parsed.language)
+    ),
+    {
+      crop: parsed.crop,
+      averagePrice: average,
+      mandisCompared: priced.length,
+      direction: "average",
+    },
+    context
   );
 }
 
@@ -267,6 +364,15 @@ async function answerNearestMandis(res, parsed, say, coords, context) {
   located.sort((a, b) => a.distanceKm - b.distanceKm);
   const closest = located[0];
   const nearbyCount = located.filter((m) => m.distanceKm <= NEARBY_RADIUS_KM).length;
+
+  // Shout in the log if this looks wrong. See locationService.js.
+  warnIfNearestImplausible({
+    km: closest.distanceKm,
+    mandiName: closest.mandiName,
+    origin,
+    candidateCount: located.length,
+    source: "voice/nearest-mandi",
+  });
 
   return respond(
     res,
@@ -381,6 +487,17 @@ async function answerNearest(res, parsed, say, priced, coords, context) {
       { mandi: closest.market }
     );
   }
+
+  // The closest one, for the sanity check - `best` below is the
+  // best-PAYING, which is a different question.
+  const nearestOfAll = located.reduce((a, b) => (b.distanceKm < a.distanceKm ? b : a));
+  warnIfNearestImplausible({
+    km: nearestOfAll.distanceKm,
+    mandiName: nearestOfAll.market,
+    origin,
+    candidateCount: located.length,
+    source: "voice/nearest-for-crop",
+  });
 
   const best = withDistance.reduce((a, b) => (b.modalPrice > a.modalPrice ? b : a));
 

@@ -107,18 +107,18 @@ function AdminFarmers() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by name, email, phone or state..."
-          className="flex-1 border border-ink-200 rounded-xl px-4 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+          className="flex-1 border border-ink-200 rounded-xl px-4 py-2.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
         />
         <button
           type="submit"
-          className="bg-primary-gradient text-white font-semibold px-6 py-2.5 rounded-xl shadow-soft hover:scale-[1.02] transition-all"
+          className="bg-primary-gradient text-primary-foreground font-semibold px-6 py-2.5 rounded-xl shadow-soft hover:scale-[1.02] transition-all"
         >
           🔍 Search
         </button>
       </form>
 
       {errorMessage && (
-        <div className="bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-3 mb-6 text-sm">
+        <div className="bg-negative-50 text-negative-700 border border-negative-200 rounded-lg px-4 py-3 mb-6 text-sm">
           {errorMessage}
         </div>
       )}
@@ -130,12 +130,12 @@ function AdminFarmers() {
           <p className="text-sm">Loading farmers...</p>
         </div>
       ) : farmers.length === 0 ? (
-        <div className="text-center py-16 text-ink-500 bg-white rounded-2xl border border-gray-100">
+        <div className="text-center py-16 text-ink-500 bg-card rounded-2xl border border-border">
           <div className="text-3xl mb-2">🤷</div>
           <p className="font-medium">No farmers found.</p>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl shadow-soft border border-surface-300/60 overflow-hidden">
+        <div className="bg-card rounded-2xl shadow-soft border border-surface-300/60 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-surface-200/70 text-ink-600">
@@ -224,7 +224,7 @@ function FarmerRow({ farmer, isExpanded, onToggleExpand, onToggleActive }) {
     <>
       <tr
         className={`border-t border-surface-200 hover:bg-primary-50/40 cursor-pointer ${
-          isExpanded ? "bg-green-50/50" : ""
+          isExpanded ? "bg-positive-50/50" : ""
         }`}
         onClick={onToggleExpand}
       >
@@ -252,8 +252,8 @@ function FarmerRow({ farmer, isExpanded, onToggleExpand, onToggleActive }) {
             }}
             className={`px-3 py-1 rounded-full text-xs font-semibold ${
               farmer.isActive
-                ? "bg-green-100 text-green-700 hover:bg-green-200"
-                : "bg-red-100 text-red-700 hover:bg-red-200"
+                ? "bg-positive-100 text-positive-700 hover:bg-positive-200"
+                : "bg-negative-100 text-negative-700 hover:bg-negative-200"
             }`}
           >
             {farmer.isActive ? "Active" : "Blocked"}
@@ -262,13 +262,13 @@ function FarmerRow({ farmer, isExpanded, onToggleExpand, onToggleActive }) {
       </tr>
 
       {isExpanded && (
-        <tr className="bg-gray-50/70">
+        <tr className="bg-muted/70">
           {/* colSpan makes this cell stretch across all 7 columns */}
           <td colSpan={7} className="px-4 py-5">
             {isLoadingDetail ? (
               <p className="text-sm text-ink-500 text-center py-4">Loading details...</p>
             ) : !detail ? (
-              <p className="text-sm text-red-600 text-center py-4">
+              <p className="text-sm text-negative-600 text-center py-4">
                 Could not load this farmer's details.
               </p>
             ) : (
@@ -285,7 +285,7 @@ function FarmerRow({ farmer, isExpanded, onToggleExpand, onToggleActive }) {
                       {detail.receipts.map((r) => (
                         <li
                           key={r._id}
-                          className="bg-white rounded-lg border border-gray-100 px-3 py-2 text-xs"
+                          className="bg-card rounded-lg border border-border px-3 py-2 text-xs"
                         >
                           <div className="flex justify-between gap-2">
                             <span className="font-medium text-ink-900">{r.crop}</span>
@@ -314,7 +314,7 @@ function FarmerRow({ farmer, isExpanded, onToggleExpand, onToggleActive }) {
                         <li key={a._id} className="flex items-start gap-2 text-xs">
                           <span>{actionIcon(a.action)}</span>
                           <div>
-                            <p className="text-gray-700">{a.description}</p>
+                            <p className="text-ink-700">{a.description}</p>
                             <p className="text-ink-400">
                               {new Date(a.createdAt).toLocaleString()}
                             </p>
@@ -336,10 +336,10 @@ function FarmerRow({ farmer, isExpanded, onToggleExpand, onToggleActive }) {
 // A small coloured pill for a receipt's verdict.
 function VerdictBadge({ verdict }) {
   const styles = {
-    "Fair Price": "bg-green-100 text-green-700",
-    Underpaid: "bg-red-100 text-red-700",
+    "Fair Price": "bg-positive-100 text-positive-700",
+    Underpaid: "bg-negative-100 text-negative-700",
     Overpaid: "bg-blue-100 text-blue-700",
-    "No Data": "bg-gray-100 text-ink-600",
+    "No Data": "bg-muted text-ink-600",
   };
 
   return (

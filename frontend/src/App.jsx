@@ -1,8 +1,12 @@
 // App.jsx
 // -----------------------------------------------------------------------
-// This is the "shell" of our app: it always shows the Navbar and Footer,
-// and swaps out the page content in between based on the current URL,
-// using react-router-dom's <Routes> / <Route>.
+// This file does ONE job: it says which URL shows which page, using
+// react-router-dom's <Routes> / <Route>.
+//
+// The frame around the pages - sidebar, top bar, footer - lives in
+// components/AppShell.jsx. It used to be written out here, which meant
+// this file mixed "what the app looks like" with "where the pages are",
+// and both got harder to read.
 //
 // It's also where we wrap the whole app with our two Context Providers
 // (see src/context/):
@@ -35,11 +39,11 @@
 
 import { Routes, Route } from "react-router-dom";
 import { LanguageProvider } from "./context/LanguageContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
-import Navbar from "./components/Navbar";
+import AppShell from "./components/AppShell";
 import VoiceAssistant from "./components/VoiceAssistant";
-import Footer from "./components/Footer";
 
 // Farmer-side pages
 import Home from "./pages/Home";
@@ -69,142 +73,138 @@ function App() {
     // English. Swap these two and the app crashes, because
     // LanguageProvider would be calling useAuth() before AuthProvider
     // exists. See the long comment in context/LanguageContext.jsx.
-    <AuthProvider>
-      <LanguageProvider>
-        <div className="min-h-screen flex flex-col">
-          <Navbar />
+    <ThemeProvider>
+      <AuthProvider>
+        <LanguageProvider>
+        <AppShell>
+          <Routes>
+            {/* ---------- 1. PUBLIC ---------- */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
 
-          {/* flex-1 pushes the Footer down to the bottom even on short pages */}
-          <main className="flex-1">
-            <Routes>
-              {/* ---------- 1. PUBLIC ---------- */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
+            {/* ---------- 2. LOGGED IN (farmer or admin) ---------- */}
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Home />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/upload"
+              element={
+                <ProtectedRoute>
+                  <Upload />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/check-rates"
+              element={
+                <ProtectedRoute>
+                  <CheckRates />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/mandis"
+              element={
+                <ProtectedRoute>
+                  <Mandis />
+                </ProtectedRoute>
+              }
+            />
+            {/* "Which mandi near me pays the most?" - needs a login
+                like every other farmer page. */}
+            <Route
+              path="/nearby"
+              element={
+                <ProtectedRoute>
+                  <NearbyMandis />
+                </ProtectedRoute>
+              }
+            />
+            {/* The mandi name is passed as ?mandi=...&state=... rather
+                than in the path, because real mandi names contain
+                spaces and brackets that are awkward in a URL path. */}
+            <Route
+              path="/mandis/view"
+              element={
+                <ProtectedRoute>
+                  <MandiDetail />
+                </ProtectedRoute>
+              }
+            />
 
-              {/* ---------- 2. LOGGED IN (farmer or admin) ---------- */}
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <Home />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/upload"
-                element={
-                  <ProtectedRoute>
-                    <Upload />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/check-rates"
-                element={
-                  <ProtectedRoute>
-                    <CheckRates />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/mandis"
-                element={
-                  <ProtectedRoute>
-                    <Mandis />
-                  </ProtectedRoute>
-                }
-              />
-              {/* "Which mandi near me pays the most?" - needs a login
-                  like every other farmer page. */}
-              <Route
-                path="/nearby"
-                element={
-                  <ProtectedRoute>
-                    <NearbyMandis />
-                  </ProtectedRoute>
-                }
-              />
-              {/* The mandi name is passed as ?mandi=...&state=... rather
-                  than in the path, because real mandi names contain
-                  spaces and brackets that are awkward in a URL path. */}
-              <Route
-                path="/mandis/view"
-                element={
-                  <ProtectedRoute>
-                    <MandiDetail />
-                  </ProtectedRoute>
-                }
-              />
+            {/* Crop price trends over time: the list of crops, and
+                one crop's line graph. Both are farmer-facing, so they
+                sit in the logged-in block rather than the admin one. */}
+            <Route
+              path="/crops"
+              element={
+                <ProtectedRoute>
+                  <CropsList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/crops/:cropName"
+              element={
+                <ProtectedRoute>
+                  <CropTrend />
+                </ProtectedRoute>
+              }
+            />
 
-              {/* Crop price trends over time: the list of crops, and
-                  one crop's line graph. Both are farmer-facing, so they
-                  sit in the logged-in block rather than the admin one. */}
-              <Route
-                path="/crops"
-                element={
-                  <ProtectedRoute>
-                    <CropsList />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/crops/:cropName"
-                element={
-                  <ProtectedRoute>
-                    <CropTrend />
-                  </ProtectedRoute>
-                }
-              />
+            {/* ---------- 3. ADMIN ONLY ---------- */}
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute adminOnly>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/farmers"
+              element={
+                <ProtectedRoute adminOnly>
+                  <AdminFarmers />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/activity"
+              element={
+                <ProtectedRoute adminOnly>
+                  <AdminActivity />
+                </ProtectedRoute>
+              }
+            />
 
-              {/* ---------- 3. ADMIN ONLY ---------- */}
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute adminOnly>
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/farmers"
-                element={
-                  <ProtectedRoute adminOnly>
-                    <AdminFarmers />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/activity"
-                element={
-                  <ProtectedRoute adminOnly>
-                    <AdminActivity />
-                  </ProtectedRoute>
-                }
-              />
-
-              {/* ---------- Anything else: a friendly 404 ---------- */}
-              {/* path="*" is react-router's "none of the above" case. */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </main>
-
-          <Footer />
+            {/* ---------- Anything else: a friendly 404 ---------- */}
+            {/* path="*" is react-router's "none of the above" case. */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
 
           {/* The voice assistant floats above every page. It's for
               FARMERS - the admin panel is a desk tool in English, and a
               mic orb there would just be in the way. FarmerOnlyVoice
               below makes that call. */}
           <FarmerOnlyVoice />
-        </div>
-      </LanguageProvider>
+        </AppShell>
+        </LanguageProvider>
+      </AuthProvider>
+    </ThemeProvider>
     </AuthProvider>
   );
 }
@@ -226,8 +226,8 @@ function NotFound() {
   return (
     <div className="max-w-md mx-auto text-center px-6 py-24">
       <div className="text-5xl mb-4">🌾</div>
-      <h1 className="text-2xl font-bold text-brand-navy mb-2">Page not found</h1>
-      <p className="text-gray-500">
+      <h1 className="text-2xl font-bold text-ink-900 mb-2">Page not found</h1>
+      <p className="text-ink-500">
         That page doesn't exist. Use the menu above to get back on track.
       </p>
     </div>

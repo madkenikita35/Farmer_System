@@ -112,7 +112,7 @@ function CropsList() {
             setVisibleCount(PAGE_SIZE); // a new search starts at the top
           }}
           placeholder={t("crops_search_placeholder")}
-          className="w-full sm:w-80 border border-ink-200 rounded-xl px-3.5 py-2.5 bg-white
+          className="w-full sm:w-80 border border-ink-200 rounded-xl px-3.5 py-2.5 bg-card
             focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
         />
 
@@ -124,7 +124,7 @@ function CropsList() {
       </div>
 
       {errorMessage && (
-        <div className="bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-3 mb-6 text-sm">
+        <div className="bg-negative-50 text-negative-700 border border-negative-200 rounded-lg px-4 py-3 mb-6 text-sm">
           {errorMessage}
         </div>
       )}
@@ -135,7 +135,7 @@ function CropsList() {
           {[...Array(8)].map((_, index) => (
             <div
               key={index}
-              className="bg-white rounded-2xl border border-surface-300/60 p-5 h-24 animate-pulse"
+              className="bg-card rounded-2xl border border-surface-300/60 p-5 h-24 animate-pulse"
             >
               <div className="h-4 w-24 bg-surface-200 rounded mb-3" />
               <div className="h-3 w-16 bg-surface-200 rounded" />
@@ -143,7 +143,7 @@ function CropsList() {
           ))}
         </div>
       ) : matches.length === 0 ? (
-        <div className="text-center py-16 text-ink-500 bg-white rounded-2xl border border-surface-300/60">
+        <div className="text-center py-16 text-ink-500 bg-card rounded-2xl border border-surface-300/60">
           <div className="text-3xl mb-2">🤷</div>
           <p className="font-medium">{t("crops_none_title")}</p>
           <p className="text-sm mt-1 max-w-md mx-auto">{t("crops_none_text")}</p>
@@ -155,7 +155,7 @@ function CropsList() {
               <Link
                 key={crop.id}
                 to={`/crops/${encodeURIComponent(crop.name)}`}
-                className="group bg-white rounded-2xl shadow-soft border border-surface-300/60 p-4
+                className="group bg-card rounded-2xl shadow-soft border border-surface-300/60 p-4
                   hover:border-primary-400 hover-lift animate-popIn flex items-center gap-3"
               >
                 <span className="text-2xl shrink-0 transition-transform group-hover:scale-110">

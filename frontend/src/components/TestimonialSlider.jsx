@@ -29,12 +29,12 @@ function TestimonialSlider({ t }) {
   const active = testimonialKeys[activeIndex];
 
   return (
-    <div className="bg-white rounded-2xl shadow-soft border border-surface-300/60 p-8 max-w-2xl mx-auto text-center">
+    <div className="bg-card rounded-2xl shadow-soft border border-surface-300/60 p-8 max-w-2xl mx-auto text-center">
       {/* key={activeIndex} makes React re-mount this div on every change,
           which re-triggers the fade-in animation each time the quote changes. */}
       <div key={activeIndex} className="animate-fadeIn">
         <div className="text-4xl mb-4">{active.emoji}</div>
-        <p className="text-gray-700 text-lg italic mb-4">"{t(active.textKey)}"</p>
+        <p className="text-ink-700 text-lg italic mb-4">"{t(active.textKey)}"</p>
         <p className="font-semibold text-ink-900">{t(active.nameKey)}</p>
         <p className="text-sm text-ink-500">{t(active.roleKey)}</p>
       </div>
@@ -47,7 +47,7 @@ function TestimonialSlider({ t }) {
             onClick={() => setActiveIndex(index)}
             aria-label={`Show testimonial ${index + 1}`}
             className={`w-2.5 h-2.5 rounded-full transition-all ${
-              index === activeIndex ? "bg-brand-green w-6" : "bg-gray-300"
+              index === activeIndex ? "bg-brand-green w-6" : "bg-ink-200"
             }`}
           />
         ))}

@@ -24,10 +24,10 @@ import { useLanguage } from "../context/LanguageContext";
 // Maps each verdict to a Tailwind colour class - keeping this in one
 // place means the colours stay consistent everywhere we show a verdict.
 const verdictStyles = {
-  "Fair Price": "bg-green-100 text-green-800",
-  Underpaid: "bg-red-100 text-red-800",
+  "Fair Price": "bg-positive-100 text-positive-800",
+  Underpaid: "bg-negative-100 text-negative-800",
   Overpaid: "bg-yellow-100 text-yellow-800",
-  "No Data": "bg-gray-100 text-ink-600",
+  "No Data": "bg-muted text-ink-600",
 };
 
 // English verdict (as stored) -> translation key (as shown).
@@ -41,9 +41,9 @@ const VERDICT_KEYS = {
 // Short badge so it's obvious at a glance whether a row's comparison
 // came from REAL government data or a mock/sample fallback.
 const dataSourceKeys = {
-  "real-exact-date": { key: "src_real", className: "bg-green-100 text-green-800" },
-  "real-nearest-date": { key: "src_real_nearest", className: "bg-green-100 text-green-800" },
-  mock: { key: "src_mock", className: "bg-amber-100 text-amber-800" },
+  "real-exact-date": { key: "src_real", className: "bg-positive-100 text-positive-800" },
+  "real-nearest-date": { key: "src_real_nearest", className: "bg-positive-100 text-positive-800" },
+  mock: { key: "src_mock", className: "bg-warning-100 text-warning-800" },
 };
 
 function ReceiptTable({ receipts }) {
@@ -57,7 +57,7 @@ function ReceiptTable({ receipts }) {
     <div className="overflow-x-auto">
       <table className="w-full text-sm text-left">
         <thead>
-          <tr className="border-b border-gray-200 text-ink-500">
+          <tr className="border-b border-border text-ink-500">
             <th className="py-2 pr-4">{t("common_date")}</th>
             <th className="py-2 pr-4">{t("common_crop")}</th>
             <th className="py-2 pr-4">{t("common_mandi")}</th>
@@ -73,7 +73,7 @@ function ReceiptTable({ receipts }) {
           {receipts.map((r) => {
             const source = dataSourceKeys[r.dataSource] || dataSourceKeys.mock;
             return (
-              <tr key={r._id} className="border-b border-surface-200 hover:bg-gray-50">
+              <tr key={r._id} className="border-b border-surface-200 hover:bg-muted">
                 <td className="py-2 pr-4">{r.date || new Date(r.createdAt).toLocaleDateString()}</td>
                 <td className="py-2 pr-4 font-medium">{r.crop}</td>
                 <td className="py-2 pr-4">{r.mandiName}</td>

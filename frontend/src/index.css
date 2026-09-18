@@ -22,6 +22,11 @@
 /* A friendlier, more "app-like" font than the browser default. */
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap");
 
+/* Every colour in the app comes from here. Must be imported before the
+   Tailwind lines below, because tailwind.config.js reads these
+   variables - and CSS requires all @import rules to come first. */
+@import "./styles/tokens.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -29,10 +34,19 @@
 body {
   /* A very soft top-to-bottom warm gradient instead of one flat cream.
      It's subtle on purpose - you shouldn't notice it as a "gradient",
-     just that the page has a little depth to it. */
-  background: linear-gradient(180deg, #fffdf8 0%, #fcf9f2 45%, #f4efe3 100%);
+     just that the page has a little depth to it.
+
+     Reading the surface tokens rather than three hex codes is what lets
+     dark mode reuse this rule unchanged: the same three steps simply
+     hold near-black values instead of cream. */
+  background: linear-gradient(
+    180deg,
+    rgb(var(--surface-50)) 0%,
+    rgb(var(--surface-100)) 45%,
+    rgb(var(--surface-200)) 100%
+  );
   background-attachment: fixed;
-  color: #30455c; /* ink-800 - softer than pure black on warm paper */
+  color: rgb(var(--foreground));
   font-family: "Poppins", ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -40,14 +54,14 @@ body {
 /* Headings carry the darkest ink and a tighter letter-spacing, which is
    what makes them read as headings rather than just bigger text. */
 h1, h2, h3 {
-  color: #1e3a56; /* ink-900 */
+  color: rgb(var(--ink-900));
   letter-spacing: -0.02em;
 }
 
 /* Text selection in the brand colour rather than the browser's blue. */
 ::selection {
-  background-color: #a9eabe; /* primary-200 */
-  color: #0f442c;            /* primary-900 */
+  background-color: rgb(var(--primary-200));
+  color: rgb(var(--primary-900));
 }
 
 /* A slimmer scrollbar that matches the palette. Chrome/Edge/Safari. */
@@ -56,22 +70,24 @@ h1, h2, h3 {
   height: 11px;
 }
 ::-webkit-scrollbar-track {
-  background: #f4efe3; /* surface-200 */
+  background: rgb(var(--surface-200));
 }
 ::-webkit-scrollbar-thumb {
-  background: #d0dce9; /* ink-200 */
+  background: rgb(var(--ink-200));
   border-radius: 999px;
-  border: 3px solid #f4efe3;
+  /* The border is the same colour as the track, which is what makes the
+     thumb look slimmer than the groove it sits in. */
+  border: 3px solid rgb(var(--surface-200));
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #a9bfd5; /* ink-300 */
+  background: rgb(var(--ink-300));
 }
 
 /* A visible focus ring for keyboard users. The browser default is easy
    to lose against a coloured background, and someone navigating by Tab
    needs to see where they are. */
 :focus-visible {
-  outline: 2px solid #12814a; /* primary-600 */
+  outline: 2px solid rgb(var(--ring));
   outline-offset: 2px;
   border-radius: 6px;
 }
@@ -79,6 +95,17 @@ h1, h2, h3 {
 /* Smooth scrolling when jumping to an in-page link/section. */
 html {
   scroll-behavior: smooth;
+}
+
+/* Tells the BROWSER which mode we are in. Without this, the bits the
+   browser draws itself - date pickers, autofill highlights, default
+   form controls, the scrollbar on Firefox - stay stubbornly light while
+   everything around them goes dark. */
+html[data-mode="light"] {
+  color-scheme: light;
+}
+html[data-mode="dark"] {
+  color-scheme: dark;
 }
 
 /* =======================================================================
@@ -139,9 +166,9 @@ html {
 
 /* A soft pulsing ring, for drawing the eye to one live element. */
 @keyframes pulseRing {
-  0%   { box-shadow: 0 0 0 0 rgba(18, 129, 74, 0.45); }
-  70%  { box-shadow: 0 0 0 12px rgba(18, 129, 74, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(18, 129, 74, 0); }
+  0%   { box-shadow: 0 0 0 0 rgb(var(--primary-600) / 0.45); }
+  70%  { box-shadow: 0 0 0 12px rgb(var(--primary-600) / 0); }
+  100% { box-shadow: 0 0 0 0 rgb(var(--primary-600) / 0); }
 }
 
 /* Scrolls content endlessly sideways - the crop ticker uses this.
@@ -187,7 +214,15 @@ html {
 }
 
 .animate-shimmer {
-  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  /* Loading placeholders. These were Tailwind greys, which glowed
+     brightly on a dark page - exactly the wrong thing for a skeleton
+     that is meant to sit quietly until the real content lands. */
+  background: linear-gradient(
+    90deg,
+    rgb(var(--muted)) 25%,
+    rgb(var(--border)) 50%,
+    rgb(var(--muted)) 75%
+  );
   background-size: 600px 100%;
   animation: shimmer 1.4s linear infinite;
 }
@@ -210,7 +245,8 @@ html {
 }
 .hover-lift:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 28px -12px rgba(30, 58, 86, 0.25);
+  box-shadow: 0 12px 28px -12px
+    rgb(var(--shadow-color) / calc(0.25 * var(--shadow-strength)));
 }
 
 /* Slowly zooms a photo inside its frame on hover. The parent needs

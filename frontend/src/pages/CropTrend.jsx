@@ -203,8 +203,8 @@ function CropTrend() {
             onClick={() => handleLevelChange(tab.key)}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-all border ${
               level === tab.key
-                ? "bg-primary-600 text-white border-transparent shadow-soft scale-[1.03]"
-                : "bg-white text-ink-600 border-surface-300 hover:border-ink-300 hover:bg-surface-100"
+                ? "bg-primary-600 text-primary-foreground border-transparent shadow-soft scale-[1.03]"
+                : "bg-card text-ink-600 border-surface-300 hover:border-ink-300 hover:bg-surface-100"
             }`}
           >
             {tab.icon} {t(tab.labelKey)}
@@ -213,7 +213,7 @@ function CropTrend() {
       </div>
 
       {/* ---------- Filters ---------- */}
-      <div className="bg-white rounded-2xl shadow-soft p-5 border border-surface-300/60 mb-6">
+      <div className="bg-card rounded-2xl shadow-soft p-5 border border-surface-300/60 mb-6">
         <div className="grid sm:grid-cols-2 gap-4">
           {level !== "country" && (
             <div>
@@ -223,7 +223,7 @@ function CropTrend() {
               <select
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-white
+                className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-card
                   focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               >
                 <option value="">{t("trend_choose")}</option>
@@ -248,8 +248,8 @@ function CropTrend() {
                   onClick={() => setRangeKey(range.key)}
                   className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${
                     rangeKey === range.key
-                      ? "bg-primary-600 text-white shadow-sm"
-                      : "bg-gray-100 text-ink-600 hover:bg-gray-200"
+                      ? "bg-primary-600 text-primary-foreground shadow-sm"
+                      : "bg-muted text-ink-600 hover:bg-border"
                   }`}
                 >
                   {range.days == null
@@ -264,8 +264,8 @@ function CropTrend() {
                 onClick={() => setRangeKey("custom")}
                 className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${
                   rangeKey === "custom"
-                    ? "bg-primary-600 text-white shadow-sm"
-                    : "bg-gray-100 text-ink-600 hover:bg-gray-200"
+                    ? "bg-primary-600 text-primary-foreground shadow-sm"
+                    : "bg-muted text-ink-600 hover:bg-border"
                 }`}
               >
                 {t("trend_range_custom")}
@@ -283,7 +283,7 @@ function CropTrend() {
                 value={customFrom}
                 max={latestAvailable || undefined}
                 onChange={(e) => setCustomFrom(e.target.value)}
-                className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-white
+                className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-card
                   focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
@@ -298,7 +298,7 @@ function CropTrend() {
                 min={customFrom || undefined}
                 max={latestAvailable || undefined}
                 onChange={(e) => setCustomTo(e.target.value)}
-                className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-white
+                className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-card
                   focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
@@ -314,7 +314,7 @@ function CropTrend() {
       </div>
 
       {errorMessage && (
-        <div className="bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-3 mb-6 text-sm">
+        <div className="bg-negative-50 text-negative-700 border border-negative-200 rounded-lg px-4 py-3 mb-6 text-sm">
           {errorMessage}
         </div>
       )}
@@ -323,7 +323,7 @@ function CropTrend() {
 
       {/* ---------- The chart ---------- */}
       {level !== "country" && !location ? (
-        <div className="bg-white rounded-2xl shadow-soft border border-surface-300/60 py-14 px-6 text-center">
+        <div className="bg-card rounded-2xl shadow-soft border border-surface-300/60 py-14 px-6 text-center">
           <div className="text-4xl mb-3">👆</div>
           <p className="font-semibold text-ink-900 mb-1">{t("trend_pick_first_title")}</p>
           <p className="text-sm text-ink-500">
@@ -374,10 +374,10 @@ function TrendSummary({ trend }) {
 
 function SummaryTile({ label, value, tone }) {
   const colour =
-    tone === "good" ? "text-green-700" : tone === "bad" ? "text-red-600" : "text-ink-900";
+    tone === "good" ? "text-positive-700" : tone === "bad" ? "text-negative-600" : "text-ink-900";
 
   return (
-    <div className="bg-white rounded-xl border border-surface-300/60 px-4 py-3">
+    <div className="bg-card rounded-xl border border-surface-300/60 px-4 py-3">
       <p className="text-xs text-ink-500 truncate">{label}</p>
       <p className={`text-lg font-bold leading-tight ${colour}`}>{value}</p>
     </div>

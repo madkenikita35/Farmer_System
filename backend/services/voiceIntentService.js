@@ -32,6 +32,7 @@ const { CROPS, STATES } = require("../config/ocrDictionaries");
 const {
   CROP_NAMES_DEVANAGARI,
   INTENT_KEYWORDS,
+  SUPERLATIVE_MARKERS,
   PLACE_CONNECTORS,
   PLACE_MARKERS_AFTER,
   PLACE_NOISE,
@@ -186,6 +187,19 @@ function containsAny(text, phrases) {
  * means that sentence is treated as a location question, which is what
  * the farmer meant - the "best price" part is just how they phrased it.
  */
+/**
+ * Does the text carry a "most extreme" word without saying which end?
+ *
+ * "सबसे बढ़िया भाव" is clearly asking for an extreme, but bara-fied
+ * is not a direction - and the same is true of a bare English "best
+ * rate", which a seller reads as highest and a buyer as lowest.
+ */
+function hasBareSuperlative(text, languagesToCheck) {
+  return languagesToCheck.some((lang) =>
+    containsAny(text, SUPERLATIVE_MARKERS[lang] || [])
+  );
+}
+
 function detectIntent(transcript, language) {
   const text = (transcript || "").toLowerCase();
 
@@ -202,8 +216,31 @@ function detectIntent(transcript, language) {
 
   if (matches("goodbye")) return "goodbye";
   if (matches("nearest")) return "nearest";
-  if (matches("highest")) return "highest";
+
+  // ---- Which END of the price range? ----
+  //
+  // Checked BEFORE the catch-all `price`, because "lowest onion price"
+  // and "सबसे कम प्याज का भाव" both contain the word "price"/"भाव"
+  // and would otherwise be swallowed by it - which is exactly the bug
+  // that made the assistant answer every cheapest-question with the
+  // dearest mandi.
+  const wantsLowest = matches("lowest");
+  const wantsHighest = matches("highest");
+
+  // Both ends named at once ("सबसे कम या सबसे ज्यादा?"). We cannot
+  // pick for them, and picking silently is how this bug started.
+  if (wantsLowest && wantsHighest) return "price_direction_unclear";
+  if (wantsLowest) return "lowest";
+  if (wantsHighest) return "highest";
+
   if (matches("arrival")) return "arrival";
+
+  // A superlative with no direction - "सबसे बढ़िया भाव", "the best rate".
+  // They are asking for an extreme; we do not know which end. Ask.
+  if (matches("price") && hasBareSuperlative(text, languagesToCheck)) {
+    return "price_direction_unclear";
+  }
+
   if (matches("price")) return "price";
   // A bare greeting, but only if nothing more specific matched - "hello,
   // what's the price of onion" is a price question, not a greeting.

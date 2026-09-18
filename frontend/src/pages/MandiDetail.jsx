@@ -76,7 +76,7 @@ function MandiDetail() {
   if (errorMessage) {
     return (
       <div className="max-w-3xl mx-auto px-6 py-16">
-        <div className="bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-3 text-sm">
+        <div className="bg-negative-50 text-negative-700 border border-negative-200 rounded-lg px-4 py-3 text-sm">
           {errorMessage}
         </div>
         <Link to="/mandis" className="text-primary-700 font-semibold text-sm mt-4 inline-block">
@@ -111,7 +111,7 @@ function MandiDetail() {
       </div>
 
       {dataSource === "mock" && (
-        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2 mb-4">
+        <p className="text-xs text-warning-700 bg-warning-50 border border-warning-200 rounded-lg px-4 py-2 mb-4">
           ⚠️ {t("mdet_mock_note")}
         </p>
       )}
@@ -124,13 +124,13 @@ function MandiDetail() {
 
       {/* ---------- The crop price table ---------- */}
       {crops.length === 0 ? (
-        <div className="text-center py-16 text-ink-500 bg-white rounded-2xl border border-gray-100">
+        <div className="text-center py-16 text-ink-500 bg-card rounded-2xl border border-border">
           <div className="text-3xl mb-2">🤷</div>
           <p className="font-medium">{t("mdet_none_title")}</p>
           <p className="text-sm mt-1">{t("mdet_none_text")}</p>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl shadow-soft border border-surface-300/60 overflow-hidden">
+        <div className="bg-card rounded-2xl shadow-soft border border-surface-300/60 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-surface-200/70 text-ink-600">
@@ -174,7 +174,7 @@ function CropRow({ crop }) {
   // rate, red if less, grey if we can't compare.
   let differenceColor = "text-ink-400";
   if (crop.differencePercent != null) {
-    differenceColor = crop.differencePercent >= 0 ? "text-green-600" : "text-red-600";
+    differenceColor = crop.differencePercent >= 0 ? "text-positive-600" : "text-negative-600";
   }
 
   return (
@@ -193,17 +193,17 @@ function CropRow({ crop }) {
             )}
           </>
         ) : (
-          <span className="text-gray-300">—</span>
+          <span className="text-ink-300">—</span>
         )}
       </td>
 
       <td className="px-4 py-3 text-right">
         {crop.farmerPrice != null ? (
-          <span className="font-semibold text-amber-600">
+          <span className="font-semibold text-warning-600">
             ₹{crop.farmerPrice.toLocaleString("en-IN")}
           </span>
         ) : (
-          <span className="text-gray-300">—</span>
+          <span className="text-ink-300">—</span>
         )}
       </td>
 

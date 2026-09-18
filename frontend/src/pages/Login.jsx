@@ -73,7 +73,7 @@ function Login() {
 
   return (
     <div className="max-w-md mx-auto px-6 py-16 animate-fadeInUp">
-      <div className="bg-white rounded-2xl shadow-soft border border-surface-300/60 p-8">
+      <div className="bg-card rounded-2xl shadow-soft border border-surface-300/60 p-8">
         <div className="text-4xl mb-3 text-center">🔐</div>
         <h1 className="text-2xl font-bold text-ink-900 text-center mb-1">
           {t("login_title")}
@@ -91,7 +91,7 @@ function Login() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               autoComplete="email"
-              className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+              className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
             />
           </div>
 
@@ -105,12 +105,12 @@ function Login() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               autoComplete="current-password"
-              className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+              className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
             />
           </div>
 
           {errorMessage && (
-            <p className="text-red-600 text-sm bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+            <p className="text-negative-600 text-sm bg-negative-50 border border-negative-100 rounded-lg px-3 py-2">
               {errorMessage}
             </p>
           )}
@@ -118,7 +118,7 @@ function Login() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="bg-primary-gradient text-white font-semibold py-3.5 rounded-2xl shadow-soft hover:scale-[1.01] transition-all disabled:opacity-50"
+            className="bg-primary-gradient text-primary-foreground font-semibold py-3.5 rounded-2xl shadow-soft hover:scale-[1.01] transition-all disabled:opacity-50"
           >
             {isSubmitting ? "Logging in..." : t("btn_login")}
           </button>

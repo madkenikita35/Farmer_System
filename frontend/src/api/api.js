@@ -302,11 +302,22 @@ export function getMandiPricesByCrop(crop, date) {
 // for a crop, PLUS which mandi is paying the highest and lowest right
 // now - powers the "Check Rates Before Selling" page. "state" and
 // "date" are both optional.
-export function compareMandiPrices(crop, state, date) {
-  const params = new URLSearchParams({ crop });
-  if (state) params.append("state", state);
-  if (date) params.append("date", date);
-  return api.get(`/mandi/compare?${params.toString()}`);
+export function compareMandiPrices(crop, state, date, options = {}) {
+  // lat/lon/radius are OPTIONAL. With them the backend also returns
+  // `scopes` - the near-you / state / national comparison. Without
+  // them it still returns everything it always did, so an older caller
+  // is unaffected.
+  const { lat, lon, radius } = options;
+
+  return api.get("/mandi/compare", {
+    params: {
+      crop,
+      state,
+      date,
+      ...(lat != null && lon != null ? { lat, lon } : {}),
+      ...(radius != null ? { radius } : {}),
+    },
+  });
 }
 
 // =======================================================================
@@ -384,6 +395,13 @@ export function getPriceTrend({ crop, level = "country", location = "", from = "
 // dropdowns. Deliberately not the CEDA list: these pages search
 // data.gov.in, and offering a crop it does not carry would give a
 // dropdown where some choices silently return nothing.
+// Turns a pincode / address / lat-lon / town name into ONE lat-lon.
+// The server owns the India Post lookup, the Nominatim throttle and the
+// district-coordinate table, so the browser never has to.
+export function resolveLocation(params) {
+  return api.get("/location/resolve", { params });
+}
+
 export function getMandiCropNames() {
   return api.get("/mandi/crop-names");
 }
@@ -403,21 +421,13 @@ export function getMandiCrops(mandi, state) {
 // `location` is either { lat, lon } - straight from the phone's GPS -
 // or { place: "Nashik" }, a name the farmer typed. The backend accepts
 // whichever it gets; see backend/controllers/nearbyController.js.
-export function getNearbyMandis({ crop, lat, lon, place, radius, sortBy, date }) {
-  const params = new URLSearchParams({ crop });
-
-  if (lat !== undefined && lon !== undefined) {
-    params.append("lat", lat);
-    params.append("lon", lon);
-  } else if (place) {
-    params.append("place", place);
-  }
-
-  if (radius) params.append("radius", radius);
-  if (sortBy) params.append("sortBy", sortBy);
-  if (date) params.append("date", date);
-
-  return api.get(`/mandi/nearby?${params.toString()}`);
+export function getNearbyMandis({ crop, lat, lon, place, radius, sortBy, mode }) {
+  // `mode` is "sell" (default) or "buy". It decides which end of the
+  // price list each card is drawn from - see the backend's
+  // pickHeadlineMandis().
+  return api.get("/mandi/nearby", {
+    params: { crop, lat, lon, place, radius, sortBy, mode },
+  });
 }
 
 // =======================================================================

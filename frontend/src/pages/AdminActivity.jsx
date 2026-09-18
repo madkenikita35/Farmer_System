@@ -104,8 +104,8 @@ function AdminActivity() {
             onClick={() => handleFilterChange(filter.code)}
             className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${
               selectedAction === filter.code
-                ? "bg-primary-600 text-white"
-                : "bg-white text-ink-600 border border-gray-200 hover:border-brand-green"
+                ? "bg-primary-600 text-primary-foreground"
+                : "bg-card text-ink-600 border border-border hover:border-brand-green"
             }`}
           >
             {filter.label}
@@ -121,18 +121,18 @@ function AdminActivity() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by farmer name, email or description..."
-          className="flex-1 border border-ink-200 rounded-xl px-4 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+          className="flex-1 border border-ink-200 rounded-xl px-4 py-2.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
         />
         <button
           type="submit"
-          className="bg-primary-gradient text-white font-semibold px-6 py-2.5 rounded-xl shadow-soft hover:scale-[1.02] transition-all"
+          className="bg-primary-gradient text-primary-foreground font-semibold px-6 py-2.5 rounded-xl shadow-soft hover:scale-[1.02] transition-all"
         >
           🔍 Search
         </button>
       </form>
 
       {errorMessage && (
-        <div className="bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-3 mb-6 text-sm">
+        <div className="bg-negative-50 text-negative-700 border border-negative-200 rounded-lg px-4 py-3 mb-6 text-sm">
           {errorMessage}
         </div>
       )}
@@ -148,7 +148,7 @@ function AdminActivity() {
           <p className="text-sm">Loading activity...</p>
         </div>
       ) : activity.length === 0 ? (
-        <div className="text-center py-16 text-ink-500 bg-white rounded-2xl border border-gray-100">
+        <div className="text-center py-16 text-ink-500 bg-card rounded-2xl border border-border">
           <div className="text-3xl mb-2">🤷</div>
           <p className="font-medium">No activity matched.</p>
           <p className="text-sm mt-1">
@@ -156,13 +156,13 @@ function AdminActivity() {
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl shadow-soft border border-surface-300/60 divide-y divide-surface-200">
+        <div className="bg-card rounded-2xl shadow-soft border border-surface-300/60 divide-y divide-surface-200">
           {activity.map((item) => (
             <div key={item._id} className="flex items-start gap-3 px-5 py-4">
               <span className="text-xl">{actionIcon(item.action)}</span>
 
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-800">{item.description}</p>
+                <p className="text-sm text-ink-800">{item.description}</p>
                 <p className="text-xs text-ink-400 mt-0.5">
                   {item.userName} · {item.userEmail}
                 </p>
@@ -177,7 +177,7 @@ function AdminActivity() {
                       .map(([key, value]) => (
                         <span
                           key={key}
-                          className="bg-gray-50 text-ink-500 px-2 py-0.5 rounded text-[11px]"
+                          className="bg-muted text-ink-500 px-2 py-0.5 rounded text-[11px]"
                         >
                           {key}: <strong>{String(value)}</strong>
                         </span>

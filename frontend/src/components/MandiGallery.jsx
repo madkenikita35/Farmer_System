@@ -30,13 +30,13 @@ const photos = [
     label: "In the field",
     emoji: "🌾",
     from: "from-lime-400",
-    to: "to-green-600",
+    to: "to-positive-600",
   },
   {
     url: "https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=900&q=80&auto=format&fit=crop",
     label: "Ready to harvest",
     emoji: "🚜",
-    from: "from-amber-400",
+    from: "from-warning-400",
     to: "to-orange-600",
   },
   {
@@ -50,14 +50,14 @@ const photos = [
     url: "https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=900&q=80&auto=format&fit=crop",
     label: "Weighed and graded",
     emoji: "⚖️",
-    from: "from-red-400",
+    from: "from-negative-400",
     to: "to-rose-600",
   },
   {
     url: "https://images.unsplash.com/photo-1607305387299-a3d9611cd469?w=900&q=80&auto=format&fit=crop",
     label: "Sold at a fair price",
     emoji: "🤝",
-    from: "from-sky-400",
+    from: "from-info-400",
     to: "to-blue-600",
   },
   {
@@ -147,7 +147,7 @@ function MandiGallery({ t }) {
             className={`h-2 rounded-full transition-all duration-300 ${
               index === startIndex
                 ? "bg-brand-green w-6"
-                : "bg-gray-300 w-2 hover:bg-gray-400"
+                : "bg-ink-200 w-2 hover:bg-ink-300"
             }`}
           />
         ))}

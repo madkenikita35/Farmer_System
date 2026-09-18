@@ -6,9 +6,10 @@
 // a mandi 900 km away paying ₹300 more is no use to anybody. This page
 // adds the half that was missing: distance.
 //
-// The farmer gives their location in one of two ways:
-//   1. tapping "Use my location", which asks the browser for GPS, or
-//   2. typing a town or district name.
+// The farmer gives their location in one of FIVE ways - GPS, a town
+// name, a pincode, a structured address, or typed coordinates. All of
+// them resolve to a single lat/lon before this page does anything with
+// it; see components/LocationPicker.jsx.
 //
 // ---------------------------------------------------------------------
 // A NOTE ON THE BROWSER'S LOCATION PERMISSION
@@ -25,66 +26,49 @@ import { useState, useMemo } from "react";
 import { getNearbyMandis } from "../api/api";
 import StatCard from "../components/StatCard";
 import CropSelect from "../components/CropSelect";
+import LocationPicker from "../components/LocationPicker";
+import BuySellScopeCards from "../components/BuySellScopeCards";
 import { useLanguage } from "../context/LanguageContext";
 
 function NearbyMandis() {
   const { t } = useLanguage();
 
   const [crop, setCrop] = useState("");
-  const [place, setPlace] = useState("");
   const [radius, setRadius] = useState(150);
+
+  // "sell" (the default) or "buy". A farmer selling wants the highest
+  // price; a trader buying wants the lowest. It changes which two
+  // mandis every card shows, at all three scopes.
+  const [mode, setMode] = useState("sell");
   const [sortBy, setSortBy] = useState("price");
 
-  // Coordinates from the phone, once the farmer has shared them.
+  // Coordinates, however the farmer gave them to us. Everything
+  // downstream - the search, the distances - uses only this.
   const [coordinates, setCoordinates] = useState(null);
+
+  // The fuller answer from the resolver: the label to show, which
+  // method produced it, and how precise it is. Kept separate so the
+  // search path stays a plain lat/lon.
+  const [resolvedLocation, setResolvedLocation] = useState(null);
 
   const [result, setResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isLocating, setIsLocating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // ---- Ask the browser where we are ----
-  function handleUseMyLocation() {
-    if (!navigator.geolocation) {
-      setErrorMessage(t("nm_err_no_geolocation"));
-      return;
-    }
+  // The GPS call, the pincode lookup and the address lookup all now
+  // live in LocationPicker - this page only receives the result.
 
-    setIsLocating(true);
-    setErrorMessage("");
-
-    navigator.geolocation.getCurrentPosition(
-      // Success
-      (position) => {
-        setCoordinates({
-          lat: position.coords.latitude,
-          lon: position.coords.longitude,
-        });
-        setPlace(""); // GPS wins, so clear any typed name to avoid confusion
-        setIsLocating(false);
-      },
-      // Failure - tell them WHICH problem it was, so they know what to do
-      (error) => {
-        setIsLocating(false);
-        const messages = {
-          1: t("nm_err_denied"),
-          2: t("nm_err_unavailable"),
-          3: t("nm_err_timeout"),
-        };
-        setErrorMessage(messages[error.code] || t("nm_err_generic_location"));
-      },
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
-    );
-  }
-
-  async function handleSearch(e) {
-    e.preventDefault();
+  // `overrides` lets the mode toggle re-run the search immediately:
+  // setMode is async, so reading `mode` right after setting it would
+  // still give the old value.
+  async function handleSearch(e, overrides = {}) {
+    if (e && e.preventDefault) e.preventDefault();
 
     if (!crop.trim()) {
       setErrorMessage(t("nm_err_choose_crop"));
       return;
     }
-    if (!coordinates && !place.trim()) {
+    if (!coordinates) {
       setErrorMessage(t("nm_err_need_place"));
       return;
     }
@@ -93,11 +77,11 @@ function NearbyMandis() {
     setIsLoading(true);
     try {
       const response = await getNearbyMandis({
+        mode: overrides.mode || mode,
         crop: crop.trim(),
         // Send coordinates if we have them, otherwise the typed name.
-        lat: coordinates?.lat,
-        lon: coordinates?.lon,
-        place: coordinates ? undefined : place.trim(),
+        lat: coordinates.lat,
+        lon: coordinates.lon,
         radius,
         sortBy,
       });
@@ -118,8 +102,42 @@ function NearbyMandis() {
       {/* ---------- Search form ---------- */}
       <form
         onSubmit={handleSearch}
-        className="bg-white rounded-2xl shadow-soft p-6 border border-surface-300/60 mb-8"
+        className="bg-card rounded-2xl shadow-soft p-6 border border-surface-300/60 mb-8"
       >
+        {/* ---- Am I buying or selling? ---- */}
+        {/* First, because it changes the meaning of every number below
+            it. Same pill style as the other toggles on the site. */}
+        <div className="mb-4">
+          <p className="text-sm font-medium text-ink-600 mb-2">{t("bs_i_want_to")}</p>
+          <div className="flex gap-2">
+            {[
+              { key: "sell", labelKey: "bs_sell", icon: "🌾" },
+              { key: "buy", labelKey: "bs_buy", icon: "🛒" },
+            ].map((option) => (
+              <button
+                key={option.key}
+                type="button"
+                onClick={() => {
+                  setMode(option.key);
+                  // Re-run at once if there is already a result on
+                  // screen - otherwise the cards would contradict the
+                  // toggle until the farmer pressed search again.
+                  if (crop.trim() && coordinates && result) {
+                    handleSearch(null, { mode: option.key });
+                  }
+                }}
+                className={`px-5 py-2 rounded-full text-sm font-semibold transition-all border ${
+                  mode === option.key
+                    ? "bg-primary-600 text-primary-foreground border-transparent shadow-soft scale-[1.03]"
+                    : "bg-card text-ink-600 border-surface-300 hover:border-ink-300 hover:bg-surface-100"
+                }`}
+              >
+                {option.icon} {t(option.labelKey)}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="grid sm:grid-cols-2 gap-4 mb-4">
           <div>
             <label
@@ -137,7 +155,7 @@ function NearbyMandis() {
               id="nearby-crop"
               value={crop}
               onChange={setCrop}
-              className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all disabled:opacity-60"
+              className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all disabled:opacity-60"
             />
           </div>
 
@@ -148,7 +166,7 @@ function NearbyMandis() {
             <select
               value={radius}
               onChange={(e) => setRadius(Number(e.target.value))}
-              className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+              className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
             >
               <option value={50}>50 km</option>
               <option value={100}>100 km</option>
@@ -159,49 +177,25 @@ function NearbyMandis() {
           </div>
         </div>
 
-        {/* ---- Location: GPS button OR a typed name ---- */}
-        <div className="border-t border-surface-200 pt-4">
-          <p className="text-sm font-medium text-ink-600 mb-2">{t("nm_your_location")}</p>
-
-          <div className="flex flex-col sm:flex-row gap-3">
-            <button
-              type="button"
-              onClick={handleUseMyLocation}
-              disabled={isLocating}
-              className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50 ${
-                coordinates
-                  ? "bg-green-100 text-green-800 border border-green-300"
-                  : "bg-brand-navy text-white hover:opacity-90"
-              }`}
-            >
-              {isLocating
-                ? `📡 ${t("nm_finding_you")}`
-                : coordinates
-                ? `✅ ${t("nm_using_location")}`
-                : `📍 ${t("nm_use_my_location")}`}
-            </button>
-
-            <span className="text-sm text-ink-400 self-center">{t("common_or")}</span>
-
-            <input
-              type="text"
-              value={place}
-              onChange={(e) => {
-                setPlace(e.target.value);
-                // Typing a place means they've chosen that instead of GPS.
-                if (e.target.value) setCoordinates(null);
-              }}
-              placeholder={t("nm_place_placeholder")}
-              className="flex-1 border border-ink-200 rounded-xl px-3.5 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
-            />
-          </div>
-        </div>
+        {/* ---- Where are you? Five ways to answer ---- */}
+        {/* All of them resolve to one lat/lon before anything else
+            happens, so the radius search and the distances below never
+            learn which method was used. See LocationPicker.jsx. */}
+        <LocationPicker
+          resolved={resolvedLocation}
+          onResolved={(next) => {
+            setResolvedLocation(next);
+            setCoordinates({ lat: next.lat, lon: next.lon });
+            setErrorMessage("");
+          }}
+          onError={(message) => setErrorMessage(message)}
+        />
 
         <div className="flex flex-wrap items-center gap-3 mt-5">
           <button
             type="submit"
             disabled={isLoading}
-            className="bg-primary-gradient text-white font-semibold px-6 py-3 rounded-2xl shadow-soft hover:scale-[1.02] transition-all disabled:opacity-50 hover-lift"
+            className="bg-primary-gradient text-primary-foreground font-semibold px-6 py-3 rounded-2xl shadow-soft hover:scale-[1.02] transition-all disabled:opacity-50 hover-lift"
           >
             {isLoading ? t("common_searching") : `🔍 ${t("nm_find_btn")}`}
           </button>
@@ -210,11 +204,23 @@ function NearbyMandis() {
       </form>
 
       {errorMessage && (
-        <div className="bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-3 mb-6 text-sm">
+        <div className="bg-negative-50 text-negative-700 border border-negative-200 rounded-lg px-4 py-3 mb-6 text-sm">
           {errorMessage}
         </div>
       )}
 
+      {/* ---- The three scopes, buy or sell ---- */}
+      {(result || isLoading) && (
+        <BuySellScopeCards
+          scopes={result?.scopes}
+          mode={mode}
+          isLoading={isLoading}
+          radiusKm={radius}
+        />
+      )}
+
+      {/* The full ranked table stays below - the cards answer "where
+          should I go", the table is for reading the detail. */}
       {result && (
         <NearbyResults result={result} sortBy={sortBy} onSortChange={setSortBy} />
       )}
@@ -255,7 +261,7 @@ function NearbyResults({ result, sortBy, onSortChange }) {
 
   if (mandis.length === 0) {
     return (
-      <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
+      <div className="text-center py-16 bg-card rounded-2xl border border-border">
         <div className="text-4xl mb-3">🤷</div>
         <p className="font-semibold text-ink-900 mb-1">
           {t("nm_none_title", { radius: radiusKm })}
@@ -284,7 +290,7 @@ function NearbyResults({ result, sortBy, onSortChange }) {
 
       {/* ---- The trade-off, worked out for them ---- */}
       {tradeOff && tradeOff.extraRupeesPerQuintal > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 mb-6 text-sm text-amber-900">
+        <div className="bg-warning-50 border border-warning-200 rounded-xl px-5 py-4 mb-6 text-sm text-warning-900">
           💡{" "}
           {t("nm_tradeoff", {
             extra: tradeOff.extraRupeesPerQuintal.toLocaleString("en-IN"),
@@ -323,8 +329,8 @@ function NearbyResults({ result, sortBy, onSortChange }) {
             onClick={() => onSortChange("price")}
             className={`px-3 py-1.5 rounded-full font-medium transition ${
               sortBy === "price"
-                ? "bg-primary-600 text-white shadow-sm"
-                : "bg-gray-100 text-ink-600 hover:bg-gray-200"
+                ? "bg-primary-600 text-primary-foreground shadow-sm"
+                : "bg-muted text-ink-600 hover:bg-border"
             }`}
           >
             💰 {t("nm_sort_price")}
@@ -334,8 +340,8 @@ function NearbyResults({ result, sortBy, onSortChange }) {
             onClick={() => onSortChange("distance")}
             className={`px-3 py-1.5 rounded-full font-medium transition ${
               sortBy === "distance"
-                ? "bg-primary-600 text-white shadow-sm"
-                : "bg-gray-100 text-ink-600 hover:bg-gray-200"
+                ? "bg-primary-600 text-primary-foreground shadow-sm"
+                : "bg-muted text-ink-600 hover:bg-border"
             }`}
           >
             📍 {t("nm_sort_distance")}
@@ -343,7 +349,7 @@ function NearbyResults({ result, sortBy, onSortChange }) {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-soft border border-surface-300/60 overflow-hidden">
+      <div className="bg-card rounded-2xl shadow-soft border border-surface-300/60 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-surface-200/70 text-ink-600">
@@ -385,7 +391,7 @@ function NearbyResults({ result, sortBy, onSortChange }) {
                 <tr
                   key={`${mandi.mandiName}-${mandi.state}-${index}`}
                   className={`border-t border-surface-200 hover:bg-primary-50/40 ${
-                    index === 0 ? "bg-green-50/50" : ""
+                    index === 0 ? "bg-positive-50/50" : ""
                   }`}
                 >
                   <td className="px-4 py-3 text-ink-400">{index + 1}</td>
@@ -405,7 +411,7 @@ function NearbyResults({ result, sortBy, onSortChange }) {
                   <td className="px-4 py-3 text-right">
                     {mandi.farmerReportedPrice ? (
                       <>
-                        <span className="font-semibold text-amber-600">
+                        <span className="font-semibold text-warning-600">
                           ₹{mandi.farmerReportedPrice.toLocaleString("en-IN")}
                         </span>
                         <span className="block text-[11px] text-ink-400">
@@ -413,7 +419,7 @@ function NearbyResults({ result, sortBy, onSortChange }) {
                         </span>
                       </>
                     ) : (
-                      <span className="text-gray-300">—</span>
+                      <span className="text-ink-300">—</span>
                     )}
                   </td>
                 </tr>
@@ -459,7 +465,7 @@ function DistanceLabel({ mandi }) {
     return (
       <>
         <span className="font-semibold">~{Math.round(mandi.distanceKm)} km</span>
-        <span className="block text-[11px] text-amber-600">{t("nm_rough_estimate")}</span>
+        <span className="block text-[11px] text-warning-600">{t("nm_rough_estimate")}</span>
       </>
     );
   }
@@ -484,8 +490,8 @@ function HighlightCard({ title, emoji, mandi, tone }) {
 
   const styles =
     tone === "good"
-      ? "bg-green-50 border-green-200 text-green-900"
-      : "bg-sky-50 border-sky-200 text-sky-900";
+      ? "bg-positive-50 border-positive-200 text-positive-900"
+      : "bg-info-50 border-info-200 text-info-900";
 
   return (
     <div className={`rounded-2xl border px-5 py-4 ${tone === "good" ? styles : styles} hover-lift`}>

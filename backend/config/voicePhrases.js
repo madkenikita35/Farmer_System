@@ -169,6 +169,28 @@ const INTENT_KEYWORDS = {
     mr: ["सर्वात जास्त", "सगळ्यात जास्त", "सर्वाधिक", "जास्त भाव", "चांगला भाव"],
   },
 
+  // "Where is X cheapest?" - the mirror of `highest`.
+  //
+  // This did not exist, which is the whole bug. A question like
+  // "सबसे कम प्याज का भाव" matched nothing here, fell through to the
+  // catch-all `price` intent below (because it contains "भाव"), and the
+  // controller answered plain price questions with the HIGHEST price.
+  // So asking for the cheapest reliably returned the dearest.
+  lowest: {
+    en: [
+      "lowest", "cheapest", "minimum", "min price", "least expensive",
+      "lowest price", "cheap rate", "worst price",
+    ],
+    hi: [
+      "सबसे कम", "सबसे कमी", "न्यूनतम", "सस्ता", "सस्ती", "कम भाव",
+      "कम दाम", "सबसे सस्ता", "सबसे नीचा", "खराब भाव",
+    ],
+    mr: [
+      "सर्वात कमी", "सगळ्यात कमी", "कमी भाव", "स्वस्त", "स्वस्तात",
+      "न्यूनतम", "सर्वात कम", "वाईट भाव",
+    ],
+  },
+
   // "How much arrived at X?" - recognised, but see ARRIVAL_UNAVAILABLE.
   arrival: {
     en: ["arrival", "arrivals", "quantity arrived", "how much arrived", "tonnes arrived"],
@@ -199,6 +221,18 @@ const INTENT_KEYWORDS = {
 
 // Words that mean "in / at <place>", used to split a transcript into the
 // crop part and the place part. Longest first, so "in the" beats "in".
+// Words that say "the most extreme one" WITHOUT saying which end.
+//
+// Used by the safeguard: if a question carries one of these but no
+// clear direction - "सबसे बढ़िया भाव कौन सी मंडी" - then the farmer
+// is asking for an extreme and we genuinely cannot tell which. Better
+// to ask than to pick one and be wrong half the time.
+const SUPERLATIVE_MARKERS = {
+  en: ["best", "top", "extreme", "most"],
+  hi: ["सबसे", "सर्वाधिक", "बढ़िया"],
+  mr: ["सर्वात", "सगळ्यात", "सर्वोत्तम"],
+};
+
 const PLACE_CONNECTORS = {
   // English is PREpositional - the place comes AFTER the word:
   // "price of wheat in Indore", "nearest mandi near Nashik".
@@ -252,6 +286,10 @@ const REPLIES = {
       `The highest price for ${crop} is ${price} rupees per quintal at ${mandi} in ${state}${date ? `, as of ${date}` : ""}.`,
     nearestBest: (crop, mandi, price, km) =>
       `The best nearby price for ${crop} is ${price} rupees per quintal at ${mandi}, about ${km} kilometres away.`,
+    lowestPrice: (crop, mandi, state, price, date) =>
+      `The lowest price for ${crop} is ${price} rupees per quintal at ${mandi} in ${state}${date ? `, as of ${date}` : ""}.`,
+    clarifyDirection: (crop) =>
+      `Did you mean the highest price or the lowest price for ${crop}? Please say "highest" or "lowest".`,
     // Used when NO mandi within the radius reported this crop today.
     // It must say so out loud: quietly answering the "highest price
     // anywhere" question instead sounds like the assistant replied to
@@ -290,6 +328,10 @@ const REPLIES = {
       `${crop} का सबसे ज्यादा भाव ${price} रुपये प्रति क्विंटल है, ${state} की ${mandi} मंडी में${date ? `, ${date} तक` : ""}।`,
     nearestBest: (crop, mandi, price, km) =>
       `आपके पास ${crop} का सबसे अच्छा भाव ${price} रुपये प्रति क्विंटल है, ${mandi} मंडी में, लगभग ${km} किलोमीटर दूर।`,
+    lowestPrice: (crop, mandi, state, price, date) =>
+      `${crop} का सबसे कम भाव ${price} रुपये प्रति क्विंटल है, ${state} की ${mandi} मंडी में${date ? `, ${date} तक` : ""}।`,
+    clarifyDirection: (crop) =>
+      `आप ${crop} का सबसे ज्यादा भाव जानना चाहते हैं या सबसे कम? कृपया "सबसे ज्यादा" या "सबसे कम" बोलिए।`,
     noneNearby: (crop, radius, mandi, state, price, km) =>
       `आज ${radius} किलोमीटर के भीतर किसी मंडी ने ${crop} का भाव दर्ज नहीं किया। सबसे नजदीकी मंडी जिसने दर्ज किया वह ${state} की ${mandi} मंडी है, लगभग ${km} किलोमीटर दूर, भाव ${price} रुपये प्रति क्विंटल।`,
     nearestMandiList: (mandi, district, km, count, radius) =>
@@ -325,6 +367,10 @@ const REPLIES = {
       `${crop} साठी सर्वात जास्त भाव ${price} रुपये प्रति क्विंटल आहे, ${state} मधील ${mandi} मंडईत${date ? `, ${date} पर्यंत` : ""}.`,
     nearestBest: (crop, mandi, price, km) =>
       `तुमच्या जवळ ${crop} साठी सर्वोत्तम भाव ${price} रुपये प्रति क्विंटल आहे, ${mandi} मंडईत, सुमारे ${km} किलोमीटर अंतरावर.`,
+    lowestPrice: (crop, mandi, state, price, date) =>
+      `${crop} साठी सर्वात कमी भाव ${price} रुपये प्रति क्विंटल आहे, ${state} मधील ${mandi} मंडईत${date ? `, ${date} पर्यंत` : ""}.`,
+    clarifyDirection: (crop) =>
+      `तुम्हाला ${crop} साठी सर्वात जास्त भाव हवा की सर्वात कमी? कृपया "सर्वात जास्त" किंवा "सर्वात कमी" बोला.`,
     noneNearby: (crop, radius, mandi, state, price, km) =>
       `आज ${radius} किलोमीटरच्या आत कोणत्याही मंडईने ${crop} साठी भाव नोंदवला नाही. सर्वात जवळची नोंद ${state} मधील ${mandi} मंडईची आहे, सुमारे ${km} किलोमीटर अंतरावर, भाव ${price} रुपये प्रति क्विंटल.`,
     nearestMandiList: (mandi, district, km, count, radius) =>
@@ -362,6 +408,7 @@ module.exports = {
   CROP_DISPLAY_NAMES,
   cropDisplayName,
   INTENT_KEYWORDS,
+  SUPERLATIVE_MARKERS,
   PLACE_CONNECTORS,
   PLACE_MARKERS_AFTER,
   PLACE_NOISE,

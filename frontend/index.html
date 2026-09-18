@@ -1,5 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<!-- The theme lives in two attributes, and tokens.css keys off both.
+     They are written here rather than only from React so the very first
+     paint already has the right colours - set them in JS alone and the
+     page flashes cream before going dark. Stage 3 swaps these at
+     runtime and restores the saved choice before React mounts. -->
+<html lang="en" data-accent="green" data-mode="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -11,6 +16,41 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <title>Mandi Price Checker</title>
+    <!-- Sets the theme BEFORE the page paints.
+         This has to be an inline, blocking script in <head>. React does
+         not mount until its bundle has downloaded and run, and until
+         then the page shows whatever <html> already says - so a dark
+         mode user would get a bright cream flash on every single page
+         load. Reading two words from localStorage here costs nothing
+         and removes it.
+
+         It repeats the defaults from context/ThemeContext.jsx on
+         purpose: this must not import anything, or it stops being
+         instant. The two only ever need to agree on the storage key
+         names and the fallbacks. -->
+    <script>
+      (function () {
+        try {
+          var accent = localStorage.getItem("mandi_theme_accent");
+          var mode = localStorage.getItem("mandi_theme_mode");
+
+          if (["green", "blue", "earth"].indexOf(accent) === -1) accent = "green";
+
+          if (["light", "dark"].indexOf(mode) === -1) {
+            // Never chosen: follow the device setting.
+            mode = window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+          }
+
+          document.documentElement.setAttribute("data-accent", accent);
+          document.documentElement.setAttribute("data-mode", mode);
+        } catch (e) {
+          // Blocked storage, or no matchMedia. The attributes already on
+          // <html> are a valid theme, so there is nothing to fix.
+        }
+      })();
+    </script>
   </head>
   <body>
     <!-- React takes over this single <div> and renders the whole app inside it. -->

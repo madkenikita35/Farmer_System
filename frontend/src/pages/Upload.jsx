@@ -156,15 +156,15 @@ function Upload() {
       <p className="text-sm text-ink-500 mb-6">{t("up_subtitle")}</p>
 
       {errorMessage && (
-        <div className="bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-3 mb-4 text-sm">
+        <div className="bg-negative-50 text-negative-700 border border-negative-200 rounded-lg px-4 py-3 mb-4 text-sm">
           {errorMessage}
         </div>
       )}
 
       {/* ---------- STAGE 1: choose + scan image ---------- */}
       {stage === "idle" && (
-        <div className="bg-white rounded-2xl shadow-soft p-8 border border-surface-300/60">
-          <label className="block border-2 border-dashed border-gray-300 rounded-xl p-10 text-center cursor-pointer hover:border-brand-green transition-colors">
+        <div className="bg-card rounded-2xl shadow-soft p-8 border border-surface-300/60">
+          <label className="block border-2 border-dashed border-input rounded-xl p-10 text-center cursor-pointer hover:border-brand-green transition-colors">
             <input type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
             {imagePreviewUrl ? (
               <img src={imagePreviewUrl} alt={t("up_preview_alt")} className="max-h-64 mx-auto rounded-lg" />
@@ -179,7 +179,7 @@ function Upload() {
           <button
             onClick={handleScan}
             disabled={isLoading}
-            className="mt-6 w-full bg-primary-gradient text-white font-semibold py-3.5 rounded-2xl shadow-soft hover:scale-[1.01] transition-all disabled:opacity-50"
+            className="mt-6 w-full bg-primary-gradient text-primary-foreground font-semibold py-3.5 rounded-2xl shadow-soft hover:scale-[1.01] transition-all disabled:opacity-50"
           >
             {isLoading ? t("up_reading") : `🔍 ${t("up_scan_btn")}`}
           </button>
@@ -188,7 +188,7 @@ function Upload() {
 
       {/* ---------- STAGE 2: review / edit OCR results ---------- */}
       {stage === "review" && (
-        <div className="bg-white rounded-2xl shadow-soft p-8 border border-surface-300/60">
+        <div className="bg-card rounded-2xl shadow-soft p-8 border border-surface-300/60">
           {/* How well did the scan go? Being upfront about this is more
               useful than a generic "check the values" line - it tells
               the farmer whether to skim or to look carefully. */}
@@ -241,7 +241,7 @@ function Upload() {
             <summary className="text-sm text-primary-700 cursor-pointer">
               {t("up_raw_text")}
             </summary>
-            <pre className="text-xs bg-gray-50 p-3 rounded-lg mt-2 whitespace-pre-wrap">
+            <pre className="text-xs bg-muted p-3 rounded-lg mt-2 whitespace-pre-wrap">
               {form.rawOcrText || t("up_no_text")}
             </pre>
           </details>
@@ -249,14 +249,14 @@ function Upload() {
           <div className="flex gap-3 mt-6">
             <button
               onClick={handleStartOver}
-              className="flex-1 border border-gray-300 text-ink-600 font-semibold py-3 rounded-xl hover:bg-gray-50"
+              className="flex-1 border border-input text-ink-600 font-semibold py-3 rounded-xl hover:bg-muted"
             >
               {t("up_start_over")}
             </button>
             <button
               onClick={handleSave}
               disabled={isLoading}
-              className="flex-1 bg-primary-gradient text-white font-semibold py-3.5 rounded-2xl shadow-soft hover:scale-[1.01] transition-all disabled:opacity-50"
+              className="flex-1 bg-primary-gradient text-primary-foreground font-semibold py-3.5 rounded-2xl shadow-soft hover:scale-[1.01] transition-all disabled:opacity-50"
             >
               {isLoading ? t("up_comparing") : `✅ ${t("up_save_compare")}`}
             </button>
@@ -283,12 +283,12 @@ function ScanQualityBanner({ scanInfo }) {
   const { t } = useLanguage();
 
   const styles = {
-    good: { box: "bg-green-50 border-green-200 text-green-800", icon: "✅", titleKey: "up_scan_good" },
-    partial: { box: "bg-amber-50 border-amber-200 text-amber-900", icon: "⚠️", titleKey: "up_scan_partial" },
-    poor: { box: "bg-red-50 border-red-200 text-red-800", icon: "❗", titleKey: "up_scan_poor" },
-    failed: { box: "bg-red-50 border-red-200 text-red-800", icon: "❌", titleKey: "up_scan_failed" },
+    good: { box: "bg-positive-50 border-positive-200 text-positive-800", icon: "✅", titleKey: "up_scan_good" },
+    partial: { box: "bg-warning-50 border-warning-200 text-warning-900", icon: "⚠️", titleKey: "up_scan_partial" },
+    poor: { box: "bg-negative-50 border-negative-200 text-negative-800", icon: "❗", titleKey: "up_scan_poor" },
+    failed: { box: "bg-negative-50 border-negative-200 text-negative-800", icon: "❌", titleKey: "up_scan_failed" },
   }[scanInfo.quality] || {
-    box: "bg-gray-50 border-gray-200 text-gray-700",
+    box: "bg-muted border-border text-ink-700",
     icon: "ℹ️",
     titleKey: "up_scan_complete",
   };
@@ -338,7 +338,7 @@ function Field({ label, name, value, onChange, type = "text", placeholder, hint 
         onChange={onChange}
         placeholder={placeholder}
         className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-green ${
-          isEmpty ? "border-amber-300 bg-amber-50/40" : "border-gray-300"
+          isEmpty ? "border-warning-300 bg-warning-50/40" : "border-input"
         }`}
       />
       {hint && <p className="text-xs text-ink-500 mt-1">{hint}</p>}
@@ -360,10 +360,10 @@ function ResultView({ receipt, onStartOver }) {
   };
 
   const verdictColors = {
-    "Fair Price": "bg-green-50 text-green-800 border-green-200",
-    Underpaid: "bg-red-50 text-red-800 border-red-200",
+    "Fair Price": "bg-positive-50 text-positive-800 border-positive-200",
+    Underpaid: "bg-negative-50 text-negative-800 border-negative-200",
     Overpaid: "bg-yellow-50 text-yellow-800 border-yellow-200",
-    "No Data": "bg-gray-50 text-gray-700 border-gray-200",
+    "No Data": "bg-muted text-ink-700 border-border",
   };
 
   // Tell the user plainly whether this verdict is based on REAL
@@ -374,22 +374,22 @@ function ResultView({ receipt, onStartOver }) {
       label: `✅ ${t("up_src_real", {
         date: receipt.matchedMarketDate || t("up_matching_date"),
       })}`,
-      className: "text-green-700",
+      className: "text-positive-700",
     },
     "real-nearest-date": {
       label: `✅ ${t("up_src_real_nearest", {
         date: receipt.matchedMarketDate || "-",
       })}`,
-      className: "text-green-700",
+      className: "text-positive-700",
     },
     mock: {
       label: `⚠️ ${t("up_src_mock")}`,
-      className: "text-amber-700",
+      className: "text-warning-700",
     },
   }[receipt.dataSource] || null;
 
   return (
-    <div className="bg-white rounded-2xl shadow-soft p-8 border border-surface-300/60">
+    <div className="bg-card rounded-2xl shadow-soft p-8 border border-surface-300/60">
       <div className={`rounded-xl border p-5 mb-6 ${verdictColors[receipt.verdict]}`}>
         <p className="text-sm uppercase tracking-wide opacity-70 mb-1">{t("up_result")}</p>
         <p className="text-2xl font-bold mb-1">{t(VERDICT_KEYS[receipt.verdict] || "verdict_no_data")}</p>
@@ -445,7 +445,7 @@ function ResultView({ receipt, onStartOver }) {
 
       <button
         onClick={onStartOver}
-        className="mt-6 w-full bg-brand-navy hover:opacity-90 text-white font-semibold py-3 rounded-xl"
+        className="mt-6 w-full bg-secondary hover:opacity-90 text-secondary-foreground font-semibold py-3 rounded-xl"
       >
         {t("up_upload_another")}
       </button>

@@ -648,7 +648,7 @@ function VoiceAssistant() {
         onClick={startSession}
         aria-label={text.title}
         className="fixed bottom-6 right-6 z-50 w-16 h-16 rounded-full bg-primary-gradient
-          text-white text-2xl shadow-lifted hover:scale-110 transition-transform
+          text-primary-foreground text-2xl shadow-lifted hover:scale-110 transition-transform
           grid place-items-center animate-pulseRing"
       >
         🎤
@@ -684,9 +684,9 @@ function VoiceAssistant() {
   }[status];
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 w-[min(24rem,calc(100vw-3rem))] max-h-[80vh] flex flex-col bg-white rounded-3xl shadow-lifted border border-surface-300 overflow-hidden animate-fadeInUp">
+    <div className="fixed bottom-6 right-6 z-50 w-[min(24rem,calc(100vw-3rem))] max-h-[80vh] flex flex-col bg-card rounded-3xl shadow-lifted border border-surface-300 overflow-hidden animate-fadeInUp">
       {/* ---------- Header ---------- */}
-      <div className="bg-primary-gradient text-white px-4 py-3 flex items-center justify-between gap-2">
+      <div className="bg-primary-gradient text-primary-foreground px-4 py-3 flex items-center justify-between gap-2">
         <span className="font-bold flex items-center gap-2">🎤 {text.title}</span>
 
         <div className="flex items-center gap-2">
@@ -700,7 +700,7 @@ function VoiceAssistant() {
               rounded-lg px-2 py-1 cursor-pointer focus:outline-none"
           >
             {LANGUAGES.map((l) => (
-              <option key={l.code} value={l.code} className="text-ink-900 bg-white">
+              <option key={l.code} value={l.code} className="text-ink-900 bg-card">
                 {l.label}
               </option>
             ))}
@@ -829,8 +829,8 @@ function VoiceAssistant() {
             />
             <button
               type="submit"
-              className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-semibold
-                hover:bg-primary-700 transition-colors"
+              className="px-4 py-2 rounded-xl bg-primary-600 text-primary-foreground text-sm font-semibold
+                hover:bg-primary-hover transition-colors"
             >
               {text.send}
             </button>

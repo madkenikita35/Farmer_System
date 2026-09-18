@@ -24,9 +24,12 @@ const { getCommunityPriceStats } = require("../services/communityPriceService");
 const {
   distanceInKm,
   findMandiLocation,
+  findStateForCoordinates,
+  warnIfNearestImplausible,
   geocodePlace,
 } = require("../services/locationService");
 const { logActivity } = require("../services/activityService");
+const { dropImpossiblePrices } = require("../services/priceQuality");
 
 // How far we look by default. 150 km is roughly a morning's drive with a
 // loaded trailer - far enough to be worth comparing, close enough that
@@ -45,9 +48,75 @@ const MAX_RADIUS_KM = 1000;
 //   &sortBy=distance   default is "price" (highest first)
 //   &date=2026-09-16   check a specific day instead of today
 // ---------------------------------------------------------------------
+// =====================================================================
+// THE TWO HEADLINE CARDS, AND WHY THEY ARE NOT "BEST" AND "NEAREST"
+// =====================================================================
+// Card 1 is easy: the best price in the radius. Highest if the farmer
+// is selling, lowest if they are buying.
+//
+// Card 2 used to be "the nearest mandi at any price", which is a poor
+// second card - the closest mandi can be the one paying the least in
+// the whole radius, so the page cheerfully recommended driving to the
+// worst option because it was near.
+//
+// It is now "the CLOSEST among the good-priced ones". That is the card
+// a farmer actually wants: not the best price, not the shortest drive,
+// but the shortest drive that still gets a good price.
+//
+// GOOD MEANS THE TOP QUARTER by price (bottom quarter when buying).
+// A quartile holds up however prices are spread, unlike "above
+// average", which collapses to a single mandi whenever one of them pays
+// far more than the rest - leaving Card 2 a copy of Card 1.
+//
+// The floor of 2 candidates is there for thin days: with three mandis
+// in radius, a strict 25% would select one, and the two cards would
+// again be identical.
+// =====================================================================
+
+const GOOD_PRICE_FRACTION = 0.25;
+const MIN_GOOD_CANDIDATES = 2;
+
+function pickHeadlineMandis(mandis, mode) {
+  if (!mandis || mandis.length === 0) {
+    return { bestPrice: null, closestGood: null, goodCandidateCount: 0 };
+  }
+
+  const selling = mode !== "buy";
+
+  // Best price first, for whichever direction "best" means here.
+  const byPrice = [...mandis].sort((a, b) =>
+    selling ? b.modalPrice - a.modalPrice : a.modalPrice - b.modalPrice
+  );
+
+  const bestPrice = byPrice[0];
+
+  const takeCount = Math.max(
+    MIN_GOOD_CANDIDATES,
+    Math.ceil(byPrice.length * GOOD_PRICE_FRACTION)
+  );
+  const goodOnes = byPrice.slice(0, Math.min(takeCount, byPrice.length));
+
+  // Of those, the one requiring the shortest drive.
+  const closestGood = goodOnes.reduce((a, b) => (b.distanceKm < a.distanceKm ? b : a));
+
+  return {
+    bestPrice,
+    closestGood,
+    goodCandidateCount: goodOnes.length,
+    // The price that got you into the "good" group, so the page can
+    // explain the cut rather than asserting it.
+    goodPriceThreshold: Math.round(goodOnes[goodOnes.length - 1].modalPrice),
+  };
+}
+
 async function getNearbyMandis(req, res) {
   try {
     const { crop, lat, lon, place, radius, sortBy, date } = req.query;
+
+    // "sell" (the default) or "buy". Anything else is treated as sell
+    // rather than rejected - a bad value in a URL should not stop a
+    // farmer seeing prices.
+    const mode = req.query.mode === "buy" ? "buy" : "sell";
 
     if (!crop) {
       return res.status(400).json({
@@ -135,21 +204,118 @@ async function getNearbyMandis(req, res) {
       return b.modalPrice - a.modalPrice || a.distanceKm - b.distanceKm;
     });
 
-    // ---- STEP 6: a couple of headline answers ----
-    const bestPaying = sorted.length > 0 ? maxBy(sorted, (m) => m.modalPrice) : null;
-    const nearest = sorted.length > 0 ? minBy(sorted, (m) => m.distanceKm) : null;
+    // ---- Remove impossible prices before ranking anything ----
+    //
+    // This matters far more in BUY mode, which looks for the SMALLEST
+    // number and so lands on a data-entry error every time one exists.
+    // Before this, buying onion near Pune recommended a mandi at Rs 18
+    // a quintal. See services/priceQuality.js.
+    const cleaned = dropImpossiblePrices(sorted);
+    if (cleaned.dropped > 0) {
+      console.warn(
+        `⚠️  Near Me: ignored ${cleaned.dropped} price row(s) for "${crop}" below ` +
+          `Rs ${cleaned.floor} (a tenth of the median) as data errors.`
+      );
+    }
+    const ranked = cleaned.kept;
+
+    // ---- STEP 6: the two headline answers ----
+    //
+    // Which two depends on why the farmer is here. Selling, they want
+    // the most money; buying, the least. See pickHeadlineMandis().
+    const headline = pickHeadlineMandis(ranked, mode);
+
+    const bestPrice = headline.bestPrice;
+    const closestGood = headline.closestGood;
+
+    // Kept so anything still reading the old field name keeps working.
+    const bestPaying = headline.bestPrice;
+    const nearest = ranked.length > 0 ? minBy(ranked, (m) => m.distanceKm) : null;
+
+    // Sanity check, logged not shown. A nearest mandi over 100 km away
+    // is the same symptom a swapped lat/lon or a broken distance
+    // formula would produce, so it is worth a line in the log even
+    // when - as in the Pune case - the real cause is simply that few
+    // mandis reported that day. See locationService.js.
+    if (nearest) {
+      warnIfNearestImplausible({
+        km: nearest.distanceKm,
+        mandiName: nearest.mandiName,
+        origin,
+        originLabel: origin && origin.label,
+        candidateCount: withinRadius.length,
+        source: "near-me-page",
+      });
+    }
 
     // How much more the best-paying mandi gives than the nearest one, and
     // how much further it is. This is the actual trade-off a farmer is
     // weighing up, so we work it out for them rather than making them do
     // the arithmetic on a phone screen.
     let tradeOff = null;
-    if (bestPaying && nearest && bestPaying.mandiName !== nearest.mandiName) {
+    if (bestPrice && closestGood && bestPrice.mandiName !== closestGood.mandiName) {
+      // Always a POSITIVE number, whichever way round the comparison
+      // runs. Selling, the best mandi pays more; buying, it costs less.
+      // Both are "worth this much per quintal", and the page says
+      // whether that is money gained or saved.
+      const difference =
+        mode === "buy"
+          ? closestGood.modalPrice - bestPrice.modalPrice
+          : bestPrice.modalPrice - closestGood.modalPrice;
+
       tradeOff = {
-        extraRupeesPerQuintal: bestPaying.modalPrice - nearest.modalPrice,
-        extraKm: Math.round((bestPaying.distanceKm - nearest.distanceKm) * 10) / 10,
+        extraRupeesPerQuintal: Math.round(difference),
+        extraKm: Math.round((bestPrice.distanceKm - closestGood.distanceKm) * 10) / 10,
+        mode,
       };
     }
+
+    // =================================================================
+    // THE THREE SCOPES
+    // =================================================================
+    // The same question - where is the best price - asked at three
+    // distances: inside the radius, across the state, across India.
+    //
+    // All three use pickHeadlineMandis(), so the meaning of "best" and
+    // of "closest good one" is identical everywhere and flips with
+    // buy/sell in one place rather than three.
+    //
+    // The national list is every priced mandi we could locate. The
+    // state list is that, filtered to the farmer's state - taken from
+    // their coordinates, since this page has no state box of its own.
+    const nationalRanked = dropImpossiblePrices(withDistance).kept;
+
+    const derivedState = findStateForCoordinates(origin);
+    const scopeStateName = derivedState ? derivedState.state : null;
+
+    const stateRanked = scopeStateName
+      ? nationalRanked.filter(
+          (m) => (m.state || "").trim().toLowerCase() === scopeStateName.toLowerCase()
+        )
+      : [];
+
+    const buildScope = (list, extra = {}) => {
+      const picked = pickHeadlineMandis(list, mode);
+      return {
+        bestPrice: picked.bestPrice,
+        closestGood: picked.closestGood,
+        goodCandidateCount: picked.goodCandidateCount,
+        goodPriceThreshold: picked.goodPriceThreshold,
+        mandiCount: list.length,
+        ...extra,
+      };
+    };
+
+    const scopes = {
+      nearYou: buildScope(ranked, { radiusKm }),
+      state: buildScope(stateRanked, {
+        stateName: scopeStateName,
+        // How far the nearest district centre was. A big number means
+        // the state guess is shaky - near a border, for instance.
+        stateConfidenceKm: derivedState ? derivedState.confidenceKm : null,
+      }),
+      national: buildScope(nationalRanked),
+    };
 
     await logActivity(
       req.user,
@@ -177,6 +343,16 @@ async function getNearbyMandis(req, res) {
       couldNotLocate,
       bestPaying,
       nearest,
+
+      // ---- The two headline cards, per buy/sell ----
+      mode,
+      bestPrice,
+      closestGood,
+      goodCandidateCount: headline.goodCandidateCount,
+      goodPriceThreshold: headline.goodPriceThreshold,
+
+      // ---- Near you / state / national, all respecting buy-sell ----
+      scopes,
       tradeOff,
       dataSource: government.dataSource,
       matchedDate: government.matchedDate,

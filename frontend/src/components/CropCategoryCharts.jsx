@@ -51,8 +51,8 @@ import {
   CATEGORY_LABEL_KEYS,
   categoryColour,
   formatRupees,
-  AXIS_TICK,
-  GRID_STROKE,
+  axisTick,
+  gridStroke,
 } from "./chartTheme";
 
 // Above this many crops a category is trimmed, with a button to open it
@@ -140,7 +140,7 @@ function CropCategoryCharts({ crops }) {
                 transition-all border ${
                   isActive
                     ? "text-white shadow-soft scale-[1.03] border-transparent"
-                    : "bg-white text-ink-600 border-surface-300 hover:border-ink-300 hover:bg-surface-100"
+                    : "bg-card text-ink-600 border-surface-300 hover:border-ink-300 hover:bg-surface-100"
                 }`}
               style={isActive ? { backgroundColor: colour } : undefined}
             >
@@ -207,7 +207,7 @@ function CategoryChart({ rows, colour, categoryKey }) {
   const gradientId = `bar-gradient-${categoryKey}`;
 
   return (
-    <div className="bg-white rounded-2xl shadow-soft p-5 pr-3 border border-surface-300/60 animate-fadeIn">
+    <div className="bg-card rounded-2xl shadow-soft p-5 pr-3 border border-surface-300/60 animate-fadeIn">
       <ResponsiveContainer width="100%" height={chartHeight}>
         <BarChart
           data={rows}
@@ -227,11 +227,11 @@ function CategoryChart({ rows, colour, categoryKey }) {
 
           {/* Vertical grid lines only. Horizontal ones would just box in
               each bar without helping you read its length. */}
-          <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} horizontal={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke={gridStroke()} horizontal={false} />
 
           <XAxis
             type="number"
-            tick={AXIS_TICK}
+            tick={axisTick()}
             tickFormatter={(value) => value.toLocaleString("en-IN")}
             axisLine={false}
             tickLine={false}
@@ -241,7 +241,7 @@ function CategoryChart({ rows, colour, categoryKey }) {
             type="category"
             dataKey="name"
             width={140}
-            tick={AXIS_TICK}
+            tick={axisTick()}
             interval={0}
             axisLine={false}
             tickLine={false}
@@ -293,7 +293,7 @@ function CategoryChart({ rows, colour, categoryKey }) {
         </span>
         {hasFarmerPrices && (
           <span className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-sm bg-amber-500" />
+            <span className="w-3 h-3 rounded-sm bg-warning-500" />
             {t("common_our_farmers")}
           </span>
         )}
@@ -337,7 +337,7 @@ function PriceTooltip({ active, payload, label }) {
       )}
 
       {row.farmer != null && (
-        <p className="text-amber-600 mt-1.5">
+        <p className="text-warning-600 mt-1.5">
           <span className="text-ink-500">{t("common_our_farmers")}: </span>
           <span className="font-semibold">{formatRupees(row.farmer)}</span>
           {row.reports > 0 && (

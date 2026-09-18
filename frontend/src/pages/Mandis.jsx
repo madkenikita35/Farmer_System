@@ -121,7 +121,7 @@ function Mandis() {
       {/* ---------- Search form ---------- */}
       <form
         onSubmit={handleSearch}
-        className="bg-white rounded-2xl shadow-soft p-6 border border-surface-300/60 grid sm:grid-cols-4 gap-4 mb-6"
+        className="bg-card rounded-2xl shadow-soft p-6 border border-surface-300/60 grid sm:grid-cols-4 gap-4 mb-6"
       >
         <div className="sm:col-span-2">
           <label className="block text-sm font-medium text-ink-600 mb-1">
@@ -132,7 +132,7 @@ function Mandis() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t("md_search_placeholder")}
-            className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+            className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
           />
         </div>
 
@@ -143,7 +143,7 @@ function Mandis() {
           <select
             value={selectedState}
             onChange={(e) => setSelectedState(e.target.value)}
-            className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+            className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
           >
             <option value="">{t("common_all_states")}</option>
             {states.map((s) => (
@@ -158,14 +158,14 @@ function Mandis() {
           <button
             type="submit"
             disabled={isLoading}
-            className="flex-1 bg-brand-green hover:bg-brand-darkgreen text-white font-semibold px-4 py-2 rounded-xl disabled:opacity-50"
+            className="flex-1 bg-brand-green hover:bg-primary-hover text-primary-foreground font-semibold px-4 py-2 rounded-xl disabled:opacity-50"
           >
             🔍 {t("common_search")}
           </button>
           <button
             type="button"
             onClick={handleReset}
-            className="px-4 py-2 rounded-xl border border-gray-300 text-ink-600 hover:bg-gray-50"
+            className="px-4 py-2 rounded-xl border border-input text-ink-600 hover:bg-muted"
           >
             {t("common_reset")}
           </button>
@@ -177,7 +177,7 @@ function Mandis() {
           whenever the key was fine and the government API had simply
           timed out. */}
       {dataSource === "mock" && (
-        <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-4">
+        <div className="text-xs text-warning-800 bg-warning-50 border border-warning-200 rounded-lg px-4 py-3 mb-4">
           <p className="font-semibold mb-1">⚠️ {t("md_mock_title")}</p>
           <p>
             {t(
@@ -193,7 +193,7 @@ function Mandis() {
       )}
 
       {errorMessage && (
-        <div className="bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-3 mb-6 text-sm">
+        <div className="bg-negative-50 text-negative-700 border border-negative-200 rounded-lg px-4 py-3 mb-6 text-sm">
           {errorMessage}
         </div>
       )}
@@ -205,7 +205,7 @@ function Mandis() {
           <p className="text-sm">{t("md_loading")}</p>
         </div>
       ) : mandis.length === 0 ? (
-        <div className="text-center py-16 text-ink-500 bg-white rounded-2xl border border-gray-100">
+        <div className="text-center py-16 text-ink-500 bg-card rounded-2xl border border-border">
           <div className="text-3xl mb-2">🤷</div>
           <p className="font-medium">{t("md_none_title")}</p>
           <p className="text-sm mt-1">{t("md_none_text", { total: totalMandis })}</p>
@@ -237,7 +237,7 @@ function MandiCard({ mandi }) {
   return (
     <Link
       to={link}
-      className="block bg-white rounded-2xl shadow-soft border border-surface-300/60 p-5 hover:border-brand-green hover-lift animate-popIn"
+      className="block bg-card rounded-2xl shadow-soft border border-surface-300/60 p-5 hover:border-brand-green hover-lift animate-popIn"
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <h3 className="font-semibold text-ink-900 leading-tight">
@@ -252,7 +252,7 @@ function MandiCard({ mandi }) {
       </p>
 
       <div className="flex items-center gap-2 text-xs">
-        <span className="bg-green-50 text-green-700 px-2 py-1 rounded-full font-medium">
+        <span className="bg-positive-50 text-positive-700 px-2 py-1 rounded-full font-medium">
           {t("md_crop_count", { count: mandi.cropCount })}
         </span>
         {mandi.latestDate && (

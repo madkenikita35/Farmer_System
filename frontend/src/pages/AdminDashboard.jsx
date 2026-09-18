@@ -66,7 +66,7 @@ function AdminDashboard() {
   if (errorMessage) {
     return (
       <div className="max-w-3xl mx-auto px-6 py-16">
-        <div className="bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-3 text-sm">
+        <div className="bg-negative-50 text-negative-700 border border-negative-200 rounded-lg px-4 py-3 text-sm">
           {errorMessage}
         </div>
       </div>
@@ -132,7 +132,7 @@ function AdminDashboard() {
       {/* ---------- Charts ---------- */}
       <div className="grid lg:grid-cols-2 gap-6 mb-8">
         {/* Signups + uploads per day over the last 2 weeks */}
-        <div className="bg-white rounded-2xl shadow-soft p-6 border border-surface-300/60 hover-lift animate-fadeInUp">
+        <div className="bg-card rounded-2xl shadow-soft p-6 border border-surface-300/60 hover-lift animate-fadeInUp">
           <h3 className="font-semibold text-ink-900 mb-4">
             📈 Signups &amp; Uploads (last 14 days)
           </h3>
@@ -167,13 +167,13 @@ function AdminDashboard() {
         </div>
 
         {/* Are farmers overall getting fair prices? */}
-        <div className="bg-white rounded-2xl shadow-soft p-6 border border-surface-300/60 hover-lift animate-fadeInUp">
+        <div className="bg-card rounded-2xl shadow-soft p-6 border border-surface-300/60 hover-lift animate-fadeInUp">
           <h3 className="font-semibold text-ink-900 mb-4">⚖️ Verdicts Across All Receipts</h3>
           <VerdictPieChart data={stats.verdictBreakdown} />
         </div>
 
         {/* Most-uploaded crops */}
-        <div className="bg-white rounded-2xl shadow-soft p-6 border border-surface-300/60 hover-lift animate-fadeInUp">
+        <div className="bg-card rounded-2xl shadow-soft p-6 border border-surface-300/60 hover-lift animate-fadeInUp">
           <h3 className="font-semibold text-ink-900 mb-4">🌾 Most Uploaded Crops</h3>
           {stats.topCrops.length === 0 ? (
             <EmptyChartNote />
@@ -191,7 +191,7 @@ function AdminDashboard() {
         </div>
 
         {/* Most-used mandis */}
-        <div className="bg-white rounded-2xl shadow-soft p-6 border border-surface-300/60 hover-lift animate-fadeInUp">
+        <div className="bg-card rounded-2xl shadow-soft p-6 border border-surface-300/60 hover-lift animate-fadeInUp">
           <h3 className="font-semibold text-ink-900 mb-4">🏛️ Most Reported Mandis</h3>
           {stats.topMandis.length === 0 ? (
             <EmptyChartNote />
@@ -211,13 +211,13 @@ function AdminDashboard() {
 
       {/* ---------- Farmers by state ---------- */}
       {stats.farmersByState.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-soft p-6 border border-surface-300/60 mb-8">
+        <div className="bg-card rounded-2xl shadow-soft p-6 border border-surface-300/60 mb-8">
           <h3 className="font-semibold text-ink-900 mb-4">🗺️ Farmers by State</h3>
           <div className="flex flex-wrap gap-2">
             {stats.farmersByState.map((row) => (
               <span
                 key={row.state}
-                className="bg-green-50 text-green-800 px-3 py-1.5 rounded-full text-sm"
+                className="bg-positive-50 text-positive-800 px-3 py-1.5 rounded-full text-sm"
               >
                 {row.state}: <strong>{row.count}</strong>
               </span>
@@ -227,7 +227,7 @@ function AdminDashboard() {
       )}
 
       {/* ---------- Recent activity preview ---------- */}
-      <div className="bg-white rounded-2xl shadow-soft p-6 border border-surface-300/60 hover-lift animate-fadeInUp">
+      <div className="bg-card rounded-2xl shadow-soft p-6 border border-surface-300/60 hover-lift animate-fadeInUp">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-ink-900">⚡ Latest Farmer Activity</h3>
           <Link to="/admin/activity" className="text-sm text-primary-700 font-semibold hover:underline">
@@ -246,7 +246,7 @@ function AdminDashboard() {
               <li key={item._id} className="py-3 flex items-start gap-3">
                 <span className="text-lg">{actionIcon(item.action)}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-800">{item.description}</p>
+                  <p className="text-sm text-ink-800">{item.description}</p>
                   <p className="text-xs text-ink-400">
                     {item.userEmail} · {new Date(item.createdAt).toLocaleString()}
                   </p>
@@ -261,7 +261,7 @@ function AdminDashboard() {
       <div className="grid sm:grid-cols-2 gap-4 mt-8">
         <Link
           to="/admin/farmers"
-          className="bg-white rounded-2xl shadow-soft border border-surface-300/60 p-6 hover:border-brand-green hover-lift animate-popIn"
+          className="bg-card rounded-2xl shadow-soft border border-surface-300/60 p-6 hover:border-brand-green hover-lift animate-popIn"
         >
           <div className="text-2xl mb-2">🧑‍🌾</div>
           <h4 className="font-semibold text-ink-900">Manage Farmers</h4>
@@ -272,7 +272,7 @@ function AdminDashboard() {
         </Link>
         <Link
           to="/admin/activity"
-          className="bg-white rounded-2xl shadow-soft border border-surface-300/60 p-6 hover:border-brand-green hover-lift animate-popIn"
+          className="bg-card rounded-2xl shadow-soft border border-surface-300/60 p-6 hover:border-brand-green hover-lift animate-popIn"
         >
           <div className="text-2xl mb-2">⚡</div>
           <h4 className="font-semibold text-ink-900">Full Activity Log</h4>

@@ -48,7 +48,7 @@ function StatCard({ label, value, icon, tone = "primary", color }) {
 
   return (
     <div
-      className="group bg-white rounded-2xl shadow-soft p-5 flex items-center gap-4
+      className="group bg-card rounded-2xl shadow-soft p-5 flex items-center gap-4
  border border-surface-300/60 hover-lift animate-popIn"
     >
       <div

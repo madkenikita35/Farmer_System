@@ -20,6 +20,7 @@ import StatCard from "../components/StatCard";
 import MandiTrendChart from "../components/MandiTrendChart";
 import CommunityPriceChart from "../components/CommunityPriceChart";
 import { useLanguage } from "../context/LanguageContext";
+import ScopeComparisonCards from "../components/ScopeComparisonCards";
 
 function CheckRates() {
   const { t } = useLanguage();
@@ -39,17 +40,65 @@ function CheckRates() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
+  // ---- Location, for the "Near You" and "State Level" cards ----
+  //
+  // The SAME approach as the Near Me page: ask the browser, and tell
+  // the farmer which problem it was if it fails, rather than silently
+  // falling back to somewhere they are not.
+  const [coordinates, setCoordinates] = useState(null);
+  const [radiusKm, setRadiusKm] = useState(50);
+
+  function handleUseMyLocation() {
+    if (!navigator.geolocation) {
+      setErrorMessage(t("nm_err_no_geolocation"));
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const next = {
+          lat: position.coords.latitude,
+          lon: position.coords.longitude,
+        };
+        setCoordinates(next);
+        // Re-run straight away so the two location cards fill in
+        // without making the farmer press Check Rates again.
+        if (crop.trim()) runSearch(crop, { coordinates: next });
+      },
+      (error) => {
+        const messages = {
+          1: t("nm_err_denied"),
+          2: t("nm_err_unavailable"),
+          3: t("nm_err_timeout"),
+        };
+        setErrorMessage(messages[error.code] || t("nm_err_generic_location"));
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+    );
+  }
+
   // Pulled out of the form handler so the effect below can call it too.
-  async function runSearch(cropName) {
+  // `overrides` lets a caller pass freshly-obtained coordinates without
+  // waiting for a state update to land - setCoordinates is async, so
+  // reading `coordinates` here right after setting it would still see
+  // the old value.
+  async function runSearch(cropName, overrides = {}) {
     if (!cropName.trim()) {
       setErrorMessage(t("cr_err_need_crop"));
       return;
     }
 
+    const where = overrides.coordinates || coordinates;
+    const radius = overrides.radiusKm || radiusKm;
+
     setErrorMessage("");
     setIsLoading(true);
     try {
-      const response = await compareMandiPrices(cropName.trim(), state.trim(), date);
+      const response = await compareMandiPrices(cropName.trim(), state.trim(), date, {
+        lat: where?.lat,
+        lon: where?.lon,
+        radius,
+      });
       setResult(response.data);
     } catch (error) {
       console.error(error);
@@ -57,6 +106,13 @@ function CheckRates() {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  // Changing the radius only affects the "Near You" card, but the
+  // filtering happens server-side, so it needs another call.
+  function handleRadiusChange(nextRadius) {
+    setRadiusKm(nextRadius);
+    if (crop.trim() && result) runSearch(crop, { radiusKm: nextRadius });
   }
 
   async function handleSearch(e) {
@@ -84,7 +140,7 @@ function CheckRates() {
       {/* ---------- Search form ---------- */}
       <form
         onSubmit={handleSearch}
-        className="bg-white rounded-2xl shadow-soft p-6 border border-surface-300/60 grid sm:grid-cols-4 gap-4 mb-8"
+        className="bg-card rounded-2xl shadow-soft p-6 border border-surface-300/60 grid sm:grid-cols-4 gap-4 mb-8"
       >
         <div className="sm:col-span-2">
           <label className="block text-sm font-medium text-ink-600 mb-1">{t("common_crop")}</label>
@@ -93,7 +149,7 @@ function CheckRates() {
             value={crop}
             onChange={(e) => setCrop(e.target.value)}
             placeholder={t("cr_placeholder_crop")}
-            className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+            className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
           />
         </div>
         <div>
@@ -103,7 +159,7 @@ function CheckRates() {
             value={state}
             onChange={(e) => setState(e.target.value)}
             placeholder={t("cr_placeholder_state")}
-            className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+            className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
           />
         </div>
         <div>
@@ -112,14 +168,14 @@ function CheckRates() {
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+            className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
           />
         </div>
         <div className="sm:col-span-4">
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full sm:w-auto bg-primary-gradient text-white font-semibold px-6 py-3 rounded-2xl shadow-soft hover:scale-[1.02] transition-all disabled:opacity-50"
+            className="w-full sm:w-auto bg-primary-gradient text-primary-foreground font-semibold px-6 py-3 rounded-2xl shadow-soft hover:scale-[1.02] transition-all disabled:opacity-50"
           >
             {isLoading ? t("common_searching") : `🔍 ${t("cr_btn_check")}`}
           </button>
@@ -127,9 +183,24 @@ function CheckRates() {
       </form>
 
       {errorMessage && (
-        <div className="bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-3 mb-6 text-sm">
+        <div className="bg-negative-50 text-negative-700 border border-negative-200 rounded-lg px-4 py-3 mb-6 text-sm">
           {errorMessage}
         </div>
+      )}
+
+      {/* ---------- The three-scope comparison ---------- */}
+      {/* Above ResultsView because it answers the question the farmer
+          came with - where should I sell - while the charts below are
+          for reading the detail afterwards. */}
+      {(result || isLoading) && (
+        <ScopeComparisonCards
+          scopes={result?.scopes}
+          isLoading={isLoading}
+          radiusKm={radiusKm}
+          onRadiusChange={handleRadiusChange}
+          onUseLocation={handleUseMyLocation}
+          hasLocation={Boolean(coordinates)}
+        />
       )}
 
       {/* ---------- Results ---------- */}
@@ -183,25 +254,13 @@ function ResultsView({ result }) {
           right at the top, before any charts. The backend works out
           the ranking across BOTH data sources - see
           findBestAndWorstMandis() in backend/controllers/mandiController.js */}
-      {bestMandi && worstMandi && (
-        <div className="grid sm:grid-cols-2 gap-4 mb-4">
-          <MandiOfferCard
-            title={t("cr_highest_now")}
-            emoji="📈"
-            offer={bestMandi}
-            tone="good"
-          />
-          <MandiOfferCard
-            title={t("cr_lowest_now")}
-            emoji="📉"
-            offer={worstMandi}
-            tone="bad"
-          />
-        </div>
-      )}
+      {/* The old national-only highest/lowest pair used to sit here.
+          It is now the third of the three scope cards above, which
+          shows the same comparison plus the distance it was missing -
+          so keeping it here as well would say the same thing twice. */}
 
       {priceGap > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 mb-6 text-sm text-amber-900">
+        <div className="bg-warning-50 border border-warning-200 rounded-xl px-5 py-4 mb-6 text-sm text-warning-900">
           💡{" "}
           {t("cr_gap_note", {
             gap: priceGap.toLocaleString("en-IN"),
@@ -215,7 +274,7 @@ function ResultsView({ result }) {
 
       {/* ---- The full ranking, best to worst ---- */}
       {rankedMandis && rankedMandis.length > 2 && (
-        <details className="bg-white rounded-2xl shadow-soft border border-surface-300/60 mb-6">
+        <details className="bg-card rounded-2xl shadow-soft border border-surface-300/60 mb-6">
           {/* <details>/<summary> is plain HTML - it gives you a
               collapsible section with no JavaScript at all. */}
           <summary className="cursor-pointer px-6 py-4 font-semibold text-ink-900">
@@ -258,12 +317,12 @@ function ResultsView({ result }) {
 
       {/* ---- The two charts, side by side on wide screens ---- */}
       <div className="grid lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl shadow-soft p-6 border border-surface-300/60">
+        <div className="bg-card rounded-2xl shadow-soft p-6 border border-surface-300/60">
           <h2 className="font-semibold text-ink-900 mb-3">🏛️ {t("cr_chart_gov")}</h2>
           <MandiTrendChart data={government.prices} />
         </div>
 
-        <div className="bg-white rounded-2xl shadow-soft p-6 border border-surface-300/60">
+        <div className="bg-card rounded-2xl shadow-soft p-6 border border-surface-300/60">
           <h2 className="font-semibold text-ink-900 mb-3">🧑‍🌾 {t("cr_chart_farmers")}</h2>
           <CommunityPriceChart data={community.records} />
         </div>
@@ -281,10 +340,10 @@ function MandiOfferCard({ title, emoji, offer, tone }) {
 
   const styles =
     tone === "good"
-      ? "bg-green-50 border-green-200 text-green-900"
-      : "bg-red-50 border-red-200 text-red-900";
+      ? "bg-positive-50 border-positive-200 text-positive-900"
+      : "bg-negative-50 border-negative-200 text-negative-900";
 
-  const priceColor = tone === "good" ? "text-green-700" : "text-red-700";
+  const priceColor = tone === "good" ? "text-positive-700" : "text-negative-700";
 
   return (
     <div className={`rounded-2xl border px-5 py-4 ${styles}`}>

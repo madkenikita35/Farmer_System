@@ -274,14 +274,29 @@ const CASES = [
       language: "hi-IN",
       confidence: 0.95,
     },
+    // WHAT THIS ACTUALLY TESTS: that a place spoken in Devanagari is
+    // matched against government data written in Latin script -
+    // "\u0907\u0902\u0926\u094c\u0930" against "Indore". It does NOT test that Indore happens
+    // to have wheat today.
+    //
+    // It used to assert `data.averagePrice > 0`, which quietly made it a
+    // test of the day's government feed: the moment wheat dropped to a
+    // single reporting mandi (Kukshi, in Dhar), the test failed while
+    // the code it was guarding was working perfectly. A test that turns
+    // red because the weather changed teaches you to ignore red.
+    //
+    // So: the place must be UNDERSTOOD and searched for. Finding no
+    // wheat there is a legitimate answer.
     expect: (r) =>
       r.language === "hi" &&
       r.entities.crop === "Wheat" &&
-      r.data &&
-      r.data.averagePrice > 0,
-    show: (r) => r.reply.slice(0, 80),
+      r.entities.place === "इंदौर",
+    show: (r) => `place=${r.entities.place} | ${r.reply.slice(0, 60)}`,
     also: (r) =>
-      r.needsClarification ? "asked for clarification instead of answering" : null,
+      // The failure that matters: the place being ignored and a
+      // national answer given instead. If it searched Indore, the reply
+      // says so either way.
+      r.reply.includes("इंदौर") ? null : "the reply does not mention the place asked about",
   },
   {
     name: "SUGGESTED PROMPT (mr): price of wheat in Indore",
@@ -290,14 +305,15 @@ const CASES = [
       language: "mr-IN",
       confidence: 0.95,
     },
+    // Same reasoning as the Hindi case above: this proves Devanagari
+    // "\u0907\u0902\u0926\u0942\u0930" reaches Latin "Indore", not that Indore has wheat today.
     expect: (r) =>
       r.language === "mr" &&
       r.entities.crop === "Wheat" &&
-      r.data &&
-      r.data.averagePrice > 0,
-    show: (r) => r.reply.slice(0, 80),
+      r.entities.place === "इंदूर",
+    show: (r) => `place=${r.entities.place} | ${r.reply.slice(0, 60)}`,
     also: (r) =>
-      r.needsClarification ? "asked for clarification instead of answering" : null,
+      r.reply.includes("इंदूर") ? null : "the reply does not mention the place asked about",
   },
   {
     // The terse forms the UI suggests, as opposed to the fuller
@@ -325,6 +341,103 @@ const CASES = [
     expect: (r) =>
       r.language === "mr" && r.intent === "nearest" && r.entities.crop === "Tomato",
     show: (r) => r.reply.slice(0, 80),
+  },
+  {
+    // ============================================================
+    // REGRESSION GUARD: lowest must not return highest.
+    // ============================================================
+    // There was no `lowest` intent at all. "\u0938\u092c\u0938\u0947 \u0915\u092e \u092a\u094d\u092f\u093e\u091c \u0915\u093e \u092d\u093e\u0935"
+    // matched nothing, fell through to the catch-all `price` intent
+    // (it contains "\u092d\u093e\u0935"), and the controller answered every plain
+    // price question with answerHighest. So asking for the CHEAPEST
+    // reliably returned the DEAREST mandi in India.
+    name: "LOWEST (en): lowest onion price",
+    payload: { transcript: "lowest onion price", language: "en-IN", confidence: 0.95 },
+    expect: (r) => r.intent === "lowest" && r.entities.crop === "Onion" && r.data.modalPrice > 0,
+    show: (r) => `\u20b9${r.data.modalPrice} @ ${r.data.mandiName}`,
+  },
+  {
+    name: "LOWEST (hi): \u0938\u092c\u0938\u0947 \u0915\u092e \u092a\u094d\u092f\u093e\u091c \u0915\u093e \u092d\u093e\u0935",
+    payload: {
+      transcript: "\u0938\u092c\u0938\u0947 \u0915\u092e \u092a\u094d\u092f\u093e\u091c \u0915\u093e \u092d\u093e\u0935 \u0915\u0939\u093e\u0902 \u092e\u093f\u0932\u0924\u093e \u0939\u0948",
+      language: "hi-IN",
+      confidence: 0.95,
+    },
+    expect: (r) => r.language === "hi" && r.intent === "lowest" && r.entities.crop === "Onion",
+    show: (r) => r.reply.slice(0, 80),
+    // The exact wording of the original bug report: the reply must NOT
+    // be the highest-price sentence.
+    also: (r) =>
+      /\u0938\u092c\u0938\u0947 \u091c\u094d\u092f\u093e\u0926\u093e/.test(r.reply) ? "answered with the HIGHEST price sentence" : null,
+  },
+  {
+    name: "LOWEST (mr): \u0938\u0930\u094d\u0935\u093e\u0924 \u0915\u092e\u0940 \u0915\u093e\u0902\u0926\u094d\u092f\u093e\u091a\u093e \u092d\u093e\u0935",
+    payload: {
+      transcript: "\u0938\u0930\u094d\u0935\u093e\u0924 \u0915\u092e\u0940 \u0915\u093e\u0902\u0926\u094d\u092f\u093e\u091a\u093e \u092d\u093e\u0935",
+      language: "mr-IN",
+      confidence: 0.95,
+    },
+    expect: (r) => r.language === "mr" && r.intent === "lowest" && r.entities.crop === "Onion",
+    show: (r) => r.reply.slice(0, 80),
+    also: (r) =>
+      /\u0938\u0930\u094d\u0935\u093e\u0924 \u091c\u093e\u0938\u094d\u0924/.test(r.reply) ? "answered with the HIGHEST price sentence" : null,
+  },
+  {
+    // The two directions must actually differ. Intent alone passing
+    // would not catch a wiring mistake where both call answerHighest.
+    name: "LOWEST vs HIGHEST give DIFFERENT mandis (tomato)",
+    payload: { transcript: "minimum price of tomato", language: "en-IN", confidence: 0.95 },
+    expect: (r) => r.intent === "lowest" && r.data.modalPrice > 0,
+    show: (r) => `lowest \u20b9${r.data.modalPrice} @ ${r.data.mandiName}`,
+    also: (r) =>
+      // Tomato reports from 150+ mandis, so the cheapest and dearest
+      // cannot legitimately be the same price.
+      r.data.mandisCompared > 1 && r.data.direction !== "lowest"
+        ? "data.direction was not 'lowest'"
+        : null,
+  },
+  {
+    // ============================================================
+    // THE SAFEGUARD: ask rather than guess.
+    // ============================================================
+    name: "AMBIGUOUS (hi): superlative with no direction -> asks",
+    payload: {
+      transcript: "\u092a\u094d\u092f\u093e\u091c \u0915\u093e \u0938\u092c\u0938\u0947 \u092c\u0922\u093c\u093f\u092f\u093e \u092d\u093e\u0935 \u0915\u094c\u0928 \u0938\u0940 \u092e\u0902\u0921\u0940",
+      language: "hi-IN",
+      confidence: 0.95,
+    },
+    expect: (r) =>
+      r.language === "hi" &&
+      r.intent === "price_direction_unclear" &&
+      r.needsClarification === true,
+    show: (r) => r.reply,
+  },
+  {
+    name: "AMBIGUOUS: both directions named at once -> asks",
+    payload: {
+      transcript: "\u0938\u092c\u0938\u0947 \u0915\u092e \u092f\u093e \u0938\u092c\u0938\u0947 \u091c\u094d\u092f\u093e\u0926\u093e \u092a\u094d\u092f\u093e\u091c \u0915\u093e \u092d\u093e\u0935",
+      language: "hi-IN",
+      confidence: 0.95,
+    },
+    expect: (r) => r.intent === "price_direction_unclear" && r.needsClarification === true,
+    show: (r) => r.reply,
+  },
+  {
+    // A neutral price question is NOT ambiguous - they did not ask for
+    // an extreme. It used to be answered with the single dearest mandi
+    // in India; now it gets the average across all of them.
+    name: "NEUTRAL: plain price question -> average, not highest",
+    payload: {
+      transcript: "what is the price of onion",
+      language: "en-IN",
+      confidence: 0.95,
+    },
+    expect: (r) =>
+      r.intent === "price" &&
+      r.data &&
+      r.data.direction === "average" &&
+      r.data.averagePrice > 0,
+    show: (r) => r.reply.slice(0, 90),
   },
   {
     name: "Goodbye ends the session",

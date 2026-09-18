@@ -54,8 +54,8 @@ import {
   CATEGORY_ORDER,
   CATEGORY_LABEL_KEYS,
   categoryColour,
-  AXIS_TICK,
-  GRID_STROKE,
+  axisTick,
+  gridStroke,
 } from "./chartTheme";
 
 function CropCoverageCharts({ coverage }) {
@@ -132,7 +132,7 @@ function CoverageChart({ title, subtitle, icon, rows, totalMandis }) {
   const chartHeight = Math.max(240, data.length * 32 + 30);
 
   return (
-    <div className="bg-white rounded-2xl shadow-soft p-5 pr-3 border border-surface-300/60 hover-lift">
+    <div className="bg-card rounded-2xl shadow-soft p-5 pr-3 border border-surface-300/60 hover-lift">
       <div className="flex items-start gap-2 mb-3 pl-1">
         <span className="text-lg leading-none mt-0.5">{icon}</span>
         <div>
@@ -149,11 +149,11 @@ function CoverageChart({ title, subtitle, icon, rows, totalMandis }) {
           layout="vertical"
           margin={{ top: 0, right: 46, left: 6, bottom: 0 }}
         >
-          <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} horizontal={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke={gridStroke()} horizontal={false} />
 
           <XAxis
             type="number"
-            tick={AXIS_TICK}
+            tick={axisTick()}
             allowDecimals={false}
             axisLine={false}
             tickLine={false}
@@ -163,7 +163,7 @@ function CoverageChart({ title, subtitle, icon, rows, totalMandis }) {
             type="category"
             dataKey="name"
             width={140}
-            tick={AXIS_TICK}
+            tick={axisTick()}
             interval={0}
             axisLine={false}
             tickLine={false}

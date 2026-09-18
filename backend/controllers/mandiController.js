@@ -17,6 +17,14 @@
 // -----------------------------------------------------------------------
 
 const { fetchMandiPrices } = require("../services/mandiApiService");
+const {
+  distanceInKm,
+  findMandiLocation,
+  findStateForCoordinates,
+} = require("../services/locationService");
+// The same guard the Near Me page uses - see services/priceQuality.js
+// for why junk prices have to go before anything looks for an extreme.
+const { dropImpossiblePrices } = require("../services/priceQuality");
 const { getCommunityPriceStats } = require("../services/communityPriceService");
 const {
   getMandiDirectory,
@@ -127,18 +135,123 @@ function findBestAndWorstMandis(governmentPrices, communityRecords) {
 //   - government: official data.gov.in Agmarknet prices
 //   - community:  what OTHER FARMERS using this app actually got paid
 // ...plus which mandi is paying the most and the least right now.
+// =====================================================================
+// THE THREE SCOPES ON THE CHECK RATES PAGE
+// =====================================================================
+// "Where is this crop dearest and cheapest?" has three different
+// answers depending on how far the farmer is willing to travel:
+//
+//   near you   - only mandis within the chosen radius
+//   state      - every mandi in their state
+//   national   - every mandi in the country
+//
+// All three are computed HERE rather than in the browser, because the
+// price rows the API returns carry no coordinates - only a market,
+// district and state. Turning those into a distance needs the
+// 345-district coordinate table and the fuzzy district matching in
+// locationService.js, and shipping both to every browser would
+// duplicate logic that already exists and works.
+// =====================================================================
+
+/**
+ * Attaches a distance to every priced mandi we can place on a map.
+ *
+ * Mandis whose district we hold no coordinates for get `distanceKm:
+ * null` rather than being dropped - they still belong in the state and
+ * national comparisons, we simply cannot say how far away they are.
+ */
+function withDistances(prices, origin) {
+  return prices
+    .filter((p) => p.modalPrice > 0)
+    .map((p) => {
+      const location = origin ? findMandiLocation(p.state, p.district) : null;
+
+      return {
+        mandiName: p.market,
+        state: p.state,
+        district: p.district || "",
+        price: p.modalPrice,
+        minPrice: p.minPrice,
+        maxPrice: p.maxPrice,
+        date: p.arrivalDate,
+        distanceKm: location ? Math.round(distanceInKm(origin, location) * 10) / 10 : null,
+        distanceAccuracy: location ? location.accuracy || "district" : null,
+      };
+    });
+}
+
+/**
+ * Highest, lowest and the gap between them, for one set of mandis.
+ *
+ * Returns a consistent shape even when empty, so the page can render a
+ * card with an empty state instead of branching on undefined.
+ */
+function buildScope(mandis, extra = {}) {
+  if (mandis.length === 0) {
+    return {
+      highest: null,
+      lowest: null,
+      priceGap: 0,
+      priceGapPercent: 0,
+      mandiCount: 0,
+      ...extra,
+    };
+  }
+
+  const highest = mandis.reduce((a, b) => (b.price > a.price ? b : a));
+  const lowest = mandis.reduce((a, b) => (b.price < a.price ? b : a));
+
+  // Rounded because the feed carries fractional prices - Agra came back
+  // at 2765.04, and 2765.04 - 2350 is 415.03999999999996 in binary
+  // floating point. Printing that on a card would look like a bug in
+  // our arithmetic rather than a quirk of the format.
+  const gap = Math.round(highest.price - lowest.price);
+
+  return {
+    highest,
+    lowest,
+    priceGap: gap,
+    // Percent OF THE LOWEST - "40% more than the cheapest", which is
+    // the comparison a farmer is actually making. Against the highest
+    // it would read smaller and mean less.
+    priceGapPercent: lowest.price > 0 ? Math.round((gap / lowest.price) * 100) : 0,
+    mandiCount: mandis.length,
+    ...extra,
+  };
+}
+
 async function comparePrices(req, res) {
   try {
-    const { crop, state, date } = req.query;
+    const { crop, state, date, lat, lon, radius } = req.query;
 
     if (!crop) {
       return res.status(400).json({ message: "Please provide a crop name, e.g. ?crop=Wheat" });
     }
 
+    // Where is the farmer? Optional - without it the "near you" and
+    // state cards cannot be built, and the page shows them greyed with
+    // a button to share location.
+    const latNumber = Number(lat);
+    const lonNumber = Number(lon);
+    const origin =
+      Number.isFinite(latNumber) && Number.isFinite(lonNumber)
+        ? { lat: latNumber, lon: lonNumber }
+        : null;
+
+    // Clamped so a hand-edited URL cannot ask for a 40,000 km "radius"
+    // and quietly turn the local card into the national one.
+    const radiusKm = Math.min(Math.max(Number(radius) || 50, 1), 500);
+
     // Run both lookups at the same time (they don't depend on each
     // other) - Promise.all() is faster than awaiting them one by one.
     const [government, community] = await Promise.all([
-      fetchMandiPrices(crop, date),
+      // The limit used to default to 100, which quietly made the
+      // "national" comparison a comparison of the first 100 mandis the
+      // API happened to return. For wheat that reported a national high
+      // of Rs 3,350 when the real figure across all 118 mandis was
+      // Rs 7,000 - wrong, and wrong in a way nothing on screen hinted
+      // at. A national card has to actually see the nation.
+      fetchMandiPrices(crop, date, { limit: 5000 }),
       getCommunityPriceStats(crop, state),
     ]);
 
@@ -152,6 +265,61 @@ async function comparePrices(req, res) {
 
     // Which mandi pays best / worst for this crop right now?
     const comparison = findBestAndWorstMandis(government.prices, community.records);
+
+    // ---- The three scopes ----
+    // Junk prices are removed once, up front, so all three scopes agree
+    // about what counts as a real price.
+    // NOTE the price accessor. withDistances() renames modalPrice to
+    // `price`, and the shared guard defaults to reading `modalPrice` -
+    // the field the Near Me page uses. Without this argument it finds
+    // no numbers at all, filters nothing, and the junk rows come
+    // straight back: the lowest onion in India reads Rs 0 again.
+    const { kept: allMandis, dropped: impossiblePrices } = dropImpossiblePrices(
+      withDistances(government.prices, origin),
+      (row) => row.price
+    );
+
+    if (impossiblePrices > 0) {
+      console.warn(
+        `⚠️  ${impossiblePrices} price row(s) for "${crop}" were below a tenth of the ` +
+          `median and treated as data errors. See dropImpossiblePrices().`
+      );
+    }
+
+    // Which state are we comparing? An explicitly typed filter wins
+    // over a guess from coordinates - the farmer knows where they are
+    // better than a nearest-centroid lookup does.
+    const derivedState = origin ? findStateForCoordinates(origin) : null;
+    const scopeStateName = (state && state.trim()) || derivedState?.state || null;
+
+    const nearYouMandis = origin
+      ? allMandis.filter((m) => m.distanceKm != null && m.distanceKm <= radiusKm)
+      : [];
+
+    const stateMandis = scopeStateName
+      ? allMandis.filter(
+          (m) => (m.state || "").trim().toLowerCase() === scopeStateName.trim().toLowerCase()
+        )
+      : [];
+
+    const scopes = {
+      nearYou: buildScope(nearYouMandis, {
+        radiusKm,
+        hasLocation: Boolean(origin),
+        // How many mandis we could NOT place on the map. Without this a
+        // farmer cannot tell "nothing is near you" from "we could not
+        // locate anything".
+        unlocatable: origin ? allMandis.filter((m) => m.distanceKm == null).length : null,
+      }),
+      state: buildScope(stateMandis, {
+        stateName: scopeStateName,
+        derivedFrom: state && state.trim() ? "filter" : derivedState ? "location" : null,
+        // How far the nearest district centroid was. A large number
+        // means the state guess is shaky - near a border, say.
+        derivedConfidenceKm: derivedState ? derivedState.confidenceKm : null,
+      }),
+      national: buildScope(allMandis, { impossiblePricesDropped: impossiblePrices }),
+    };
 
     // Note this down for the admin's activity feed.
     await logActivity(
@@ -181,6 +349,11 @@ async function comparePrices(req, res) {
       priceGap: comparison.priceGap,
       priceGapPercent: comparison.priceGapPercent,
       rankedMandis: comparison.rankedMandis,
+
+      // ---- The three-card comparison ----
+      // Added alongside the old fields rather than replacing them, so
+      // anything still reading bestMandi/worstMandi keeps working.
+      scopes,
     });
   } catch (error) {
     console.error("Error comparing mandi prices:", error);
