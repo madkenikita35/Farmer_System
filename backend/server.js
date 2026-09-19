@@ -109,10 +109,31 @@ if (process.env.NODE_ENV === "production") {
 // preflight still returns 204, it just omits the allow-origin header,
 // and the browser reports a generic network error. Cleaning the value
 // costs one line and removes the whole problem.
-const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:5173")
+const websiteOrigins = (process.env.CLIENT_URL || "http://localhost:5173")
   .split(",")
   .map((origin) => origin.trim().replace(/\/+$/, ""))
   .filter(Boolean);
+
+// ---------------------------------------------------------------------
+// THE ANDROID / iOS APP
+// ---------------------------------------------------------------------
+// The Capacitor build is the same React app, but it runs from a WebView
+// serving files off the device rather than from a web server. Its Origin
+// header is therefore a fixed scheme, not our domain:
+//
+//   https://localhost      Android (Capacitor's default androidScheme)
+//   capacitor://localhost  iOS
+//
+// These cannot come from CLIENT_URL the way the website's origin does,
+// because there is no per-deployment value to set - they are the same
+// for every phone that ever installs the app. So they are constants.
+//
+// Note this is NOT "allow localhost": a browser on a laptop never sends
+// a port-less `https://localhost` origin, and our own dev server sends
+// `http://localhost:5173`, which is a different string entirely.
+const APP_ORIGINS = ["https://localhost", "capacitor://localhost"];
+
+const allowedOrigins = [...websiteOrigins, ...APP_ORIGINS];
 
 console.log(`🌐 CORS allows: ${allowedOrigins.join(", ")}`);
 
