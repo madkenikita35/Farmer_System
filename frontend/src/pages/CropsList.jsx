@@ -26,6 +26,7 @@
 import { useState, useEffect, useMemo } from "react";
 
 import PickList from "../components/PickList";
+import DataFreshness from "../components/DataFreshness";
 import { Link } from "react-router-dom";
 
 import { getCedaCrops } from "../api/api";
@@ -35,32 +36,31 @@ import { useLanguage } from "../context/LanguageContext";
 // How many cards to add each time "show more" is pressed.
 const PAGE_SIZE = 48;
 
-// A rough picture per crop. Matched on the lowercased name containing
-// the key, so "Onion Green" still gets the onion. Anything unmatched
-// gets a seedling, which keeps the grid even.
-const CROP_ICONS = [
-  ["onion", "🧅"], ["tomato", "🍅"], ["potato", "🥔"], ["wheat", "🌾"],
-  ["paddy", "🌾"], ["rice", "🍚"], ["maize", "🌽"], ["corn", "🌽"],
-  ["cotton", "🧵"], ["banana", "🍌"], ["apple", "🍎"], ["mango", "🥭"],
-  ["grape", "🍇"], ["orange", "🍊"], ["lemon", "🍋"], ["lime", "🍋"],
-  ["carrot", "🥕"], ["cabbage", "🥬"], ["spinach", "🥬"], ["brinjal", "🍆"],
-  ["cucumb", "🥒"], ["garlic", "🧄"], ["ginger", "🫚"], ["chilli", "🌶️"],
-  ["chili", "🌶️"], ["coconut", "🥥"], ["groundnut", "🥜"], ["cashew", "🥜"],
-  ["almond", "🥜"], ["soyabean", "🫘"], ["gram", "🫘"], ["dal", "🫘"],
-  ["pea", "🫛"], ["bean", "🫘"], ["millet", "🌾"], ["jowar", "🌾"],
-  ["bajra", "🌾"], ["ragi", "🌾"], ["barley", "🌾"], ["sugar", "🍬"],
-  ["jaggery", "🍬"], ["gur", "🍬"], ["mushroom", "🍄"], ["papaya", "🫒"],
-  ["pineapple", "🍍"], ["watermelon", "🍉"], ["melon", "🍈"],
-  ["pomegranate", "🍎"], ["guava", "🍐"], ["pear", "🍐"], ["flower", "🌸"],
-  ["rose", "🌹"], ["marigold", "🌼"], ["jasmine", "🌺"], ["turmeric", "🟡"],
-  ["pepper", "🌶️"], ["cardamom", "🫚"], ["coriander", "🌿"], ["mint", "🌿"],
-  ["methi", "🌿"], ["egg", "🥚"], ["fish", "🐟"], ["milk", "🥛"],
-];
+// A crop is identified by a MONOGRAM in its category colour, not by a
+// picture.
+//
+// There was an emoji per crop here - a tomato, an onion, a mango, 63 of
+// them. Two problems: the OS draws them, so the grid looked different on
+// every device, and a wall of food cartoons is the single strongest
+// "lifestyle app" signal in the whole product. There is also no
+// line-icon set on earth with a hundred distinct vegetables, so mixing
+// emoji in among the lucide icons was the only way to keep them.
+//
+// The monogram keeps what the emoji was actually FOR - telling one row
+// apart from the next at a glance - and the category colour keeps the
+// meaning the charts already teach ("green is vegetables").
+function monogramFor(name) {
+  const clean = String(name || "").trim();
+  if (!clean) return "?";
 
-function iconFor(name) {
-  const lower = String(name || "").toLowerCase();
-  const hit = CROP_ICONS.find(([key]) => lower.includes(key));
-  return hit ? hit[1] : "🌱";
+  // Two initials for a multi-word crop ("Bengal Gram" -> BG), otherwise
+  // the first two letters ("Onion" -> ON). Two characters fit a small
+  // square at a readable size; three start to crowd.
+  const words = clean.split(/\s+/).filter(Boolean);
+  if (words.length > 1) {
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+  return clean.slice(0, 2).toUpperCase();
 }
 
 function CropsList() {
@@ -108,12 +108,11 @@ function CropsList() {
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-10 animate-fadeIn">
-      <h1 className="text-2xl font-bold text-ink-900 mb-2">📈 {t("crops_title")}</h1>
+      <h1 className="text-2xl font-semibold text-ink-900 mb-2"> {t("crops_title")}</h1>
       <p className="text-ink-600 mb-6">{t("crops_subtitle")}</p>
-
       {/* ---------- Search ---------- */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
-        {/* Was a text box searching 453 crop names. Picking is both
+      {/* Was a text box searching 453 crop names. Picking is both
             faster and impossible to get wrong - and the native dropdown
             still supports type-ahead, so anyone who preferred typing
             can press "o" to jump to Onion. */}
@@ -128,74 +127,58 @@ function CropsList() {
             placeholder={t("crops_all")}
             isLoading={isLoading}
           />
-        </div>
-
-        {!isLoading && (
-          <span className="text-sm text-ink-500">
-            {t("crops_showing", { shown: visible.length, total: matches.length })}
+        </div>{!isLoading && (
+          <span className="text-sm text-ink-500">{t("crops_showing", { shown: visible.length, total: matches.length })}
           </span>
         )}
-      </div>
-
-      {errorMessage && (
-        <div className="bg-negative-50 text-negative-700 border border-negative-200 rounded-lg px-4 py-3 mb-6 text-sm">
-          {errorMessage}
+      </div>{errorMessage && (
+        <div className="bg-negative-50 text-negative-700 border border-negative-200 rounded-md px-4 py-3 mb-6 text-sm">{errorMessage}
         </div>
       )}
 
+      <DataFreshness source="ceda" className="mb-4" />
+
       {/* ---------- The cards ---------- */}
       {isLoading ? (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(8)].map((_, index) => (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">{[...Array(8)].map((_, index) => (
             <div
               key={index}
-              className="bg-card rounded-2xl border border-surface-300/60 p-5 h-24 animate-pulse"
-            >
+              className="bg-card rounded-lg border border-surface-300/60 p-5 h-24 animate-pulse">
               <div className="h-4 w-24 bg-surface-200 rounded mb-3" />
               <div className="h-3 w-16 bg-surface-200 rounded" />
             </div>
           ))}
         </div>
       ) : matches.length === 0 ? (
-        <div className="text-center py-16 text-ink-500 bg-card rounded-2xl border border-surface-300/60">
-          <div className="text-3xl mb-2">🤷</div>
+        <div className="text-center py-16 text-ink-500 bg-card rounded-lg border border-surface-300/60">
           <p className="font-medium">{t("crops_none_title")}</p>
           <p className="text-sm mt-1 max-w-md mx-auto">{t("crops_none_text")}</p>
         </div>
       ) : (
         <>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {visible.map((crop) => (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">{visible.map((crop) => (
               <Link
                 key={crop.id}
                 to={`/crops/${encodeURIComponent(crop.name)}`}
-                className="group bg-card rounded-2xl shadow-soft border border-surface-300/60 p-4
-                  hover:border-primary-400 hover-lift animate-popIn flex items-center gap-3"
-              >
-                <span className="text-2xl shrink-0 transition-transform group-hover:scale-110">
-                  {iconFor(crop.name)}
+                className="group bg-card rounded-lg shadow-soft border border-surface-300/60 p-4
+                  hover:border-primary-400 hover-lift animate-popIn flex items-center gap-3">
+                <span className="text-2xl shrink-0 transition-transform group-hover:scale-110">{monogramFor(crop.name)}
                 </span>
                 <div className="min-w-0">
-                  <h3 className="font-semibold text-ink-900 text-sm leading-tight truncate">
-                    {crop.name}
+                  <h3 className="font-medium text-ink-900 text-sm leading-tight truncate">{crop.name}
                   </h3>
-                  <p className="text-xs text-primary-700 font-medium">
-                    {t("crops_view_trend")}
+                  <p className="text-xs text-primary-700 font-medium">{t("crops_view_trend")}
                   </p>
                 </div>
               </Link>
             ))}
-          </div>
-
-          {visibleCount < matches.length && (
+          </div>{visibleCount < matches.length && (
             <div className="text-center mt-6">
               <button
                 type="button"
-                onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}
-                className="px-6 py-2.5 rounded-full font-semibold text-primary-700
-                  border border-primary-300 hover:bg-primary-50 transition-colors"
-              >
-                {t("crops_show_more", {
+          onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}
+                className="px-6 py-2.5 rounded-full font-medium text-primary-700
+                  border border-primary-300 hover:bg-primary-50 transition-colors">{t("crops_show_more", {
                   count: Math.min(PAGE_SIZE, matches.length - visibleCount),
                 })}
               </button>

@@ -421,6 +421,12 @@ export function resolveLocation(params) {
   return api.get("/location/resolve", { params });
 }
 
+// When did the price feeds last give us data? Used by the small
+// "Data last updated" line under every price table and chart.
+export function getSyncStatus() {
+  return api.get("/sync-status");
+}
+
 export function getMandiCropNames() {
   return api.get("/mandi/crop-names");
 }

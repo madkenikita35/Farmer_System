@@ -72,7 +72,7 @@ function ThemeToggle() {
         title={t("theme_colour")}
         aria-expanded={isOpen}
         aria-haspopup="true"
-        className="grid place-items-center w-9 h-9 rounded-xl
+        className="grid place-items-center w-9 h-9 rounded-md
           hover:bg-surface-200 transition-colors"
       >
         {/* The button itself shows the current colour, so the menu does
@@ -85,10 +85,10 @@ function ThemeToggle() {
 
       {isOpen && (
         <div
-          className="absolute right-0 top-full mt-2 z-50 bg-card rounded-2xl
+          className="absolute right-0 top-full mt-2 z-50 bg-card rounded-lg
             shadow-lifted border border-surface-300 p-2 animate-fadeInDown"
         >
-          <p className="px-2 pt-1 pb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-ink-400">
+          <p className="px-2 pt-1 pb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-400">
             {t("theme_colour")}
           </p>
 
@@ -110,7 +110,7 @@ function ThemeToggle() {
                   // is currently on - the ring around it is visible
                   // information only.
                   aria-pressed={isActive}
-                  className={`grid place-items-center w-10 h-10 rounded-xl transition-all
+                  className={`grid place-items-center w-10 h-10 rounded-md transition-all
                     ${isActive ? "bg-surface-200 scale-105" : "hover:bg-surface-100"}`}
                 >
                   <span

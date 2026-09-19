@@ -14,6 +14,10 @@
 import { useState, useEffect } from "react";
 import { getAdminActivity } from "../api/api";
 import { actionIcon } from "./AdminDashboard";
+import {
+  ICON_MD,
+  ICON_STROKE,
+} from "../components/icons";
 
 // The action types a farmer can trigger, with friendly labels for the
 // filter buttons. The codes must match the `action` enum in
@@ -91,7 +95,7 @@ function AdminActivity() {
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-10 animate-fadeIn">
-      <h1 className="text-2xl font-bold text-ink-900 mb-2">⚡ Farmer Activity</h1>
+      <h1 className="text-2xl font-semibold text-ink-900 mb-2"> Farmer Activity</h1>
       <p className="text-ink-600 mb-6">
         Everything farmers have done in the app, newest first.
       </p>
@@ -121,18 +125,18 @@ function AdminActivity() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by farmer name, email or description..."
-          className="flex-1 border border-ink-200 rounded-xl px-4 py-2.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+          className="flex-1 border border-ink-200 rounded-md px-4 py-2.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
         />
         <button
           type="submit"
-          className="bg-primary-gradient text-primary-foreground font-semibold px-6 py-2.5 rounded-xl shadow-soft hover:scale-[1.02] transition-all"
+          className="bg-primary-gradient text-primary-foreground font-medium px-6 py-2.5 rounded-md shadow-soft hover:scale-[1.02] transition-all"
         >
-          🔍 Search
+           Search
         </button>
       </form>
 
       {errorMessage && (
-        <div className="bg-negative-50 text-negative-700 border border-negative-200 rounded-lg px-4 py-3 mb-6 text-sm">
+        <div className="bg-negative-50 text-negative-700 border border-negative-200 rounded-md px-4 py-3 mb-6 text-sm">
           {errorMessage}
         </div>
       )}
@@ -144,22 +148,25 @@ function AdminActivity() {
       {/* ---------- The feed ---------- */}
       {isLoading ? (
         <div className="text-center py-16 text-ink-500">
-          <div className="text-3xl mb-2 animate-pulse">⚡</div>
           <p className="text-sm">Loading activity...</p>
         </div>
       ) : activity.length === 0 ? (
-        <div className="text-center py-16 text-ink-500 bg-card rounded-2xl border border-border">
-          <div className="text-3xl mb-2">🤷</div>
+        <div className="text-center py-16 text-ink-500 bg-card rounded-lg border border-border">
           <p className="font-medium">No activity matched.</p>
           <p className="text-sm mt-1">
             Try a different filter, or wait for farmers to use the app.
           </p>
         </div>
       ) : (
-        <div className="bg-card rounded-2xl shadow-soft border border-surface-300/60 divide-y divide-surface-200">
+        <div className="bg-card rounded-lg shadow-soft border border-surface-300/60 divide-y divide-surface-200">
           {activity.map((item) => (
             <div key={item._id} className="flex items-start gap-3 px-5 py-4">
-              <span className="text-xl">{actionIcon(item.action)}</span>
+              {(() => {
+                // actionIcon returns a component, so it needs a capital
+                // name before JSX will treat it as one.
+                const Icon = actionIcon(item.action);
+                return <Icon size={ICON_MD} strokeWidth={ICON_STROKE} className="text-ink-400 shrink-0" aria-hidden="true" />;
+              })()}
 
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-ink-800">{item.description}</p>
@@ -200,7 +207,7 @@ function AdminActivity() {
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="px-4 py-2 rounded-lg border border-ink-200 text-ink-600 disabled:opacity-40 hover:bg-surface-200 transition-all"
+            className="px-4 py-2 rounded-md border border-ink-200 text-ink-600 disabled:opacity-40 hover:bg-surface-200 transition-all"
           >
             ← Previous
           </button>
@@ -210,9 +217,9 @@ function AdminActivity() {
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="px-4 py-2 rounded-lg border border-ink-200 text-ink-600 disabled:opacity-40 hover:bg-surface-200 transition-all"
+            className="px-4 py-2 rounded-md border border-ink-200 text-ink-600 disabled:opacity-40 hover:bg-surface-200 transition-all"
           >
-            Next →
+            Next 
           </button>
         </div>
       )}

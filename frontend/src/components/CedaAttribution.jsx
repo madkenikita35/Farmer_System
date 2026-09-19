@@ -45,7 +45,7 @@ function CedaAttribution({ className = "" }) {
       ) : (
         <span
           className="inline-flex items-center px-1.5 py-0.5 rounded bg-ink-100 text-ink-600
-            font-bold tracking-wide text-[10px]"
+            font-semibold tracking-wide text-[10px]"
           aria-hidden="true"
         >
           CEDA

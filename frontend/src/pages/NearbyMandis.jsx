@@ -28,7 +28,20 @@ import StatCard from "../components/StatCard";
 import CropSelect from "../components/CropSelect";
 import LocationPicker from "../components/LocationPicker";
 import BuySellScopeCards from "../components/BuySellScopeCards";
+import DataFreshness from "../components/DataFreshness";
 import { useLanguage } from "../context/LanguageContext";
+import {
+  ICON_MD,
+  ICON_LG,
+  ICON_STROKE,
+  FarmersIcon,
+  LocationIcon,
+  MandiIcon,
+  RupeeIcon,
+  TipIcon,
+  SellIcon,
+  BuyIcon,
+} from "../components/icons";
 
 function NearbyMandis() {
   const { t } = useLanguage();
@@ -96,13 +109,13 @@ function NearbyMandis() {
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-10 animate-fadeIn">
-      <h1 className="text-2xl font-bold text-ink-900 mb-2">📍 {t("nm_title")}</h1>
+      <h1 className="text-2xl font-semibold text-ink-900 mb-2"><LocationIcon size={ICON_MD} strokeWidth={ICON_STROKE} className="shrink-0" aria-hidden="true" /> {t("nm_title")}</h1>
       <p className="text-ink-600 mb-6">{t("nm_subtitle")}</p>
 
       {/* ---------- Search form ---------- */}
       <form
         onSubmit={handleSearch}
-        className="bg-card rounded-2xl shadow-soft p-6 border border-surface-300/60 mb-8"
+        className="bg-card rounded-lg shadow-soft p-6 border border-surface-300/60 mb-8"
       >
         {/* ---- Am I buying or selling? ---- */}
         {/* First, because it changes the meaning of every number below
@@ -111,8 +124,8 @@ function NearbyMandis() {
           <p className="text-sm font-medium text-ink-600 mb-2">{t("bs_i_want_to")}</p>
           <div className="flex gap-2">
             {[
-              { key: "sell", labelKey: "bs_sell", icon: "🌾" },
-              { key: "buy", labelKey: "bs_buy", icon: "🛒" },
+              { key: "sell", labelKey: "bs_sell", icon: SellIcon },
+              { key: "buy", labelKey: "bs_buy", icon: BuyIcon },
             ].map((option) => (
               <button
                 key={option.key}
@@ -126,13 +139,14 @@ function NearbyMandis() {
                     handleSearch(null, { mode: option.key });
                   }
                 }}
-                className={`px-5 py-2 rounded-full text-sm font-semibold transition-all border ${
+                className={`px-5 py-2 rounded-full text-sm font-medium transition-all border ${
                   mode === option.key
                     ? "bg-primary-600 text-primary-foreground border-transparent shadow-soft scale-[1.03]"
                     : "bg-card text-ink-600 border-surface-300 hover:border-ink-300 hover:bg-surface-100"
                 }`}
               >
-                {option.icon} {t(option.labelKey)}
+                {option.icon && <option.icon size={ICON_MD} strokeWidth={ICON_STROKE} className="inline-block mr-1.5 align-[-2px]" aria-hidden="true" />}
+                {t(option.labelKey)}
               </button>
             ))}
           </div>
@@ -155,7 +169,7 @@ function NearbyMandis() {
               id="nearby-crop"
               value={crop}
               onChange={setCrop}
-              className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all disabled:opacity-60"
+              className="w-full border border-ink-200 rounded-md px-3.5 py-2.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all disabled:opacity-60"
             />
           </div>
 
@@ -166,7 +180,7 @@ function NearbyMandis() {
             <select
               value={radius}
               onChange={(e) => setRadius(Number(e.target.value))}
-              className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+              className="w-full border border-ink-200 rounded-md px-3.5 py-2.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
             >
               <option value={50}>50 km</option>
               <option value={100}>100 km</option>
@@ -195,16 +209,16 @@ function NearbyMandis() {
           <button
             type="submit"
             disabled={isLoading}
-            className="bg-primary-gradient text-primary-foreground font-semibold px-6 py-3 rounded-2xl shadow-soft hover:scale-[1.02] transition-all disabled:opacity-50 hover-lift"
+            className="bg-primary-gradient text-primary-foreground font-medium px-6 py-3 rounded-lg shadow-soft hover:scale-[1.02] transition-all disabled:opacity-50 hover-lift"
           >
-            {isLoading ? t("common_searching") : `🔍 ${t("nm_find_btn")}`}
+            {isLoading ? t("common_searching") : `${t("nm_find_btn")}`}
           </button>
 
         </div>
       </form>
 
       {errorMessage && (
-        <div className="bg-negative-50 text-negative-700 border border-negative-200 rounded-lg px-4 py-3 mb-6 text-sm">
+        <div className="bg-negative-50 text-negative-700 border border-negative-200 rounded-md px-4 py-3 mb-6 text-sm">
           {errorMessage}
         </div>
       )}
@@ -224,6 +238,8 @@ function NearbyMandis() {
       {result && (
         <NearbyResults result={result} sortBy={sortBy} onSortChange={setSortBy} />
       )}
+
+      {result && <DataFreshness source="agmarknet" className="mt-4" />}
     </div>
   );
 }
@@ -261,9 +277,8 @@ function NearbyResults({ result, sortBy, onSortChange }) {
 
   if (mandis.length === 0) {
     return (
-      <div className="text-center py-16 bg-card rounded-2xl border border-border">
-        <div className="text-4xl mb-3">🤷</div>
-        <p className="font-semibold text-ink-900 mb-1">
+      <div className="text-center py-16 bg-card rounded-lg border border-border">
+        <p className="font-medium text-ink-900 mb-1">
           {t("nm_none_title", { radius: radiusKm })}
         </p>
         <p className="text-sm text-ink-500 max-w-md mx-auto">
@@ -281,17 +296,17 @@ function NearbyResults({ result, sortBy, onSortChange }) {
       <div className="grid sm:grid-cols-2 gap-4 mb-4">
         <HighlightCard
           title={t("nm_best_price_near")}
-          emoji="💰"
+          emoji={RupeeIcon}
           mandi={bestPaying}
           tone="good"
         />
-        <HighlightCard title={t("nm_closest_to_you")} emoji="📍" mandi={nearest} tone="neutral" />
+        <HighlightCard title={t("nm_closest_to_you")} emoji={LocationIcon} mandi={nearest} tone="neutral" />
       </div>
 
       {/* ---- The trade-off, worked out for them ---- */}
       {tradeOff && tradeOff.extraRupeesPerQuintal > 0 && (
-        <div className="bg-warning-50 border border-warning-200 rounded-xl px-5 py-4 mb-6 text-sm text-warning-900">
-          💡{" "}
+        <div className="bg-warning-50 border border-warning-200 rounded-md px-5 py-4 mb-6 text-sm text-warning-900">
+          <TipIcon size={ICON_MD} strokeWidth={ICON_STROKE} className="shrink-0" aria-hidden="true" />{" "}
           {t("nm_tradeoff", {
             extra: tradeOff.extraRupeesPerQuintal.toLocaleString("en-IN"),
             km: tradeOff.extraKm,
@@ -306,17 +321,17 @@ function NearbyResults({ result, sortBy, onSortChange }) {
           was pushing the ranked list itself off a phone screen. */}
       <div
         className="flex flex-wrap items-center gap-x-5 gap-y-2 mb-6 px-4 py-3
-          rounded-xl bg-surface-200/60 text-sm text-ink-600"
+          rounded-md bg-surface-200/60 text-sm text-ink-600"
       >
         <span className="flex items-center gap-1.5">
-          🏛️ <strong className="font-semibold text-ink-900">{result.totalFound}</strong>
+           <strong className="font-medium text-ink-900">{result.totalFound}</strong>
           {t("nm_mandis_found")}
         </span>
         <span className="flex items-center gap-1.5">
-          📏 <strong className="font-semibold text-ink-900">{radiusKm} km</strong>
+           <strong className="font-medium text-ink-900">{radiusKm} km</strong>
         </span>
         <span className="flex items-center gap-1.5 min-w-0">
-          📍 <span className="truncate">{shortLabel(origin.label)}</span>
+           <span className="truncate">{shortLabel(origin.label)}</span>
         </span>
       </div>
 
@@ -331,7 +346,7 @@ function NearbyResults({ result, sortBy, onSortChange }) {
           design.) Next to the table, the effect of a click is immediate
           and obvious. */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-        <h2 className="font-semibold text-ink-900">
+        <h2 className="font-medium text-ink-900">
           {t("nm_all_within", { count: result.totalFound, radius: radiusKm })}
         </h2>
 
@@ -346,7 +361,7 @@ function NearbyResults({ result, sortBy, onSortChange }) {
                 : "bg-muted text-ink-600 hover:bg-border"
             }`}
           >
-            💰 {t("nm_sort_price")}
+            <RupeeIcon size={ICON_MD} strokeWidth={ICON_STROKE} className="shrink-0" aria-hidden="true" /> {t("nm_sort_price")}
           </button>
           <button
             type="button"
@@ -357,23 +372,23 @@ function NearbyResults({ result, sortBy, onSortChange }) {
                 : "bg-muted text-ink-600 hover:bg-border"
             }`}
           >
-            📍 {t("nm_sort_distance")}
+            <LocationIcon size={ICON_MD} strokeWidth={ICON_STROKE} className="shrink-0" aria-hidden="true" /> {t("nm_sort_distance")}
           </button>
         </div>
       </div>
 
-      <div className="bg-card rounded-2xl shadow-soft border border-surface-300/60 overflow-hidden">
+      <div className="bg-card rounded-lg shadow-soft border border-surface-300/60 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-surface-200/70 text-ink-600">
               <tr>
-                <th className="text-left px-4 py-3 font-semibold">#</th>
-                <th className="text-left px-4 py-3 font-semibold">{t("common_mandi")}</th>
+                <th className="text-left px-4 py-3 font-medium">#</th>
+                <th className="text-left px-4 py-3 font-medium">{t("common_mandi")}</th>
                 {/* A ▼ on whichever column the list is currently ordered
                     by, so the sort state is readable from the table
                     itself and not only from the buttons above it. */}
                 <th
-                  className={`text-right px-4 py-3 font-semibold ${
+                  className={`text-right px-4 py-3 font-medium ${
                     sortBy === "distance" ? "text-primary-700" : ""
                   }`}
                 >
@@ -381,18 +396,18 @@ function NearbyResults({ result, sortBy, onSortChange }) {
                   {sortBy === "distance" ? " ▼" : ""}
                 </th>
                 <th
-                  className={`text-right px-4 py-3 font-semibold ${
+                  className={`text-right px-4 py-3 font-medium ${
                     sortBy === "price" ? "text-primary-700" : ""
                   }`}
                 >
-                  🏛️ {t("common_government")}
+                  <MandiIcon size={ICON_MD} strokeWidth={ICON_STROKE} className="shrink-0" aria-hidden="true" /> {t("common_government")}
                   {sortBy === "price" ? " ▼" : ""}
                   <span className="block text-[11px] font-normal text-ink-400">
                     {t("common_per_quintal")}
                   </span>
                 </th>
-                <th className="text-right px-4 py-3 font-semibold">
-                  🧑‍🌾 {t("common_our_farmers")}
+                <th className="text-right px-4 py-3 font-medium">
+                  <FarmersIcon size={ICON_MD} strokeWidth={ICON_STROKE} className="shrink-0" aria-hidden="true" /> {t("common_our_farmers")}
                   <span className="block text-[11px] font-normal text-ink-400">
                     {t("common_per_quintal")}
                   </span>
@@ -418,13 +433,13 @@ function NearbyResults({ result, sortBy, onSortChange }) {
                   <td className="px-4 py-3 text-right">
                     <DistanceLabel mandi={mandi} />
                   </td>
-                  <td className="px-4 py-3 text-right font-semibold text-primary-700">
+                  <td className="px-4 py-3 text-right font-medium text-primary-700">
                     ₹{mandi.modalPrice.toLocaleString("en-IN")}
                   </td>
                   <td className="px-4 py-3 text-right">
                     {mandi.farmerReportedPrice ? (
                       <>
-                        <span className="font-semibold text-warning-600">
+                        <span className="font-medium text-warning-600">
                           ₹{mandi.farmerReportedPrice.toLocaleString("en-IN")}
                         </span>
                         <span className="block text-[11px] text-ink-400">
@@ -446,7 +461,7 @@ function NearbyResults({ result, sortBy, onSortChange }) {
         {t("nm_footnote")}
         {result.couldNotLocate > 0 &&
           ` ${t("nm_footnote_unlocated", { count: result.couldNotLocate })}`}
-        {result.dataSource === "mock" && ` ⚠️ ${t("nm_footnote_mock")}`}
+        {result.dataSource === "mock" && `  ${t("nm_footnote_mock")}`}
       </p>
     </div>
   );
@@ -477,7 +492,7 @@ function DistanceLabel({ mandi }) {
     // We only knew the state, so this could be a couple of hundred km out.
     return (
       <>
-        <span className="font-semibold">~{Math.round(mandi.distanceKm)} km</span>
+        <span className="font-medium">~{Math.round(mandi.distanceKm)} km</span>
         <span className="block text-[11px] text-warning-600">{t("nm_rough_estimate")}</span>
       </>
     );
@@ -486,17 +501,17 @@ function DistanceLabel({ mandi }) {
   if (mandi.distanceKm < DISTRICT_PRECISION_KM) {
     return (
       <>
-        <span className="font-semibold text-primary-700">{t("nm_in_your_area")}</span>
+        <span className="font-medium text-primary-700">{t("nm_in_your_area")}</span>
         <span className="block text-[11px] text-ink-400">{t("nm_same_district")}</span>
       </>
     );
   }
 
-  return <span className="font-semibold">{Math.round(mandi.distanceKm)} km</span>;
+  return <span className="font-medium">{Math.round(mandi.distanceKm)} km</span>;
 }
 
 // One of the two big answer cards at the top.
-function HighlightCard({ title, emoji, mandi, tone }) {
+function HighlightCard({ title, emoji: Icon, mandi, tone }) {
   const { t } = useLanguage();
 
   if (!mandi) return null;
@@ -507,18 +522,19 @@ function HighlightCard({ title, emoji, mandi, tone }) {
       : "bg-info-50 border-info-200 text-info-900";
 
   return (
-    <div className={`rounded-2xl border px-5 py-4 ${tone === "good" ? styles : styles} hover-lift`}>
-      <p className="text-xs font-semibold uppercase tracking-wide opacity-70 mb-1">
-        {emoji} {title}
+    <div className={`rounded-lg border px-5 py-4 ${tone === "good" ? styles : styles} hover-lift`}>
+      <p className="text-xs font-medium uppercase tracking-wide opacity-70 mb-1">
+        {Icon && <Icon size={ICON_MD} strokeWidth={ICON_STROKE} className="inline-block mr-1.5 align-[-2px]" aria-hidden="true" />}
+        {title}
       </p>
-      <p className="text-lg font-bold leading-tight">{mandi.mandiName}</p>
+      <p className="text-lg font-semibold leading-tight">{mandi.mandiName}</p>
       <p className="text-sm opacity-70 mb-2">
         {mandi.district ? `${mandi.district}, ` : ""}
         {mandi.state}
       </p>
 
       <div className="flex items-baseline gap-3">
-        <span className="text-3xl font-bold">
+        <span className="text-3xl font-semibold">
           ₹{mandi.modalPrice.toLocaleString("en-IN")}
         </span>
         <span className="text-sm opacity-70">

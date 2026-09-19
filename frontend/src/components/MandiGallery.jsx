@@ -28,42 +28,36 @@ const photos = [
   {
     url: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=900&q=80&auto=format&fit=crop",
     label: "In the field",
-    emoji: "🌾",
     from: "from-lime-400",
     to: "to-positive-600",
   },
   {
     url: "https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=900&q=80&auto=format&fit=crop",
     label: "Ready to harvest",
-    emoji: "🚜",
     from: "from-warning-400",
     to: "to-orange-600",
   },
   {
     url: "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=900&q=80&auto=format&fit=crop",
     label: "At the mandi",
-    emoji: "🏛️",
     from: "from-emerald-400",
     to: "to-teal-600",
   },
   {
     url: "https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=900&q=80&auto=format&fit=crop",
     label: "Weighed and graded",
-    emoji: "⚖️",
     from: "from-negative-400",
     to: "to-rose-600",
   },
   {
     url: "https://images.unsplash.com/photo-1607305387299-a3d9611cd469?w=900&q=80&auto=format&fit=crop",
     label: "Sold at a fair price",
-    emoji: "🤝",
     from: "from-info-400",
     to: "to-blue-600",
   },
   {
     url: "https://images.unsplash.com/photo-1524594152303-9fd13543fe6e?w=900&q=80&auto=format&fit=crop",
     label: "Back to the farm",
-    emoji: "🏡",
     from: "from-violet-400",
     to: "to-indigo-600",
   },
@@ -95,60 +89,50 @@ function MandiGallery({ t }) {
   return (
     <div>
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-ink-900">{t("gallery_title")}</h2>
+        <h2 className="text-2xl font-semibold text-ink-900">{t("gallery_title")}</h2>
         <p className="text-ink-500">{t("gallery_subtitle")}</p>
       </div>
 
       <div
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
-        onMouseEnter={() => setIsPaused(true)}
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
-      >
-        {visible.map((photo, position) => (
+      >{visible.map((photo, position) => (
           <figure
             // Keying on the photo URL (not the position) makes React
             // treat each arriving photo as a NEW element, so the
             // fade-in animation replays every time the strip advances.
             key={photo.url}
-            className={`relative h-52 rounded-2xl overflow-hidden shadow-md hover-zoom hover-lift animate-fadeIn stagger-${position + 1}`}
-          >
-            {failedUrls.includes(photo.url) ? (
+            className={`relative h-52 rounded-lg overflow-hidden shadow-md hover-zoom hover-lift animate-fadeIn stagger-${position + 1}`}
+          >{failedUrls.includes(photo.url) ? (
               <div
                 className={`w-full h-full bg-gradient-to-br ${photo.from} ${photo.to} flex items-center justify-center`}
               >
-                <span className="text-6xl animate-float">{photo.emoji}</span>
               </div>
             ) : (
               <img
                 src={photo.url}
                 alt={photo.label}
                 loading="lazy"
-                onError={() => handleError(photo.url)}
-                className="w-full h-full object-cover"
-              />
+          onError={() => handleError(photo.url)}
+                className="w-full h-full object-cover"/>
             )}
 
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-            <figcaption className="absolute bottom-3 left-4 right-4 text-white font-semibold drop-shadow">
-              <span className="mr-1.5">{photo.emoji}</span>
+            <figcaption className="absolute bottom-3 left-4 right-4 text-white font-medium drop-shadow">
               {photo.label}
             </figcaption>
           </figure>
         ))}
       </div>
-
       {/* Dots let you jump around, and show where you are in the loop. */}
-      <div className="flex justify-center gap-2 mt-5">
-        {photos.map((photo, index) => (
+      <div className="flex justify-center gap-2 mt-5">{photos.map((photo, index) => (
           <button
             key={photo.url}
             onClick={() => setStartIndex(index)}
             aria-label={`Show ${photo.label}`}
             className={`h-2 rounded-full transition-all duration-300 ${
               index === startIndex
-                ? "bg-brand-green w-6"
-                : "bg-ink-200 w-2 hover:bg-ink-300"
-            }`}
+                ? "bg-brand-green w-6": "bg-ink-200 w-2 hover:bg-ink-300"}`}
           />
         ))}
       </div>

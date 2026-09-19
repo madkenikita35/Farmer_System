@@ -64,6 +64,7 @@ import CropTrend from "./pages/CropTrend";
 // Public pages
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import Profile from "./pages/Profile";
 
 // Admin-side pages
 import AdminDashboard from "./pages/AdminDashboard";
@@ -90,64 +91,44 @@ function App() {
               {/* ---------- 2. LOGGED IN (farmer or admin) ---------- */}
               <Route
                 path="/"
-                element={
-                  <ProtectedRoute>
-                    <Home />
-                  </ProtectedRoute>
-                }
+                element={<Home />}
               />
               <Route
                 path="/upload"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute reasonKey="auth_needed_upload">
                     <Upload />
                   </ProtectedRoute>
                 }
               />
               <Route
                 path="/check-rates"
-                element={
-                  <ProtectedRoute>
-                    <CheckRates />
-                  </ProtectedRoute>
-                }
+                element={<CheckRates />}
               />
               <Route
                 path="/dashboard"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute reasonKey="auth_needed_dashboard">
                     <Dashboard />
                   </ProtectedRoute>
                 }
               />
               <Route
                 path="/mandis"
-                element={
-                  <ProtectedRoute>
-                    <Mandis />
-                  </ProtectedRoute>
-                }
+                element={<Mandis />}
               />
               {/* "Which mandi near me pays the most?" - needs a login
                   like every other farmer page. */}
               <Route
                 path="/nearby"
-                element={
-                  <ProtectedRoute>
-                    <NearbyMandis />
-                  </ProtectedRoute>
-                }
+                element={<NearbyMandis />}
               />
               {/* The mandi name is passed as ?mandi=...&state=... rather
                   than in the path, because real mandi names contain
                   spaces and brackets that are awkward in a URL path. */}
               <Route
                 path="/mandis/view"
-                element={
-                  <ProtectedRoute>
-                    <MandiDetail />
-                  </ProtectedRoute>
-                }
+                element={<MandiDetail />}
               />
 
               {/* Crop price trends over time: the list of crops, and
@@ -155,22 +136,23 @@ function App() {
                   sit in the logged-in block rather than the admin one. */}
               <Route
                 path="/crops"
-                element={
-                  <ProtectedRoute>
-                    <CropsList />
-                  </ProtectedRoute>
-                }
+                element={<CropsList />}
               />
               <Route
                 path="/crops/:cropName"
-                element={
-                  <ProtectedRoute>
-                    <CropTrend />
-                  </ProtectedRoute>
-                }
+                element={<CropTrend />}
               />
 
-              {/* ---------- 3. ADMIN ONLY ---------- */}
+              <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ---------- 3. ADMIN ONLY ---------- */}
               <Route
                 path="/admin"
                 element={
@@ -229,8 +211,8 @@ function FarmerOnlyVoice() {
 function NotFound() {
   return (
     <div className="max-w-md mx-auto text-center px-6 py-24">
-      <div className="text-5xl mb-4">🌾</div>
-      <h1 className="text-2xl font-bold text-ink-900 mb-2">Page not found</h1>
+      <div className="text-3xl mb-4">🌾</div>
+      <h1 className="text-2xl font-semibold text-ink-900 mb-2">Page not found</h1>
       <p className="text-ink-500">
         That page doesn't exist. Use the menu above to get back on track.
       </p>

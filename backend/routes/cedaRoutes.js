@@ -21,7 +21,17 @@ const { protect } = require("../middleware/auth");
 const { listCrops, listLocations, getPriceTrend } = require("../controllers/cedaController");
 
 // 🔒 Must be logged in for everything below.
-router.use(protect);
+// PUBLIC. No `router.use(protect)` here on purpose.
+//
+// Everything below reads price data that the government already
+// publishes - mandi lists, today's rates, price history. A farmer
+// standing in a field deciding where to sell should not have to make an
+// account first, and there is nothing here that belongs to any one
+// user.
+//
+// The guard stayed on everything that WRITES, or that returns one
+// person's own data: see receiptRoutes.js, adminRoutes.js and the
+// /me, /logout and /refresh routes in authRoutes.js.
 
 // A limit of our own, sized to CEDA's.
 //

@@ -33,6 +33,7 @@ const mandiRoutes = require("./routes/mandiRoutes");
 const trendRoutes = require("./routes/trendRoutes");
 const cedaRoutes = require("./routes/cedaRoutes");
 const locationRoutes = require("./routes/locationRoutes");
+const syncRoutes = require("./routes/syncRoutes");
 const voiceRoutes = require("./routes/voiceRoutes");
 
 // Refuse to boot on placeholder secrets in production - see the file.
@@ -215,6 +216,7 @@ app.use("/api", cedaRoutes);
 
 // Pincode / address / lat-lon -> one set of coordinates, so the rest of
 // the app never learns there are several ways to say where you are.
+app.use("/api/sync-status", syncRoutes);
 app.use("/api/location", locationRoutes);
 app.use("/api/voice", voiceRoutes);
 

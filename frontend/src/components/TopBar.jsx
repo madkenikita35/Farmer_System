@@ -2,36 +2,40 @@
 // -----------------------------------------------------------------------
 // The slim bar across the top of every page.
 //
-// It holds only the things that are NOT navigation: who you are, what
-// language you want, and the way out. The links themselves moved to the
-// sidebar, which is what freed up the room.
+// ---------------------------------------------------------------------
+// WHAT IT DELIBERATELY DOES NOT HOLD ANY MORE
+// ---------------------------------------------------------------------
+// It used to carry the language picker, the theme swatch, the avatar,
+// the full name AND a logout button - five controls, on every page,
+// competing with whatever the page was actually for.
 //
-// It is also the only place the menu can be opened on a phone, so the
-// hamburger lives here.
+// None of them are used often: you choose a language once, and you log
+// out at the end. So they all moved to /profile, and the header kept the
+// single thing that has to stay visible - WHO you are signed in as,
+// which is now also the link to that page.
 //
-// WHY IT IS PALE NOW
-// The old bar was a solid green gradient, which meant everything on it
-// had to be white and every page began with a heavy band of colour. The
-// brand mark still carries the green; the bar itself gets out of the
-// way. Admins keep a distinguishing mark on the logo badge so it is
-// still obvious which side of the app you are on.
+// Guests see Log In / Sign Up instead. They are not blocked from
+// anything except Upload and Dashboard, so there is nothing else here
+// they need.
 // -----------------------------------------------------------------------
 
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
-import ThemeToggle from "./ThemeToggle";
+import {
+  MenuIcon,
+  CollapseIcon,
+  ExpandIcon,
+  CropIcon,
+  AdminIcon,
+  ICON_MD,
+  ICON_STROKE,
+} from "./icons";
 
 function TopBar({ onOpenMenu, onToggleCollapse, isCollapsed }) {
-  const { t, language, setLanguage, languages, canChangeLanguage } = useLanguage();
-  const { currentUser, isAdmin, isLoggedIn, logout } = useAuth();
-  const navigate = useNavigate();
-
-  async function handleLogout() {
-    await logout();
-    navigate("/login");
-  }
+  const { t } = useLanguage();
+  const { currentUser, isAdmin, isLoggedIn } = useAuth();
 
   return (
     <header
@@ -43,27 +47,27 @@ function TopBar({ onOpenMenu, onToggleCollapse, isCollapsed }) {
         type="button"
         onClick={onOpenMenu}
         aria-label={t("nav_menu")}
-        className="lg:hidden grid place-items-center w-10 h-10 rounded-xl text-xl
+        className="lg:hidden grid place-items-center w-10 h-10 rounded-md
           text-ink-600 hover:bg-surface-200 transition-colors"
       >
-        ☰
+        <MenuIcon size={ICON_MD + 4} strokeWidth={ICON_STROKE} aria-hidden="true" />
       </button>
 
       {/* ---- Collapse the rail (desktop only) ---- */}
-      {/* Deliberately next to the sidebar edge rather than inside the
-          sidebar: when the rail is collapsed to 4.5rem there is no room
-          for a control that also has to stay reachable. */}
       <button
         type="button"
         onClick={onToggleCollapse}
         aria-label={isCollapsed ? t("nav_expand") : t("nav_collapse")}
         title={isCollapsed ? t("nav_expand") : t("nav_collapse")}
         aria-expanded={!isCollapsed}
-        className="hidden lg:grid place-items-center w-9 h-9 rounded-xl text-ink-500
+        className="hidden lg:grid place-items-center w-9 h-9 rounded-md text-ink-500
           hover:bg-surface-200 hover:text-ink-700 transition-colors"
       >
-        {/* Points the way it will move. */}
-        {isCollapsed ? "»" : "«"}
+        {isCollapsed ? (
+          <ExpandIcon size={ICON_MD} strokeWidth={ICON_STROKE} aria-hidden="true" />
+        ) : (
+          <CollapseIcon size={ICON_MD} strokeWidth={ICON_STROKE} aria-hidden="true" />
+        )}
       </button>
 
       {/* ---- Brand ---- */}
@@ -73,64 +77,57 @@ function TopBar({ onOpenMenu, onToggleCollapse, isCollapsed }) {
         to={isAdmin ? "/admin" : "/"}
         className="flex items-center gap-2 min-w-0 lg:hidden"
       >
-        <span className="text-xl leading-none">{isAdmin ? "👑" : "🌾"}</span>
-        <span className="font-bold text-ink-900 truncate">Mandi</span>
+        {isAdmin ? (
+          <AdminIcon size={ICON_MD + 2} strokeWidth={ICON_STROKE} className="text-primary-700" />
+        ) : (
+          <CropIcon size={ICON_MD + 2} strokeWidth={ICON_STROKE} className="text-primary-700" />
+        )}
+        <span className="font-semibold text-ink-900 truncate">Mandi</span>
       </NavLink>
 
       {/* Pushes everything after it to the right. */}
       <div className="flex-1" />
 
-      {/* ---- Appearance ---- */}
-      <ThemeToggle />
-
-      {/* ---- Language ---- */}
-      {canChangeLanguage && (
-        <LanguageSwitch
-          language={language}
-          languages={languages}
-          onChange={setLanguage}
-          label={t("select_language")}
-        />
-      )}
-
-      {/* ---- Who you are, and the way out ---- */}
       {isLoggedIn ? (
-        <div className="flex items-center gap-2 shrink-0">
-          {/* The initial in a circle - faster to recognise than a name,
-              and it does not grow with long ones. */}
+        /* ---- ONE control: who you are, and the way to everything else.
+           The initial in a square is faster to recognise than a name and
+           does not grow with long ones; the first name beside it is what
+           confirms you are signed in as yourself rather than as whoever
+           last used a shared phone. ---- */
+        <NavLink
+          to="/profile"
+          title={t("nav_profile")}
+          className={({ isActive }) =>
+            `flex items-center gap-2 pl-1.5 pr-2.5 py-1.5 rounded-md
+             transition-colors ${
+               isActive ? "bg-primary-50" : "hover:bg-surface-200"
+             }`
+          }
+        >
           <span
-            className="grid place-items-center w-9 h-9 rounded-full bg-primary-100
-              text-primary-700 text-sm font-bold shrink-0"
+            className="grid place-items-center w-7 h-7 rounded bg-primary-100
+              text-primary-700 text-xs font-semibold shrink-0"
           >
-            {currentUser.name.charAt(0).toUpperCase()}
+            {currentUser?.name?.charAt(0).toUpperCase() || "?"}
           </span>
-
-          {/* The name is the first thing to go when space is tight - the
-              avatar already answers "am I logged in as me?". */}
-          <span className="hidden md:block text-ink-700 text-sm max-w-[8rem] truncate">
-            {currentUser.name}
+          <span className="hidden sm:block text-sm text-ink-700 max-w-[7rem] truncate">
+            {/* First name only. The surname adds width without adding
+                information at this size. */}
+            {String(currentUser?.name || "").split(" ")[0]}
           </span>
-
-          <button
-            onClick={handleLogout}
-            className="px-3 py-2 rounded-xl text-sm font-semibold text-ink-600
-              hover:bg-negative-50 hover:text-negative-700 transition-colors"
-          >
-            {t("nav_logout")}
-          </button>
-        </div>
+        </NavLink>
       ) : (
         <div className="flex items-center gap-2 shrink-0">
           <NavLink
             to="/login"
-            className="px-3 sm:px-4 py-2 rounded-xl text-sm font-semibold text-ink-700
+            className="px-3 sm:px-4 py-2 rounded-md text-sm font-medium text-ink-700
               hover:bg-surface-200 transition-colors"
           >
             {t("nav_login")}
           </NavLink>
           <NavLink
             to="/signup"
-            className="px-3 sm:px-4 py-2 rounded-xl text-sm font-bold bg-primary-600
+            className="px-3 sm:px-4 py-2 rounded-md text-sm font-medium bg-primary-600
               text-primary-foreground hover:bg-primary-hover transition-colors"
           >
             {t("nav_signup")}
@@ -138,48 +135,6 @@ function TopBar({ onOpenMenu, onToggleCollapse, isCollapsed }) {
         </div>
       )}
     </header>
-  );
-}
-
-// ---------------------------------------------------------------------
-// The language picker.
-//
-// A plain <select> on purpose: on a phone it opens the native OS picker,
-// which is easier one-handed and already knows how to render every
-// Indian script. Each option shows the language's name in its OWN script
-// ("தமிழ்", not "Tamil"), because that is how someone looks for it.
-//
-// Never rendered for admins - see `canChangeLanguage` in
-// context/LanguageContext.jsx.
-// ---------------------------------------------------------------------
-function LanguageSwitch({ language, languages, onChange, label }) {
-  return (
-    <label className="relative flex items-center shrink-0">
-      <span className="sr-only">{label}</span>
-
-      <span className="pointer-events-none absolute left-2.5 text-sm">🌐</span>
-
-      <select
-        value={language}
-        onChange={(e) => onChange(e.target.value)}
-        title={label}
-        className="appearance-none cursor-pointer py-2 pl-8 pr-7
-          bg-surface-200 hover:bg-surface-300 text-ink-700 text-sm font-semibold
-          rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
-      >
-        {languages.map((lang) => (
-          // The dropdown list is drawn by the operating system, so these
-          // need their own colours to stay readable.
-          <option key={lang.code} value={lang.code} className="text-ink-900 bg-card">
-            {lang.nativeLabel}
-          </option>
-        ))}
-      </select>
-
-      <span className="pointer-events-none absolute right-2.5 text-ink-400 text-[10px]">
-        ▼
-      </span>
-    </label>
   );
 }
 

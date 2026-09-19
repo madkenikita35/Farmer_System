@@ -42,6 +42,20 @@ import { NavLink } from "react-router-dom";
 
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
+import {
+  HomeIcon,
+  SearchIcon,
+  LocationIcon,
+  MandiIcon,
+  TrendIcon,
+  UploadIcon,
+  DashboardIcon,
+  FarmersIcon,
+  ActivityIcon,
+  UserIcon,
+  ICON_MD,
+  ICON_STROKE,
+} from "./icons";
 
 // ---------------------------------------------------------------------
 // WHICH LINKS, AND UNDER WHICH HEADING
@@ -53,7 +67,7 @@ import { useAuth } from "../context/AuthContext";
 // `t` is passed in rather than read here, because this is a plain
 // function and hooks may only be called inside components.
 // ---------------------------------------------------------------------
-function buildGroups({ isAdmin, t }) {
+function buildGroups({ isAdmin, isLoggedIn, t }) {
   if (isAdmin) {
     // The admin panel is English-only - see `canChangeLanguage` in
     // context/LanguageContext.jsx - so these labels are not translated.
@@ -61,14 +75,14 @@ function buildGroups({ isAdmin, t }) {
       {
         heading: "Admin",
         links: [
-          { to: "/admin", label: "Dashboard", icon: "📊", end: true },
-          { to: "/admin/farmers", label: "Farmers", icon: "🧑‍🌾" },
-          { to: "/admin/activity", label: "Activity", icon: "⚡" },
+          { to: "/admin", label: "Dashboard", Icon: DashboardIcon, end: true },
+          { to: "/admin/farmers", label: "Farmers", Icon: FarmersIcon },
+          { to: "/admin/activity", label: "Activity", Icon: ActivityIcon },
         ],
       },
       {
         heading: "Data",
-        links: [{ to: "/mandis", label: "Mandis", icon: "🏛️" }],
+        links: [{ to: "/mandis", label: "Mandis", Icon: MandiIcon }],
       },
     ];
   }
@@ -78,27 +92,38 @@ function buildGroups({ isAdmin, t }) {
       // No heading: Home sits on its own above the groups, because it
       // is not one of a set - it is the way back to the start.
       heading: null,
-      links: [{ to: "/", label: t("nav_home"), icon: "🏠", end: true }],
+      links: [{ to: "/", label: t("nav_home"), Icon: HomeIcon, end: true }],
     },
     {
       // The four "what is my crop worth?" pages. This is the reason the
       // app exists, so it comes first and holds the most links.
       heading: t("nav_group_prices"),
       links: [
-        { to: "/check-rates", label: t("nav_check_rates"), icon: "🔍" },
-        { to: "/nearby", label: t("nav_nearby"), icon: "📍" },
-        { to: "/mandis", label: t("nav_mandis"), icon: "🏛️" },
-        { to: "/crops", label: t("nav_crops"), icon: "📈" },
+        { to: "/check-rates", label: t("nav_check_rates"), Icon: SearchIcon },
+        { to: "/nearby", label: t("nav_nearby"), Icon: LocationIcon },
+        { to: "/mandis", label: t("nav_mandis"), Icon: MandiIcon },
+        { to: "/crops", label: t("nav_crops"), Icon: TrendIcon },
       ],
     },
-    {
-      heading: t("nav_group_tools"),
-      links: [{ to: "/upload", label: t("nav_upload"), icon: "📤" }],
-    },
-    {
-      heading: t("nav_group_account"),
-      links: [{ to: "/dashboard", label: t("nav_dashboard"), icon: "📊" }],
-    },
+    // The two account-only pages. A guest is still ALLOWED to click
+    // them - they get an explanation and a sign-up button rather than a
+    // locked door - but showing them in the menu to someone with no
+    // account is advertising a dead end, so they appear once signed in.
+    ...(isLoggedIn
+      ? [
+          {
+            heading: t("nav_group_tools"),
+            links: [{ to: "/upload", label: t("nav_upload"), Icon: UploadIcon }],
+          },
+          {
+            heading: t("nav_group_account"),
+            links: [
+              { to: "/dashboard", label: t("nav_dashboard"), Icon: DashboardIcon },
+              { to: "/profile", label: t("nav_profile"), Icon: UserIcon },
+            ],
+          },
+        ]
+      : []),
   ];
 }
 
@@ -113,12 +138,12 @@ function SidebarLink({ link, isCollapsed, onNavigate }) {
       onClick={onNavigate}
       // When collapsed there is no text, so the browser's own tooltip is
       // the only way to find out what an icon means. aria-label does the
-      // same job for a screen reader, which would otherwise announce
-      // nothing but an emoji.
+      // same job for a screen reader - which, with the old emoji, used
+      // to announce "classical building" for the Mandis link.
       title={isCollapsed ? link.label : undefined}
       aria-label={isCollapsed ? link.label : undefined}
       className={({ isActive }) =>
-        `flex items-center rounded-xl font-semibold transition-colors duration-150
+        `flex items-center rounded-md font-medium transition-colors duration-150
          ${isCollapsed ? "justify-center px-0 py-3" : "gap-3 px-3 py-2.5"}
          ${
            isActive
@@ -127,7 +152,15 @@ function SidebarLink({ link, isCollapsed, onNavigate }) {
          }`
       }
     >
-      <span className="text-lg leading-none shrink-0">{link.icon}</span>
+      {/* The icon inherits its colour from the link, so the active pill
+          and the muted resting state need no icon styling of their own -
+          which is exactly what per-emoji colours could never do. */}
+      <link.Icon
+        size={ICON_MD}
+        strokeWidth={ICON_STROKE}
+        className="shrink-0"
+        aria-hidden="true"
+      />
 
       {/* Hidden rather than removed when collapsed, so expanding does
           not have to rebuild the row. */}
@@ -145,9 +178,9 @@ function SidebarLink({ link, isCollapsed, onNavigate }) {
 // ---------------------------------------------------------------------
 function Sidebar({ isCollapsed = false, onNavigate }) {
   const { t } = useLanguage();
-  const { isAdmin } = useAuth();
+  const { isAdmin, isLoggedIn } = useAuth();
 
-  const groups = buildGroups({ isAdmin, t });
+  const groups = buildGroups({ isAdmin, isLoggedIn, t });
 
   return (
     <nav
@@ -164,7 +197,7 @@ function Sidebar({ isCollapsed = false, onNavigate }) {
               <div className="border-t border-surface-300 my-2" role="presentation" />
             ) : (
               <p
-                className="px-3 pt-4 pb-1.5 text-[11px] font-bold uppercase
+                className="px-3 pt-4 pb-1.5 text-[11px] font-semibold uppercase
                   tracking-[0.12em] text-ink-400"
               >
                 {group.heading}

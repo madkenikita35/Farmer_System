@@ -20,7 +20,12 @@
    ----------------------------------------------------------------------- */
 
 /* A friendlier, more "app-like" font than the browser default. */
-@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap");
+/* Inter, not Poppins. Poppins is a geometric rounded sans made for
+   friendly consumer brands - those circular letterforms were a big
+   part of why this looked like a lifestyle app. Inter was drawn for
+   interfaces: taller x-height, disambiguated 1/l/I, and tabular
+   figures, which matter when the numbers are prices. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
 /* Every colour in the app comes from here. Must be imported before the
    Tailwind lines below, because tailwind.config.js reads these
@@ -46,7 +51,7 @@ body {
   );
   background-attachment: fixed;
   color: rgb(var(--foreground));
-  font-family: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -54,7 +59,18 @@ body {
    what makes them read as headings rather than just bigger text. */
 h1, h2, h3 {
   color: rgb(var(--ink-900));
-  letter-spacing: -0.02em;
+  /* -0.01em, not -0.02em: the tighter value was compensating for
+     Poppins' wide circular forms. Inter is already narrow, so the old
+     figure made headings look cramped. */
+  letter-spacing: -0.01em;
+}
+
+/* Prices and quantities line up in columns only if the digits are all
+   the same width. Inter ships proportional figures by default, so a
+   table of rupee amounts wobbles without this. */
+table,
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
 
 /* Text selection in the brand colour rather than the browser's blue. */

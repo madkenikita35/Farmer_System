@@ -74,7 +74,7 @@ function PickList({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled || isLoading || isEmpty}
-      className={`w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-card
+      className={`w-full border border-ink-200 rounded-md px-3.5 py-2.5 bg-card
         focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
         transition-all disabled:opacity-60 disabled:cursor-not-allowed ${className}`}
     >

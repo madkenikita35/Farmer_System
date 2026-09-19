@@ -73,9 +73,8 @@ function Login() {
 
   return (
     <div className="max-w-md mx-auto px-6 py-16 animate-fadeInUp">
-      <div className="bg-card rounded-2xl shadow-soft border border-surface-300/60 p-8">
-        <div className="text-4xl mb-3 text-center">🔐</div>
-        <h1 className="text-2xl font-bold text-ink-900 text-center mb-1">
+      <div className="bg-card rounded-lg shadow-soft border border-surface-300/60 p-8">
+        <h1 className="text-2xl font-semibold text-ink-900 text-center mb-1">
           {t("login_title")}
         </h1>
         <p className="text-ink-500 text-sm text-center mb-6">{t("login_subtitle")}</p>
@@ -91,7 +90,7 @@ function Login() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               autoComplete="email"
-              className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+              className="w-full border border-ink-200 rounded-md px-3.5 py-2.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
             />
           </div>
 
@@ -105,12 +104,12 @@ function Login() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               autoComplete="current-password"
-              className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+              className="w-full border border-ink-200 rounded-md px-3.5 py-2.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
             />
           </div>
 
           {errorMessage && (
-            <p className="text-negative-600 text-sm bg-negative-50 border border-negative-100 rounded-lg px-3 py-2">
+            <p className="text-negative-600 text-sm bg-negative-50 border border-negative-100 rounded-md px-3 py-2">
               {errorMessage}
             </p>
           )}
@@ -118,7 +117,7 @@ function Login() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="bg-primary-gradient text-primary-foreground font-semibold py-3.5 rounded-2xl shadow-soft hover:scale-[1.01] transition-all disabled:opacity-50"
+            className="bg-primary-gradient text-primary-foreground font-medium py-3.5 rounded-lg shadow-soft hover:scale-[1.01] transition-all disabled:opacity-50"
           >
             {isSubmitting ? "Logging in..." : t("btn_login")}
           </button>
@@ -126,7 +125,7 @@ function Login() {
 
         <p className="text-center text-sm text-ink-500 mt-5">
           {t("no_account")}{" "}
-          <Link to="/signup" className="text-primary-700 font-semibold hover:underline">
+          <Link to="/signup" className="text-primary-700 font-medium hover:underline">
             {t("nav_signup")}
           </Link>
         </p>

@@ -98,10 +98,20 @@ async function buildImageVariants(imagePath) {
     const sharp = require("sharp");
     const metadata = await sharp(imagePath).metadata();
 
-    // Small images OCR badly - blow them up to at least ~1800px wide.
-    // Tesseract likes text roughly 20-30 pixels tall.
+    // Tesseract likes text roughly 20-30 pixels tall, so there is a band
+    // that reads best - too small and the letters break up, too large and
+    // it is just more pixels for the same words.
+    //
+    // Both ends are clamped. Small scans get blown UP to 1800px. Phone
+    // photos get brought DOWN to 2200px: a modern camera produces about
+    // 3000x4000, and carrying that through greyscale, normalise, sharpen
+    // and threshold - then OCRing it three times - costs a lot of memory
+    // and seconds for no extra accuracy at all.
+    const MIN_WIDTH = 1800;
+    const MAX_WIDTH = 2200;
+
     const currentWidth = metadata.width || 1000;
-    const targetWidth = currentWidth < 1800 ? 1800 : currentWidth;
+    const targetWidth = Math.min(Math.max(currentWidth, MIN_WIDTH), MAX_WIDTH);
 
     const makePath = (suffix) =>
       imagePath.replace(/(\.[a-zA-Z0-9]+)$/, `-${suffix}$1`);

@@ -20,43 +20,36 @@ function Footer() {
       <div className="h-1 w-full bg-accent-gradient" />
 
       <div className="max-w-6xl mx-auto px-6 py-10 grid sm:grid-cols-3 gap-8">
-        {/* ---- Brand + tagline ---- */}
+      {/* ---- Brand + tagline ---- */}
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="grid place-items-center w-10 h-10 rounded-xl bg-white/15 ring-1 ring-white/20 text-xl">🌾</span>
-            <span className="font-bold text-lg">Mandi Price Checker</span>
+            <span className="font-semibold text-lg">Mandi Price Checker</span>
           </div>
           <p className="text-white/70 text-sm">{t("footer_tagline")}</p>
         </div>
-
-        {/* ---- Quick links ---- */}
+      {/* ---- Quick links ---- */}
         <div>
-          <h3 className="font-semibold mb-3 text-accent-300">{t("footer_links_title")}</h3>
+          <h3 className="font-medium mb-3 text-accent-300">{t("footer_links_title")}</h3>
           <div className="flex flex-col gap-2 text-sm text-white/70">
-            <Link to="/" className="hover:text-white transition-colors">
-              {t("nav_home")}
+            <Link to="/" className="hover:text-white transition-colors">{t("nav_home")}
             </Link>
-            <Link to="/upload" className="hover:text-white transition-colors">
-              {t("nav_upload")}
+            <Link to="/upload" className="hover:text-white transition-colors">{t("nav_upload")}
             </Link>
-            <Link to="/check-rates" className="hover:text-white transition-colors">
-              {t("nav_check_rates")}
+            <Link to="/check-rates" className="hover:text-white transition-colors">{t("nav_check_rates")}
             </Link>
-            <Link to="/dashboard" className="hover:text-white transition-colors">
-              {t("nav_dashboard")}
+            <Link to="/dashboard" className="hover:text-white transition-colors">{t("nav_dashboard")}
             </Link>
           </div>
         </div>
-
-        {/* ---- Contact / social row (demo links) ---- */}
+      {/* ---- Contact / social row (demo links) ---- */}
         <div>
-          <h3 className="font-semibold mb-3 text-accent-300">{t("footer_contact_title")}</h3>
+          <h3 className="font-medium mb-3 text-accent-300">{t("footer_contact_title")}</h3>
           <p className="text-sm text-white/70 mb-3">support@mandipricechecker.example</p>
           <div className="flex gap-3 text-xl">
-            <span title="Facebook" className="cursor-pointer hover:opacity-80">📘</span>
-            <span title="Twitter / X" className="cursor-pointer hover:opacity-80">🐦</span>
-            <span title="Instagram" className="cursor-pointer hover:opacity-80">📷</span>
-            <span title="WhatsApp" className="cursor-pointer hover:opacity-80">💬</span>
+            <span title="Facebook" className="cursor-pointer hover:opacity-80"></span>
+            <span title="Twitter / X" className="cursor-pointer hover:opacity-80"></span>
+            <span title="Instagram" className="cursor-pointer hover:opacity-80"></span>
+            <span title="WhatsApp" className="cursor-pointer hover:opacity-80"></span>
           </div>
         </div>
       </div>

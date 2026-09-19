@@ -17,6 +17,16 @@ import { useState } from "react";
 import { scanReceiptImage, saveReceipt } from "../api/api";
 import MandiTrendChart from "../components/MandiTrendChart";
 import { useLanguage } from "../context/LanguageContext";
+import {
+  FarmersIcon,
+  MandiIcon,
+  ICON_MD,
+  ICON_STROKE,
+  OkIcon,
+  WarnIcon,
+  ErrorIcon,
+  InfoIcon,
+} from "../components/icons";
 
 function Upload() {
   const { t } = useLanguage();
@@ -152,25 +162,20 @@ function Upload() {
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-10 animate-fadeIn">
-      <h1 className="text-2xl font-bold text-ink-900 mb-2">{t("up_title")}</h1>
-      <p className="text-sm text-ink-500 mb-6">{t("up_subtitle")}</p>
-
-      {errorMessage && (
-        <div className="bg-negative-50 text-negative-700 border border-negative-200 rounded-lg px-4 py-3 mb-4 text-sm">
-          {errorMessage}
+      <h1 className="text-2xl font-semibold text-ink-900 mb-2">{t("up_title")}</h1>
+      <p className="text-sm text-ink-500 mb-6">{t("up_subtitle")}</p>{errorMessage && (
+        <div className="bg-negative-50 text-negative-700 border border-negative-200 rounded-md px-4 py-3 mb-4 text-sm">{errorMessage}
         </div>
       )}
 
       {/* ---------- STAGE 1: choose + scan image ---------- */}
       {stage === "idle" && (
-        <div className="bg-card rounded-2xl shadow-soft p-8 border border-surface-300/60">
-          <label className="block border-2 border-dashed border-input rounded-xl p-10 text-center cursor-pointer hover:border-brand-green transition-colors">
-            <input type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
-            {imagePreviewUrl ? (
-              <img src={imagePreviewUrl} alt={t("up_preview_alt")} className="max-h-64 mx-auto rounded-lg" />
+        <div className="bg-card rounded-lg shadow-soft p-8 border border-surface-300/60">
+          <label className="block border-2 border-dashed border-input rounded-md p-10 text-center cursor-pointer hover:border-brand-green transition-colors">
+            <input type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />{imagePreviewUrl ? (
+              <img src={imagePreviewUrl} alt={t("up_preview_alt")} className="max-h-64 mx-auto rounded-md" />
             ) : (
               <>
-                <div className="text-4xl mb-2">📷</div>
                 <p className="text-ink-600">{t("up_choose_photo")}</p>
               </>
             )}
@@ -179,17 +184,15 @@ function Upload() {
           <button
             onClick={handleScan}
             disabled={isLoading}
-            className="mt-6 w-full bg-primary-gradient text-primary-foreground font-semibold py-3.5 rounded-2xl shadow-soft hover:scale-[1.01] transition-all disabled:opacity-50"
-          >
-            {isLoading ? t("up_reading") : `🔍 ${t("up_scan_btn")}`}
+            className="mt-6 w-full bg-primary-gradient text-primary-foreground font-medium py-3.5 rounded-lg shadow-soft hover:scale-[1.01] transition-all disabled:opacity-50">{isLoading ? t("up_reading") : `${t("up_scan_btn")}`}
           </button>
         </div>
       )}
 
       {/* ---------- STAGE 2: review / edit OCR results ---------- */}
       {stage === "review" && (
-        <div className="bg-card rounded-2xl shadow-soft p-8 border border-surface-300/60">
-          {/* How well did the scan go? Being upfront about this is more
+        <div className="bg-card rounded-lg shadow-soft p-8 border border-surface-300/60">
+      {/* How well did the scan go? Being upfront about this is more
               useful than a generic "check the values" line - it tells
               the farmer whether to skim or to look carefully. */}
           {scanInfo && <ScanQualityBanner scanInfo={scanInfo} />}
@@ -202,8 +205,8 @@ function Upload() {
             <Field
               label={t("up_label_quantity")}
               name="quantityInQuintal"
-              type="number"
-              value={form.quantityInQuintal}
+          type="number"
+          value={form.quantityInQuintal}
               onChange={handleFormChange}
               placeholder={t("up_placeholder_quantity")}
               // Show what was actually printed on the receipt, e.g.
@@ -221,8 +224,8 @@ function Upload() {
             <Field
               label={t("up_label_price")}
               name="pricePerQuintal"
-              type="number"
-              value={form.pricePerQuintal}
+          type="number"
+          value={form.pricePerQuintal}
               onChange={handleFormChange}
               placeholder={t("up_placeholder_price")}
               hint={
@@ -230,35 +233,28 @@ function Upload() {
                   ? t("up_hint_price_total", {
                       total: scanInfo.totalAmount.toLocaleString("en-IN"),
                     })
-                  : scanInfo?.priceSource === "printed on the receipt"
-                  ? t("up_hint_price_printed")
+                  : scanInfo?.priceSource === "printed on the receipt"? t("up_hint_price_printed")
                   : null
               }
             />
           </div>
 
           <details className="mt-4">
-            <summary className="text-sm text-primary-700 cursor-pointer">
-              {t("up_raw_text")}
+            <summary className="text-sm text-primary-700 cursor-pointer">{t("up_raw_text")}
             </summary>
-            <pre className="text-xs bg-muted p-3 rounded-lg mt-2 whitespace-pre-wrap">
-              {form.rawOcrText || t("up_no_text")}
+            <pre className="text-xs bg-muted p-3 rounded-md mt-2 whitespace-pre-wrap">{form.rawOcrText || t("up_no_text")}
             </pre>
           </details>
 
           <div className="flex gap-3 mt-6">
             <button
               onClick={handleStartOver}
-              className="flex-1 border border-input text-ink-600 font-semibold py-3 rounded-xl hover:bg-muted"
-            >
-              {t("up_start_over")}
+              className="flex-1 border border-input text-ink-600 font-medium py-3 rounded-md hover:bg-muted">{t("up_start_over")}
             </button>
             <button
               onClick={handleSave}
               disabled={isLoading}
-              className="flex-1 bg-primary-gradient text-primary-foreground font-semibold py-3.5 rounded-2xl shadow-soft hover:scale-[1.01] transition-all disabled:opacity-50"
-            >
-              {isLoading ? t("up_comparing") : `✅ ${t("up_save_compare")}`}
+              className="flex-1 bg-primary-gradient text-primary-foreground font-medium py-3.5 rounded-lg shadow-soft hover:scale-[1.01] transition-all disabled:opacity-50">{isLoading ? t("up_comparing") : `${t("up_save_compare")}`}
             </button>
           </div>
         </div>
@@ -283,34 +279,33 @@ function ScanQualityBanner({ scanInfo }) {
   const { t } = useLanguage();
 
   const styles = {
-    good: { box: "bg-positive-50 border-positive-200 text-positive-800", icon: "✅", titleKey: "up_scan_good" },
-    partial: { box: "bg-warning-50 border-warning-200 text-warning-900", icon: "⚠️", titleKey: "up_scan_partial" },
-    poor: { box: "bg-negative-50 border-negative-200 text-negative-800", icon: "❗", titleKey: "up_scan_poor" },
-    failed: { box: "bg-negative-50 border-negative-200 text-negative-800", icon: "❌", titleKey: "up_scan_failed" },
+    good: { box: "bg-positive-50 border-positive-200 text-positive-800", icon: OkIcon, titleKey: "up_scan_good" },
+    partial: { box: "bg-warning-50 border-warning-200 text-warning-900", icon: WarnIcon, titleKey: "up_scan_partial" },
+    poor: { box: "bg-negative-50 border-negative-200 text-negative-800", icon: WarnIcon, titleKey: "up_scan_poor" },
+    failed: { box: "bg-negative-50 border-negative-200 text-negative-800", icon: ErrorIcon, titleKey: "up_scan_failed" },
   }[scanInfo.quality] || {
     box: "bg-muted border-border text-ink-700",
-    icon: "ℹ️",
+    icon: InfoIcon,
     titleKey: "up_scan_complete",
   };
 
   return (
-    <div className={`rounded-xl border px-4 py-3 mb-5 text-sm ${styles.box}`}>
-      <p className="font-semibold mb-1">
-        {styles.icon}{" "}
+    <div className={`rounded-md border px-4 py-3 mb-5 text-sm ${styles.box}`}>
+      <p className="flex items-center gap-1.5 font-medium mb-1">
+        {styles.icon && (
+          <styles.icon size={ICON_MD} strokeWidth={ICON_STROKE} className="shrink-0" aria-hidden="true" />
+        )}
         {t("up_scan_fields", {
           title: t(styles.titleKey),
           found: scanInfo.fieldsFound,
         })}
       </p>
 
-      <p className="opacity-80">
-        {scanInfo.quality === "good" ? t("up_scan_glance") : t("up_scan_check")}
+      <p className="opacity-80">{scanInfo.quality === "good" ? t("up_scan_glance") : t("up_scan_check")}
       </p>
-
       {/* Anything the scanner had to assume, spelled out plainly. */}
       {scanInfo.notes && scanInfo.notes.length > 0 && (
-        <ul className="mt-2 space-y-1 list-disc list-inside opacity-90">
-          {scanInfo.notes.map((note, index) => (
+        <ul className="mt-2 space-y-1 list-disc list-inside opacity-90">{scanInfo.notes.map((note, index) => (
             <li key={index}>{note}</li>
           ))}
         </ul>
@@ -337,11 +332,9 @@ function Field({ label, name, value, onChange, type = "text", placeholder, hint 
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-green ${
-          isEmpty ? "border-warning-300 bg-warning-50/40" : "border-input"
-        }`}
-      />
-      {hint && <p className="text-xs text-ink-500 mt-1">{hint}</p>}
+        className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-green ${
+          isEmpty ? "border-warning-300 bg-warning-50/40" : "border-input"}`}
+      />{hint && <p className="text-xs text-ink-500 mt-1">{hint}</p>}
     </div>
   );
 }
@@ -371,31 +364,29 @@ function ResultView({ receipt, onStartOver }) {
   // or the government API had nothing for this crop/date).
   const dataSourceInfo = {
     "real-exact-date": {
-      label: `✅ ${t("up_src_real", {
+      label: `${t("up_src_real", {
         date: receipt.matchedMarketDate || t("up_matching_date"),
       })}`,
       className: "text-positive-700",
     },
     "real-nearest-date": {
-      label: `✅ ${t("up_src_real_nearest", {
+      label: `${t("up_src_real_nearest", {
         date: receipt.matchedMarketDate || "-",
       })}`,
       className: "text-positive-700",
     },
     mock: {
-      label: `⚠️ ${t("up_src_mock")}`,
+      label: `${t("up_src_mock")}`,
       className: "text-warning-700",
     },
   }[receipt.dataSource] || null;
 
   return (
-    <div className="bg-card rounded-2xl shadow-soft p-8 border border-surface-300/60">
-      <div className={`rounded-xl border p-5 mb-6 ${verdictColors[receipt.verdict]}`}>
+    <div className="bg-card rounded-lg shadow-soft p-8 border border-surface-300/60">
+      <div className={`rounded-md border p-5 mb-6 ${verdictColors[receipt.verdict]}`}>
         <p className="text-sm uppercase tracking-wide opacity-70 mb-1">{t("up_result")}</p>
-        <p className="text-2xl font-bold mb-1">{t(VERDICT_KEYS[receipt.verdict] || "verdict_no_data")}</p>
-        {receipt.blendedAveragePrice && (
-          <p className="text-sm">
-            {t("up_result_line", {
+        <p className="text-2xl font-semibold mb-1">{t(VERDICT_KEYS[receipt.verdict] || "verdict_no_data")}</p>{receipt.blendedAveragePrice && (
+          <p className="text-sm">{t("up_result_line", {
               price: receipt.pricePerQuintal,
               average: receipt.blendedAveragePrice,
             })}
@@ -410,7 +401,7 @@ function ResultView({ receipt, onStartOver }) {
             so the farmer can see exactly what it's based on. */}
         <div className="flex flex-wrap gap-4 mt-2 text-xs">
           <span>
-            🏛️{" "}
+            <MandiIcon size={ICON_MD} strokeWidth={ICON_STROKE} className="shrink-0" aria-hidden="true" />{" "}
             {t("up_gov_avg_inline", {
               value: receipt.marketAveragePrice
                 ? `₹${receipt.marketAveragePrice}`
@@ -418,7 +409,7 @@ function ResultView({ receipt, onStartOver }) {
             })}
           </span>
           <span>
-            🧑‍🌾{" "}
+            <FarmersIcon size={ICON_MD} strokeWidth={ICON_STROKE} className="shrink-0" aria-hidden="true" />{" "}
             {t("up_farmer_avg_inline", {
               value: receipt.communityAveragePrice
                 ? `₹${receipt.communityAveragePrice} (${tPlural(
@@ -428,15 +419,12 @@ function ResultView({ receipt, onStartOver }) {
                 : t("up_no_reports_yet"),
             })}
           </span>
-        </div>
-
-        {dataSourceInfo && (
+        </div>{dataSourceInfo && (
           <p className={`text-xs mt-2 font-medium ${dataSourceInfo.className}`}>{dataSourceInfo.label}</p>
         )}
       </div>
 
-      <h3 className="font-semibold text-ink-900 mb-2">
-        {t("up_gov_price_across", {
+      <h3 className="font-medium text-ink-900 mb-2">{t("up_gov_price_across", {
           crop: receipt.crop,
           date: receipt.date || t("up_the_sale_date"),
         })}
@@ -445,9 +433,7 @@ function ResultView({ receipt, onStartOver }) {
 
       <button
         onClick={onStartOver}
-        className="mt-6 w-full bg-secondary hover:opacity-90 text-secondary-foreground font-semibold py-3 rounded-xl"
-      >
-        {t("up_upload_another")}
+        className="mt-6 w-full bg-secondary hover:opacity-90 text-secondary-foreground font-medium py-3 rounded-md">{t("up_upload_another")}
       </button>
     </div>
   );

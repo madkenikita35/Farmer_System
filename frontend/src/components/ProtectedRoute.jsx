@@ -30,14 +30,14 @@
 // every piece of data on it would come back as a 403 error.
 // -----------------------------------------------------------------------
 
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
+import SignInPrompt from "./SignInPrompt";
 
-function ProtectedRoute({ children, adminOnly = false }) {
+function ProtectedRoute({ children, adminOnly = false, reasonKey }) {
   const { isLoggedIn, isAdmin, isCheckingAuth } = useAuth();
   const { t } = useLanguage();
-  const location = useLocation();
 
   // ---- CASE 1: we're still asking the server "is this token valid?" ----
   // We MUST wait. If we didn't, a logged-in user pressing F5 would be
@@ -46,7 +46,6 @@ function ProtectedRoute({ children, adminOnly = false }) {
   if (isCheckingAuth) {
     return (
       <div className="flex flex-col items-center justify-center py-32 text-ink-500">
-        <div className="text-4xl mb-3 animate-pulse">🌾</div>
         <p className="text-sm">{t("common_checking_login")}</p>
       </div>
     );
@@ -59,7 +58,11 @@ function ProtectedRoute({ children, adminOnly = false }) {
   // `replace` swaps the history entry instead of adding one, so the
   // browser Back button doesn't bounce them straight back here.
   if (!isLoggedIn) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    // NOT a redirect. A guest who clicked "Upload Receipt" and got
+    // thrown to /login would, after signing up, land on the home page -
+    // having lost the thing they came to do. This keeps them on the
+    // page and explains why this one needs an account.
+    return <SignInPrompt reasonKey={reasonKey} />;
   }
 
   // ---- CASE 3: logged in, but this page needs an admin ----

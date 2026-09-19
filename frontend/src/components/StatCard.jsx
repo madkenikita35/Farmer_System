@@ -40,7 +40,13 @@ const TONES = {
   },
 };
 
-function StatCard({ label, value, icon, tone = "primary", color }) {
+// `icon` is a COMPONENT now, not a character - so it is named with a
+// capital I. React decides "element vs plain string" by whether the tag
+// starts uppercase, so `<icon />` would quietly render an unknown HTML
+// tag and show nothing at all.
+import { ICON_LG, ICON_STROKE } from "./icons";
+
+function StatCard({ label, value, icon: Icon, tone = "primary", color }) {
   const styles = TONES[tone] || TONES.primary;
 
   // If a caller passed the old `color` prop, honour it for the number.
@@ -48,19 +54,18 @@ function StatCard({ label, value, icon, tone = "primary", color }) {
 
   return (
     <div
-      className="group bg-card rounded-2xl shadow-soft p-5 flex items-center gap-4
- border border-surface-300/60 hover-lift animate-popIn"
+      className="group bg-card rounded-lg shadow-soft p-5 flex items-center gap-4
+ border border-surface-300/60 animate-fadeIn"
     >
       <div
-        className={`grid place-items-center w-12 h-12 rounded-xl text-2xl shrink-0
-          transition-transform duration-300 group-hover:scale-110 ${styles.tile}`}
+        className={`grid place-items-center w-10 h-10 rounded-md shrink-0 ${styles.tile}`}
       >
-        {icon}
+        {Icon && <Icon size={ICON_LG} strokeWidth={ICON_STROKE} aria-hidden="true" />}
       </div>
 
       <div className="min-w-0">
         <p className="text-sm text-ink-500 truncate">{label}</p>
-        <p className={`text-2xl font-bold leading-tight ${valueClass}`}>{value}</p>
+        <p className={`text-2xl font-semibold leading-tight ${valueClass}`}>{value}</p>
       </div>
     </div>
   );

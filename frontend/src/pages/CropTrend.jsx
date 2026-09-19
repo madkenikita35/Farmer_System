@@ -41,9 +41,19 @@ import { useParams, Link } from "react-router-dom";
 
 import { getCedaPriceTrend, getCedaLocations } from "../api/api";
 import PriceTrendChart from "../components/PriceTrendChart";
+import DataFreshness from "../components/DataFreshness";
 import CedaAttribution from "../components/CedaAttribution";
 import { useLanguage } from "../context/LanguageContext";
 import { formatRupees } from "../components/chartTheme";
+import {
+  ICON_MD,
+  ICON_LG,
+  ICON_STROKE,
+  TrendIcon,
+  LocationIcon,
+  StateIcon,
+  CountryIcon,
+} from "../components/icons";
 
 // `days: null` means "everything we have".
 const DATE_RANGES = [
@@ -174,8 +184,7 @@ function CropTrend() {
 
   // The options for whichever dropdown is showing.
   const dropdownOptions =
-    level === "city"
-      ? places.districts.map((d) => ({
+    level === "city"? places.districts.map((d) => ({
           value: d.districtName,
           label: `${d.districtName} — ${d.stateName}`,
         }))
@@ -183,53 +192,43 @@ function CropTrend() {
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-10 animate-fadeIn">
-      <Link to="/crops" className="text-primary-700 font-semibold text-sm mb-4 inline-block">
-        {t("trend_back")}
+      <Link to="/crops" className="text-primary-700 font-medium text-sm mb-4 inline-block">{t("trend_back")}
       </Link>
 
-      <h1 className="text-2xl font-bold text-ink-900 mb-1">📈 {crop}</h1>
+      <h1 className="text-2xl font-semibold text-ink-900 mb-1"><TrendIcon size={ICON_MD} strokeWidth={ICON_STROKE} className="shrink-0" aria-hidden="true" /> {crop}</h1>
       <p className="text-ink-600 mb-6">{t("trend_subtitle_ceda")}</p>
-
       {/* ---------- Level tabs ---------- */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        {[
-          { key: "city", labelKey: "trend_level_city", icon: "🏪" },
-          { key: "state", labelKey: "trend_level_state", icon: "🗺️" },
-          { key: "country", labelKey: "trend_level_country", icon: "🇮🇳" },
+      <div className="flex flex-wrap gap-2 mb-4">{[
+          { key: "city", labelKey: "trend_level_city", icon: LocationIcon },
+          { key: "state", labelKey: "trend_level_state", icon: StateIcon },
+          { key: "country", labelKey: "trend_level_country", icon: CountryIcon },
         ].map((tab) => (
           <button
             key={tab.key}
             type="button"
-            onClick={() => handleLevelChange(tab.key)}
+          onClick={() => handleLevelChange(tab.key)}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-all border ${
               level === tab.key
-                ? "bg-primary-600 text-primary-foreground border-transparent shadow-soft scale-[1.03]"
-                : "bg-card text-ink-600 border-surface-300 hover:border-ink-300 hover:bg-surface-100"
-            }`}
+                ? "bg-primary-600 text-primary-foreground border-transparent shadow-soft scale-[1.03]": "bg-card text-ink-600 border-surface-300 hover:border-ink-300 hover:bg-surface-100"}`}
           >
-            {tab.icon} {t(tab.labelKey)}
+            {tab.icon && <tab.icon size={ICON_MD} strokeWidth={ICON_STROKE} className="inline-block mr-1.5 align-[-2px]" aria-hidden="true" />}
+            {t(tab.labelKey)}
           </button>
         ))}
       </div>
-
       {/* ---------- Filters ---------- */}
-      <div className="bg-card rounded-2xl shadow-soft p-5 border border-surface-300/60 mb-6">
-        <div className="grid sm:grid-cols-2 gap-4">
-          {level !== "country" && (
+      <div className="bg-card rounded-lg shadow-soft p-5 border border-surface-300/60 mb-6">
+        <div className="grid sm:grid-cols-2 gap-4">{level !== "country" && (
             <div>
-              <label className="block text-sm font-medium text-ink-600 mb-1">
-                {level === "city" ? t("trend_pick_city") : t("trend_pick_state")}
+              <label className="block text-sm font-medium text-ink-600 mb-1">{level === "city" ? t("trend_pick_city") : t("trend_pick_state")}
               </label>
               <select
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-card
-                  focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="">{t("trend_choose")}</option>
-                {dropdownOptions.map((option) => (
-                  <option key={option.label} value={option.value}>
-                    {option.label}
+                className="w-full border border-ink-200 rounded-md px-3.5 py-2.5 bg-card
+                  focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                <option value="">{t("trend_choose")}</option>{dropdownOptions.map((option) => (
+                  <option key={option.label} value={option.value}>{option.label}
                   </option>
                 ))}
               </select>
@@ -237,22 +236,17 @@ function CropTrend() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-ink-600 mb-1">
-              {t("trend_date_range")}
+            <label className="block text-sm font-medium text-ink-600 mb-1">{t("trend_date_range")}
             </label>
-            <div className="flex flex-wrap gap-2">
-              {DATE_RANGES.map((range) => (
+            <div className="flex flex-wrap gap-2">{DATE_RANGES.map((range) => (
                 <button
                   key={range.key}
                   type="button"
-                  onClick={() => setRangeKey(range.key)}
+          onClick={() => setRangeKey(range.key)}
                   className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${
                     rangeKey === range.key
-                      ? "bg-primary-600 text-primary-foreground shadow-sm"
-                      : "bg-muted text-ink-600 hover:bg-border"
-                  }`}
-                >
-                  {range.days == null
+                      ? "bg-primary-600 text-primary-foreground shadow-sm": "bg-muted text-ink-600 hover:bg-border"}`}
+                >{range.days == null
                     ? t("trend_range_all")
                     : range.days === 180
                     ? t("trend_range_months", { months: 6 })
@@ -261,61 +255,49 @@ function CropTrend() {
               ))}
               <button
                 type="button"
-                onClick={() => setRangeKey("custom")}
+          onClick={() => setRangeKey("custom")}
                 className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${
-                  rangeKey === "custom"
-                    ? "bg-primary-600 text-primary-foreground shadow-sm"
-                    : "bg-muted text-ink-600 hover:bg-border"
-                }`}
-              >
-                {t("trend_range_custom")}
+                  rangeKey === "custom"? "bg-primary-600 text-primary-foreground shadow-sm": "bg-muted text-ink-600 hover:bg-border"}`}
+              >{t("trend_range_custom")}
               </button>
             </div>
           </div>
-        </div>
-
-        {rangeKey === "custom" && (
+        </div>{rangeKey === "custom" && (
           <div className="grid sm:grid-cols-2 gap-4 mt-4 pt-4 border-t border-surface-200">
             <div>
               <label className="block text-sm font-medium text-ink-600 mb-1">{t("trend_from")}</label>
               <input
                 type="date"
-                value={customFrom}
+          value={customFrom}
                 max={latestAvailable || undefined}
                 onChange={(e) => setCustomFrom(e.target.value)}
-                className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-card
-                  focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
+                className="w-full border border-ink-200 rounded-md px-3.5 py-2.5 bg-card
+                  focus:outline-none focus:ring-2 focus:ring-primary-500"/>
             </div>
             <div>
               <label className="block text-sm font-medium text-ink-600 mb-1">{t("trend_to")}</label>
               <input
                 type="date"
-                value={customTo}
+          value={customTo}
                 // Cannot end before it starts, and cannot ask beyond the
                 // data - both are made impossible rather than explained
                 // after the fact.
                 min={customFrom || undefined}
                 max={latestAvailable || undefined}
                 onChange={(e) => setCustomTo(e.target.value)}
-                className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-card
-                  focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
+                className="w-full border border-ink-200 rounded-md px-3.5 py-2.5 bg-card
+                  focus:outline-none focus:ring-2 focus:ring-primary-500"/>
             </div>
           </div>
         )}
 
         {/* Why the presets do not mean "from today". Said once, quietly. */}
         {latestAvailable && (
-          <p className="text-xs text-ink-400 mt-3">
-            {t("trend_coverage_note", { date: latestAvailable })}
+          <p className="text-xs text-ink-400 mt-3">{t("trend_coverage_note", { date: latestAvailable })}
           </p>
         )}
-      </div>
-
-      {errorMessage && (
-        <div className="bg-negative-50 text-negative-700 border border-negative-200 rounded-lg px-4 py-3 mb-6 text-sm">
-          {errorMessage}
+      </div>{errorMessage && (
+        <div className="bg-negative-50 text-negative-700 border border-negative-200 rounded-md px-4 py-3 mb-6 text-sm">{errorMessage}
         </div>
       )}
 
@@ -323,21 +305,26 @@ function CropTrend() {
 
       {/* ---------- The chart ---------- */}
       {level !== "country" && !location ? (
-        <div className="bg-card rounded-2xl shadow-soft border border-surface-300/60 py-14 px-6 text-center">
-          <div className="text-4xl mb-3">👆</div>
-          <p className="font-semibold text-ink-900 mb-1">{t("trend_pick_first_title")}</p>
-          <p className="text-sm text-ink-500">
-            {level === "city" ? t("trend_pick_city") : t("trend_pick_state")}
+        <div className="bg-card rounded-lg shadow-soft border border-surface-300/60 py-14 px-6 text-center">
+          <p className="font-medium text-ink-900 mb-1">{t("trend_pick_first_title")}</p>
+          <p className="text-sm text-ink-500">{level === "city" ? t("trend_pick_city") : t("trend_pick_state")}
           </p>
         </div>
       ) : (
-        <PriceTrendChart points={trend?.points} isLoading={isLoading} crop={crop} />
+        // A fragment, because a ternary branch may only hold ONE
+        // element and this branch now holds two.
+        <>
+          <PriceTrendChart points={trend?.points} isLoading={isLoading} crop={crop} />
+
+          {/* This page draws on CEDA, not the government feed, so it
+              reports CEDA's clock - the two are not in step. */}
+          <DataFreshness source="ceda" className="mt-3" />
+        </>
       )}
 
       {/* The range actually plotted, so a preset label can never lie. */}
       {trend?.coverage && (
-        <p className="text-xs text-ink-500 mt-3">
-          {t("trend_showing_range", { from: trend.coverage.from, to: trend.coverage.to })}
+        <p className="text-xs text-ink-500 mt-3">{t("trend_showing_range", { from: trend.coverage.from, to: trend.coverage.to })}
         </p>
       )}
 
@@ -377,9 +364,9 @@ function SummaryTile({ label, value, tone }) {
     tone === "good" ? "text-positive-700" : tone === "bad" ? "text-negative-600" : "text-ink-900";
 
   return (
-    <div className="bg-card rounded-xl border border-surface-300/60 px-4 py-3">
+    <div className="bg-card rounded-md border border-surface-300/60 px-4 py-3">
       <p className="text-xs text-ink-500 truncate">{label}</p>
-      <p className={`text-lg font-bold leading-tight ${colour}`}>{value}</p>
+      <p className={`text-lg font-semibold leading-tight ${colour}`}>{value}</p>
     </div>
   );
 }

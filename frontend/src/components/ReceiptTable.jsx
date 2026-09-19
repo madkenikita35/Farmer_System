@@ -86,12 +86,12 @@ function ReceiptTable({ receipts }) {
                     : "-"}
                 </td>
                 <td className="py-2 pr-4">
-                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${verdictStyles[r.verdict]}`}>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${verdictStyles[r.verdict]}`}>
                     {t(VERDICT_KEYS[r.verdict] || "verdict_no_data")}
                   </span>
                 </td>
                 <td className="py-2 pr-4">
-                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${source.className}`}>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${source.className}`}>
                     {t(source.key)}
                   </span>
                 </td>

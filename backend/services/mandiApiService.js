@@ -32,6 +32,7 @@
 // -----------------------------------------------------------------------
 
 const axios = require("axios");
+const { recordSuccessfulSync, SOURCES } = require("./syncStatusService");
 
 const BASE_URL = "https://api.data.gov.in/resource";
 
@@ -100,7 +101,14 @@ async function callMandiApi({ apiKey, resourceId, commodity, arrivalDate, limit 
     timeout: limit > 500 ? 45000 : 10000,
   });
 
-  return response.data.records || [];
+  const records = response.data.records || [];
+
+  // Remember that the government feed answered, and with how much.
+  // Fire-and-forget on purpose: the farmer waiting on prices should not
+  // also wait on our bookkeeping, and a failure here costs nothing.
+  recordSuccessfulSync(SOURCES.AGMARKNET, records.length);
+
+  return records;
 }
 
 /**

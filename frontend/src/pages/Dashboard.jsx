@@ -9,10 +9,20 @@ import { useEffect, useState } from "react";
 import { getDashboardStats, getAllReceipts } from "../api/api";
 import StatCard from "../components/StatCard";
 import CollapsibleSection from "../components/CollapsibleSection";
+import DataFreshness from "../components/DataFreshness";
 import PriceComparisonChart from "../components/PriceComparisonChart";
 import VerdictPieChart from "../components/VerdictPieChart";
 import ReceiptTable from "../components/ReceiptTable";
 import { useLanguage } from "../context/LanguageContext";
+import {
+  ChartIcon,
+  OkIcon,
+  ReceiptIcon,
+  RupeeIcon,
+  WarnIcon,
+  ICON_MD,
+  ICON_STROKE,
+} from "../components/icons";
 
 function Dashboard() {
   const { t } = useLanguage();
@@ -48,15 +58,15 @@ function Dashboard() {
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-10">
-      <h1 className="text-2xl font-bold text-ink-900 mb-6">📊 {t("dash_title")}</h1>
+      <h1 className="text-2xl font-semibold text-ink-900 mb-6"><ChartIcon size={ICON_MD} strokeWidth={ICON_STROKE} className="shrink-0" aria-hidden="true" /> {t("dash_title")}</h1>
 
       {/* ---- Row of summary stat cards ---- */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard icon="🧾" label={t("dash_total_receipts")} value={stats.totalReceipts} />
-        <StatCard icon="✅" label={t("dash_fair_sales")} value={stats.fairCount} tone="primary" />
-        <StatCard icon="⚠️" label={t("dash_underpaid_sales")} value={stats.underpaidCount} tone="under" />
+        <StatCard icon={ReceiptIcon} label={t("dash_total_receipts")} value={stats.totalReceipts} />
+        <StatCard icon={OkIcon} label={t("dash_fair_sales")} value={stats.fairCount} tone="primary" />
+        <StatCard icon={WarnIcon} label={t("dash_underpaid_sales")} value={stats.underpaidCount} tone="under" />
         <StatCard
-          icon="💰"
+          icon={RupeeIcon}
           label={t("dash_potential_loss")}
           value={stats.totalPotentialLoss.toLocaleString("en-IN")}
           tone="under"
@@ -73,10 +83,10 @@ function Dashboard() {
         <CollapsibleSection title={t("dash_data_quality")} className="mb-8">
           <div className="flex flex-wrap items-center gap-4 text-sm">
             <span className="text-positive-700">
-              ✅ {t("dash_compared_real", { count: stats.realDataCount })}
+              <OkIcon size={ICON_MD} strokeWidth={ICON_STROKE} className="shrink-0" aria-hidden="true" /> {t("dash_compared_real", { count: stats.realDataCount })}
             </span>
             <span className="text-warning-700">
-              ⚠️ {t("dash_used_mock", { count: stats.mockDataCount })}
+              <WarnIcon size={ICON_MD} strokeWidth={ICON_STROKE} className="shrink-0" aria-hidden="true" /> {t("dash_used_mock", { count: stats.mockDataCount })}
             </span>
             {stats.mockDataCount > 0 && (
               <span className="text-ink-500">{t("dash_add_key_hint")}</span>
@@ -85,22 +95,27 @@ function Dashboard() {
         </CollapsibleSection>
       )}
 
+      {/* The receipts are the farmer's own, but the "fair price"
+          verdict on each one was worked out against the government feed -
+          so when that feed last updated is still worth saying. */}
+      <DataFreshness source="agmarknet" className="mb-6" />
+
       {/* ---- Charts ---- */}
       <div className="grid lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-card rounded-2xl shadow-soft p-6 border border-surface-300/60">
-          <h2 className="font-semibold text-ink-900 mb-3">{t("dash_chart_price_title")}</h2>
+        <div className="bg-card rounded-lg shadow-soft p-6 border border-surface-300/60">
+          <h2 className="font-medium text-ink-900 mb-3">{t("dash_chart_price_title")}</h2>
           <PriceComparisonChart data={stats.priceComparisonChart} />
         </div>
 
-        <div className="bg-card rounded-2xl shadow-soft p-6 border border-surface-300/60">
-          <h2 className="font-semibold text-ink-900 mb-3">{t("dash_chart_verdict_title")}</h2>
+        <div className="bg-card rounded-lg shadow-soft p-6 border border-surface-300/60">
+          <h2 className="font-medium text-ink-900 mb-3">{t("dash_chart_verdict_title")}</h2>
           <VerdictPieChart data={stats.verdictBreakdown} />
         </div>
       </div>
 
       {/* ---- Table of all receipts ---- */}
-      <div className="bg-card rounded-2xl shadow-soft p-6 border border-surface-300/60">
-        <h2 className="font-semibold text-ink-900 mb-3">{t("dash_all_receipts")}</h2>
+      <div className="bg-card rounded-lg shadow-soft p-6 border border-surface-300/60">
+        <h2 className="font-medium text-ink-900 mb-3">{t("dash_all_receipts")}</h2>
         <ReceiptTable receipts={receipts} />
       </div>
     </div>

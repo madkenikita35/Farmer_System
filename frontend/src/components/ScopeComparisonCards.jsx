@@ -34,6 +34,17 @@
 import { useState } from "react";
 
 import { useLanguage } from "../context/LanguageContext";
+import {
+  ICON_MD,
+  ICON_LG,
+  ICON_STROKE,
+  ChartIcon,
+  CountryIcon,
+  LocationIcon,
+  OkIcon,
+  RegionIcon,
+  TipIcon,
+} from "./icons";
 
 /** ₹12,345 - Indian digit grouping. */
 function rupees(value) {
@@ -66,8 +77,7 @@ function DistanceLabel({ mandi }) {
   }
 
   return (
-    <span className="text-xs text-ink-500">
-      {t("nm_km_away", { km: Math.round(mandi.distanceKm) })}
+    <span className="text-xs text-ink-500">{t("nm_km_away", { km: Math.round(mandi.distanceKm) })}
     </span>
   );
 }
@@ -84,8 +94,7 @@ function ScopeSide({ mandi, tone }) {
   if (!mandi) {
     return (
       <div className="flex-1 min-w-0">
-        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${chip}`}>
-          {label}
+        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${chip}`}>{label}
         </span>
         <p className="text-ink-400 text-sm mt-2">—</p>
       </div>
@@ -94,18 +103,14 @@ function ScopeSide({ mandi, tone }) {
 
   return (
     <div className="flex-1 min-w-0">
-      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${chip}`}>
-        {label}
+      <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${chip}`}>{label}
       </span>
 
-      <p className={`text-2xl font-bold leading-tight mt-1.5 ${priceColour}`}>
-        {rupees(mandi.price)}
+      <p className={`text-2xl font-semibold leading-tight mt-1.5 ${priceColour}`}>{rupees(mandi.price)}
       </p>
 
-      <p className="text-sm font-medium text-ink-900 truncate" title={mandi.mandiName}>
-        {mandi.mandiName}
+      <p className="text-sm font-medium text-ink-900 truncate" title={mandi.mandiName}>{mandi.mandiName}
       </p>
-
       {/* District for the state card, state for the others - whichever
           actually tells you where this is, given what the card is
           already scoped to. */}
@@ -122,24 +127,23 @@ function ScopeSide({ mandi, tone }) {
  * `scope` is the object the backend returns; `state` decides which of
  * the four states it renders: loading, no-location, empty, or filled.
  */
-function ScopeCard({ titleKey, subtitle, icon, scope, isLoading, blockedHintKey, emptyHintKey }) {
+function ScopeCard({ titleKey, subtitle, icon: Icon, scope, isLoading, blockedHintKey, emptyHintKey }) {
   const { t } = useLanguage();
 
   return (
-    <div className="bg-card rounded-2xl shadow-soft border border-surface-300/60 p-5 flex flex-col">
+    <div className="bg-card rounded-lg shadow-soft border border-surface-300/60 p-5 flex flex-col">
       <div className="mb-3">
-        <h3 className="font-semibold text-ink-900 text-sm">
-          {icon} {t(titleKey)}
+        <h3 className="flex items-center gap-1.5 font-medium text-ink-900 text-sm">
+          {Icon && <Icon size={ICON_MD} strokeWidth={ICON_STROKE} className="text-ink-400 shrink-0" aria-hidden="true" />}
+          {t(titleKey)}
         </h3>
-        {/* The scope, spelled out. Three cards that look alike need a
+      {/* The scope, spelled out. Three cards that look alike need a
             one-line answer to "which one am I reading?". */}
         <p className="text-xs text-ink-400 mt-0.5">{subtitle}</p>
       </div>
-
       {/* ---- 1. Loading: each card independently ---- */}
       {isLoading ? (
-        <div className="animate-pulse flex gap-4 flex-1">
-          {[0, 1].map((i) => (
+        <div className="animate-pulse flex gap-4 flex-1">{[0, 1].map((i) => (
             <div key={i} className="flex-1">
               <div className="h-3 w-16 bg-surface-200 rounded mb-3" />
               <div className="h-6 w-24 bg-surface-200 rounded mb-2" />
@@ -156,13 +160,11 @@ function ScopeCard({ titleKey, subtitle, icon, scope, isLoading, blockedHintKey,
            Level. The single ask now lives in the section header, and
            each card just says what it is waiting for. */
         <div className="flex-1 flex flex-col items-center justify-center text-center py-6">
-          <div className="text-2xl mb-2">☝️</div>
           <p className="text-sm text-ink-500">{t(blockedHintKey)}</p>
         </div>
       ) : !scope || scope.mandiCount === 0 ? (
         /* ---- 3. Nothing in this scope ---- */
         <div className="flex-1 flex flex-col items-center justify-center text-center py-6">
-          <div className="text-2xl mb-2">🤷</div>
           <p className="text-sm text-ink-500">{t(emptyHintKey || "scope_empty")}</p>
         </div>
       ) : (
@@ -173,19 +175,17 @@ function ScopeCard({ titleKey, subtitle, icon, scope, isLoading, blockedHintKey,
             <div className="w-px bg-surface-200 shrink-0" />
             <ScopeSide mandi={scope.lowest} tone="bad" />
           </div>
-
-          {/* The gap, in the same voice as the existing insight line. */}
+      {/* The gap, in the same voice as the existing insight line. */}
           {scope.priceGap > 0 && (
-            <p className="text-xs text-warning-900 bg-warning-50 border border-warning-200 rounded-lg px-3 py-2 mt-3">
-              💡 {t("scope_gap", {
+            <p className="text-xs text-warning-900 bg-warning-50 border border-warning-200 rounded-md px-3 py-2 mt-3">
+              <TipIcon size={ICON_MD} strokeWidth={ICON_STROKE} className="shrink-0" aria-hidden="true" /> {t("scope_gap", {
                 gap: Math.round(scope.priceGap).toLocaleString("en-IN"),
                 percent: scope.priceGapPercent,
               })}
             </p>
           )}
 
-          <p className="text-[11px] text-ink-400 mt-2">
-            {t("scope_mandi_count", { count: scope.mandiCount })}
+          <p className="text-[11px] text-ink-400 mt-2">{t("scope_mandi_count", { count: scope.mandiCount })}
           </p>
         </>
       )}
@@ -244,21 +244,20 @@ function ScopeComparisonCards({ scopes, isLoading, radiusKm, onRadiusChange, onU
   return (
     <div className="mb-6">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-        <h2 className="font-semibold text-ink-900">📊 {t("scope_section_title")}</h2>
+        <h2 className="font-medium text-ink-900"><ChartIcon size={ICON_MD} strokeWidth={ICON_STROKE} className="shrink-0" aria-hidden="true" /> {t("scope_section_title")}</h2>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* ---- ONE location ask for the whole section ---- */}
+      {/* ---- ONE location ask for the whole section ---- */}
           {/* Both Near You and State Level need this. Asking inside each
               card meant two prompts for one permission. */}
           {hasLocation ? (
-            <span className="text-sm text-positive-700">✅ {t("scope_location_on")}</span>
+            <span className="text-sm text-positive-700"><OkIcon size={ICON_MD} strokeWidth={ICON_STROKE} className="shrink-0" aria-hidden="true" /> {t("scope_location_on")}</span>
           ) : (
             <button
               type="button"
-              onClick={onUseLocation}
-              className="px-4 py-1.5 rounded-lg bg-secondary text-secondary-foreground text-sm font-semibold hover:opacity-90"
-            >
-              📍 {t("nm_use_my_location")}
+          onClick={onUseLocation}
+              className="px-4 py-1.5 rounded-md bg-secondary text-secondary-foreground text-sm font-medium hover:opacity-90">
+              <LocationIcon size={ICON_MD} strokeWidth={ICON_STROKE} className="shrink-0" aria-hidden="true" /> {t("nm_use_my_location")}
             </button>
           )}
 
@@ -268,23 +267,18 @@ function ScopeComparisonCards({ scopes, isLoading, radiusKm, onRadiusChange, onU
             <select
               value={isCustomRadius ? "custom" : radiusKm}
               onChange={(e) => handlePresetChange(e.target.value)}
-              className="border border-ink-200 rounded-lg px-2.5 py-1.5 bg-card text-sm
-                focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
-              {RADIUS_PRESETS.map((km) => (
-                <option key={km} value={km}>
-                  {km} km
+              className="border border-ink-200 rounded-md px-2.5 py-1.5 bg-card text-sm
+                focus:outline-none focus:ring-2 focus:ring-primary-500">{RADIUS_PRESETS.map((km) => (
+                <option key={km} value={km}>{km} km
                 </option>
               ))}
               <option value="custom">{t("scope_radius_custom")}</option>
             </select>
-          </label>
-
-          {isCustomRadius && (
+          </label>{isCustomRadius && (
             <div className="flex items-center gap-1.5">
               <input
                 type="number"
-                min={1}
+          min={1}
                 max={500}
                 value={customValue}
                 onChange={(e) => setCustomValue(e.target.value)}
@@ -297,16 +291,13 @@ function ScopeComparisonCards({ scopes, isLoading, radiusKm, onRadiusChange, onU
                   }
                 }}
                 placeholder={t("scope_radius_custom_placeholder")}
-                className="w-24 border border-ink-200 rounded-lg px-2.5 py-1.5 bg-card text-sm
-                  focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
+                className="w-24 border border-ink-200 rounded-md px-2.5 py-1.5 bg-card text-sm
+                  focus:outline-none focus:ring-2 focus:ring-primary-500"/>
               <span className="text-sm text-ink-500">km</span>
               <button
                 type="button"
-                onClick={applyCustom}
-                className="px-3 py-1.5 rounded-lg bg-primary-600 text-primary-foreground text-sm font-semibold hover:opacity-90"
-              >
-                {t("common_search")}
+          onClick={applyCustom}
+                className="px-3 py-1.5 rounded-md bg-primary-600 text-primary-foreground text-sm font-medium hover:opacity-90">{t("common_search")}
               </button>
             </div>
           )}
@@ -317,14 +308,13 @@ function ScopeComparisonCards({ scopes, isLoading, radiusKm, onRadiusChange, onU
         <ScopeCard
           titleKey="scope_near_you"
           subtitle={t("scope_near_you_sub", { radius: radiusKm })}
-          icon="📍"
+          icon={LocationIcon}
           scope={nearYou}
           isLoading={isLoading}
           // A radius search genuinely cannot be done without a point to
           // measure from.
           blockedHintKey={!hasLocation ? "scope_blocked_near" : null}
-          emptyHintKey="scope_empty_radius"
-        />
+          emptyHintKey="scope_empty_radius"/>
 
         <ScopeCard
           titleKey="scope_state"
@@ -333,7 +323,7 @@ function ScopeComparisonCards({ scopes, isLoading, radiusKm, onRadiusChange, onU
               ? t("scope_state_sub", { state: stateName })
               : t("scope_state_sub_unknown")
           }
-          icon="🗺️"
+          icon={RegionIcon}
           scope={state}
           isLoading={isLoading}
           // TWO ways to fill this card, and the message says both. It
@@ -342,21 +332,19 @@ function ScopeComparisonCards({ scopes, isLoading, radiusKm, onRadiusChange, onU
           // box above works - and made the card look broken rather than
           // unconfigured.
           blockedHintKey={!stateName ? "scope_blocked_state" : null}
-          emptyHintKey="scope_empty_state"
-        />
+          emptyHintKey="scope_empty_state"/>
 
         <ScopeCard
           titleKey="scope_national"
           subtitle={t("scope_national_sub")}
-          icon="🇮🇳"
+          icon={CountryIcon}
           scope={national}
           isLoading={isLoading}
           // National never needs a location. Distances on its two
           // mandis appear anyway once location is shared, because the
           // backend attaches them to every row it can place.
           blockedHintKey={null}
-          emptyHintKey="scope_empty"
-        />
+          emptyHintKey="scope_empty"/>
       </div>
     </div>
   );

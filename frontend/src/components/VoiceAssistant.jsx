@@ -55,6 +55,16 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { askVoiceAssistant } from "../api/api";
+import {
+  InfoIcon,
+  MicIcon,
+  WarnIcon,
+  ICON_MD,
+  ICON_STROKE,
+  SpeakingIcon,
+  SpinnerIcon,
+  PlayIcon,
+} from "./icons";
 
 const LANGUAGES = [
   { code: "en", speechLang: "en-IN", label: "English" },
@@ -224,8 +234,7 @@ function VoiceAssistant() {
       if (voices.length === 0) return null;
 
       const wanted = (
-        LANGUAGES.find((l) => l.code === languageCode)?.speechLang || "en-IN"
-      ).toLowerCase();
+        LANGUAGES.find((l) => l.code === languageCode)?.speechLang || "en-IN").toLowerCase();
 
       const exact = voices.find((v) => v.lang?.toLowerCase() === wanted);
       if (exact) return { voice: exact, fellBack: false };
@@ -261,8 +270,7 @@ function VoiceAssistant() {
 
       if (!chosen) {
         setNotice(
-          "This device has no speech voices installed, so replies are shown as text."
-        );
+          "This device has no speech voices installed, so replies are shown as text.");
         onDone && onDone();
         return;
       }
@@ -272,12 +280,10 @@ function VoiceAssistant() {
 
       if (chosen.fellBack === "hi") {
         setNotice(
-          "No Marathi voice on this device — a Hindi voice is reading the reply. The text below is Marathi. Fuller Marathi voice support is coming."
-        );
+          "No Marathi voice on this device — a Hindi voice is reading the reply. The text below is Marathi. Fuller Marathi voice support is coming.");
       } else if (chosen.fellBack === "en") {
         setNotice(
-          "No Indian-language voice on this device — the reply is shown as text below."
-        );
+          "No Indian-language voice on this device — the reply is shown as text below.");
       } else {
         setNotice(null);
       }
@@ -385,11 +391,7 @@ function VoiceAssistant() {
       } catch (error) {
         console.error(error);
         const failure =
-          languageRef.current === "mr"
-            ? "माफ करा, सर्व्हरशी संपर्क होऊ शकला नाही."
-            : languageRef.current === "hi"
-            ? "माफ कीजिए, सर्वर से संपर्क नहीं हो सका।"
-            : "Sorry, I could not reach the server.";
+          languageRef.current === "mr"? "माफ करा, सर्व्हरशी संपर्क होऊ शकला नाही.": languageRef.current === "hi"? "माफ कीजिए, सर्वर से संपर्क नहीं हो सका।": "Sorry, I could not reach the server.";
         setTurns((previous) => [...previous, { who: "assistant", text: failure }]);
         speak(failure, languageRef.current, () => {
           busyRef.current = false;
@@ -452,8 +454,7 @@ function VoiceAssistant() {
         const result = event.results[i];
         if (result.isFinal) {
           finalText += result[0].transcript;
-          // Chrome reports 0 for some languages. Treat that as "unknown"
-          // rather than "terrible", or every Marathi turn looks low
+          // Chrome reports 0 for some languages. Treat that as "unknown"// rather than "terrible", or every Marathi turn looks low
           // quality and gets sent back for a repeat.
           if (result[0].confidence > 0) confidence = result[0].confidence;
         } else {
@@ -647,11 +648,13 @@ function VoiceAssistant() {
       <button
         onClick={startSession}
         aria-label={text.title}
-        className="fixed bottom-6 right-6 z-50 w-16 h-16 rounded-full bg-primary-gradient
-          text-primary-foreground text-2xl shadow-lifted hover:scale-110 transition-transform
-          grid place-items-center animate-pulseRing"
-      >
-        🎤
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary-600
+          text-primary-foreground shadow-lifted hover:bg-primary-hover transition-colors
+          grid place-items-center">
+        {/* The launcher used to be a microphone EMOJI. The strip that
+            removed emoji app-wide took it too, leaving a blank circle -
+            a button with no indication of what it does. */}
+        <MicIcon size={22} strokeWidth={ICON_STROKE} aria-hidden="true" />
       </button>
     );
   }
@@ -674,34 +677,38 @@ function VoiceAssistant() {
     idle: "bg-primary-gradient",
   }[status];
 
-  const orbIcon = {
-    listening: "🎙️",
-    speaking: "🔊",
-    thinking: "💭",
-    starting: "⏳",
-    paused: "▶️",
-    idle: "🎤",
+  // A COMPONENT per state, not a character. These used to be emoji,
+  // which meant the orb looked different on every phone and could not
+  // take the orb's own colour. Each is rendered as <OrbIcon /> below.
+  const OrbIcon = {
+    listening: MicIcon,
+    speaking: SpeakingIcon,
+    thinking: SpinnerIcon,
+    starting: SpinnerIcon,
+    paused: PlayIcon,
+    idle: MicIcon,
   }[status];
 
+  // The two states where the app is busy get a spinning icon, so the
+  // orb shows it is working rather than just sitting there.
+  const orbSpins = status === "thinking" || status === "starting";
+
   return (
-    <div className="fixed bottom-6 right-6 z-50 w-[min(24rem,calc(100vw-3rem))] max-h-[80vh] flex flex-col bg-card rounded-3xl shadow-lifted border border-surface-300 overflow-hidden animate-fadeInUp">
+    <div className="fixed bottom-6 right-6 z-50 w-[min(24rem,calc(100vw-3rem))] max-h-[80vh] flex flex-col bg-card rounded-lg shadow-lifted border border-surface-300 overflow-hidden animate-fadeInUp">
       {/* ---------- Header ---------- */}
       <div className="bg-primary-gradient text-primary-foreground px-4 py-3 flex items-center justify-between gap-2">
-        <span className="font-bold flex items-center gap-2">🎤 {text.title}</span>
+        <span className="font-semibold flex items-center gap-2"><MicIcon size={ICON_MD} strokeWidth={ICON_STROKE} className="shrink-0" aria-hidden="true" /> {text.title}</span>
 
         <div className="flex items-center gap-2">
-          {/* Auto-detection gets the language wrong often enough that
+      {/* Auto-detection gets the language wrong often enough that
               this has to be one tap away, not buried in a settings page. */}
           <select
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
             aria-label={text.langLabel}
-            className="bg-white/20 ring-1 ring-white/30 text-white text-xs font-semibold
-              rounded-lg px-2 py-1 cursor-pointer focus:outline-none"
-          >
-            {LANGUAGES.map((l) => (
-              <option key={l.code} value={l.code} className="text-ink-900 bg-card">
-                {l.label}
+            className="bg-white/20 ring-1 ring-white/30 text-white text-xs font-medium
+              rounded-md px-2 py-1 cursor-pointer focus:outline-none">{LANGUAGES.map((l) => (
+              <option key={l.code} value={l.code} className="text-ink-900 bg-card">{l.label}
               </option>
             ))}
           </select>
@@ -709,17 +716,15 @@ function VoiceAssistant() {
           <button
             onClick={closeAssistant}
             aria-label="Close"
-            className="w-7 h-7 rounded-lg bg-white/20 hover:bg-white/35 grid place-items-center"
-          >
-            ✕
+          className="w-7 h-7 rounded-md bg-white/20 hover:bg-white/35 grid place-items-center">
+            
           </button>
         </div>
       </div>
-
       {/* ---------- Voice unavailable ---------- */}
       {voiceFailed && (
         <div className="bg-accent-50 border-b border-accent-200 px-4 py-3 text-xs text-accent-900">
-          <p className="font-semibold mb-1">⚠️ {text.fallbackTitle}</p>
+          <p className="font-medium mb-1"><WarnIcon size={ICON_MD} strokeWidth={ICON_STROKE} className="shrink-0" aria-hidden="true" /> {text.fallbackTitle}</p>
           <p>{voiceFailed === "blocked" ? text.micBlocked : text.noVoiceSupport}</p>
         </div>
       )}
@@ -727,36 +732,29 @@ function VoiceAssistant() {
       {/* ---------- Voice-quality notice ---------- */}
       {notice && (
         <div className="bg-ink-50 border-b border-ink-200 px-4 py-2 text-xs text-ink-700">
-          ℹ️ {notice}
+          <InfoIcon size={ICON_MD} strokeWidth={ICON_STROKE} className="shrink-0" aria-hidden="true" /> {notice}
         </div>
       )}
 
       {/* ---------- Conversation ---------- */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-[11rem]">
-        {turns.map((turn, index) => (
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-[11rem]">{turns.map((turn, index) => (
           <div key={index} className={turn.who === "user" ? "text-right" : "text-left"}>
-            <p className="text-[10px] uppercase tracking-wide text-ink-400 mb-0.5">
-              {turn.who === "user" ? text.you : text.assistant}
+            <p className="text-[10px] uppercase tracking-wide text-ink-400 mb-0.5">{turn.who === "user" ? text.you : text.assistant}
             </p>
             <div
-              className={`inline-block rounded-2xl px-3.5 py-2 text-sm max-w-[85%] text-left ${
-                turn.who === "user"
-                  ? "bg-ink-100 text-ink-800"
-                  : "bg-primary-50 text-primary-900 ring-1 ring-primary-100"
-              }`}
-            >
-              {turn.text}
+              className={`inline-block rounded-lg px-3.5 py-2 text-sm max-w-[85%] text-left ${
+                turn.who === "user"? "bg-ink-100 text-ink-800": "bg-primary-50 text-primary-900 ring-1 ring-primary-100"}`}
+            >{turn.text}
 
               {/* The numbers behind the sentence. This is what a farmer
                   checks before trusting a figure - and it is the whole
                   answer when no TTS voice exists for their language. */}
               {turn.data?.modalPrice && (
                 <div className="mt-2 pt-2 border-t border-primary-200 text-xs space-y-0.5">
-                  <div className="font-semibold">
+                  <div className="font-medium">
                     ₹{turn.data.modalPrice.toLocaleString("en-IN")}/quintal
                   </div>
-                  <div className="opacity-80">
-                    {turn.data.mandiName}
+                  <div className="opacity-80">{turn.data.mandiName}
                     {turn.data.state ? `, ${turn.data.state}` : ""}
                     {turn.data.distanceKm != null ? ` · ${turn.data.distanceKm} km` : ""}
                   </div>
@@ -770,8 +768,7 @@ function VoiceAssistant() {
             this appear is how the farmer knows the mic is really live. */}
         {interim && (
           <div className="text-right">
-            <div className="inline-block rounded-2xl px-3.5 py-2 text-sm bg-ink-50 text-ink-400 italic">
-              {interim}…
+            <div className="inline-block rounded-lg px-3.5 py-2 text-sm bg-ink-50 text-ink-400 italic">{interim}…
             </div>
           </div>
         )}
@@ -779,8 +776,7 @@ function VoiceAssistant() {
         {turns.length <= 1 && !voiceFailed && (
           <div className="text-xs text-ink-400 pt-2">
             <p className="mb-1 font-medium">{text.tryAsking}</p>
-            <ul className="space-y-0.5">
-              {text.examples.map((example) => (
+            <ul className="space-y-0.5">{text.examples.map((example) => (
                 <li key={example}>• “{example}”</li>
               ))}
             </ul>
@@ -789,7 +785,6 @@ function VoiceAssistant() {
 
         <div ref={transcriptEndRef} />
       </div>
-
       {/* ---------- The mic orb: the ONLY control in normal use ---------- */}
       {!voiceFailed && (
         <div className="px-4 py-4 border-t border-surface-200 bg-surface-50 flex flex-col items-center gap-2">
@@ -799,15 +794,21 @@ function VoiceAssistant() {
               else pauseSession();
             }}
             aria-label={statusLabel}
-            className={`w-16 h-16 rounded-full grid place-items-center text-2xl text-white
+            className={`w-16 h-16 rounded-full grid place-items-center text-white
               transition-all shadow-soft ${orbStyle}`}
           >
-            {orbIcon}
+            {OrbIcon && (
+              <OrbIcon
+                size={26}
+                strokeWidth={ICON_STROKE}
+                className={orbSpins ? "animate-spin" : ""}
+                aria-hidden="true"
+              />
+            )}
           </button>
 
-          <p className="text-sm font-semibold text-ink-700">{statusLabel}</p>
-
-          {/* Say out loud that no further tapping is needed - otherwise
+          <p className="text-sm font-medium text-ink-700">{statusLabel}</p>
+      {/* Say out loud that no further tapping is needed - otherwise
               people tap the orb after every reply and cut themselves off. */}
           {(status === "listening" || status === "speaking" || status === "thinking") && (
             <p className="text-[11px] text-ink-400 text-center">{text.handsFree}</p>
@@ -822,28 +823,23 @@ function VoiceAssistant() {
           <form onSubmit={submitTyped} className="flex gap-2">
             <input
               type="text"
-              value={typedQuestion}
+          value={typedQuestion}
               onChange={(e) => setTypedQuestion(e.target.value)}
-              className="flex-1 border border-ink-200 rounded-xl px-3 py-2 text-sm
-                focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
+              className="flex-1 border border-ink-200 rounded-md px-3 py-2 text-sm
+                focus:outline-none focus:ring-2 focus:ring-primary-500"/>
             <button
               type="submit"
-              className="px-4 py-2 rounded-xl bg-primary-600 text-primary-foreground text-sm font-semibold
-                hover:bg-primary-hover transition-colors"
-            >
-              {text.send}
+          className="px-4 py-2 rounded-md bg-primary-600 text-primary-foreground text-sm font-medium
+                hover:bg-primary-hover transition-colors">{text.send}
             </button>
           </form>
-
-          {/* Only offered if the mic was refused - if the browser has no
+      {/* Only offered if the mic was refused - if the browser has no
               recognition at all, retrying cannot help. */}
           {voiceFailed === "blocked" && (
             <button
               onClick={resumeSession}
-              className="mt-2 w-full text-xs text-primary-700 font-semibold hover:underline"
-            >
-              🎤 Try the microphone again
+              className="mt-2 w-full text-xs text-primary-700 font-medium hover:underline">
+               Try the microphone again
             </button>
           )}
         </div>

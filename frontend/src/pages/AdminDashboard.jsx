@@ -31,6 +31,25 @@ import { getAdminStats } from "../api/api";
 import { useAuth } from "../context/AuthContext";
 import StatCard from "../components/StatCard";
 import VerdictPieChart from "../components/VerdictPieChart";
+import {
+  ActivityIcon,
+  DateIcon,
+  FarmersIcon,
+  InfoIcon,
+  OkIcon,
+  ReceiptIcon,
+  WarnIcon,
+  ICON_MD,
+  ICON_STROKE,
+  RupeeIcon,
+  SignupIcon,
+  LoginIcon,
+  LogoutIcon,
+  UploadIcon,
+  CameraIcon,
+  SearchIcon,
+  MandiIcon,
+} from "../components/icons";
 
 function AdminDashboard() {
   const { currentUser } = useAuth();
@@ -57,7 +76,6 @@ function AdminDashboard() {
   if (isLoading) {
     return (
       <div className="text-center py-24 text-ink-500">
-        <div className="text-3xl mb-2 animate-pulse">📊</div>
         <p className="text-sm">Loading admin dashboard...</p>
       </div>
     );
@@ -66,8 +84,7 @@ function AdminDashboard() {
   if (errorMessage) {
     return (
       <div className="max-w-3xl mx-auto px-6 py-16">
-        <div className="bg-negative-50 text-negative-700 border border-negative-200 rounded-lg px-4 py-3 text-sm">
-          {errorMessage}
+        <div className="bg-negative-50 text-negative-700 border border-negative-200 rounded-md px-4 py-3 text-sm">{errorMessage}
         </div>
       </div>
     );
@@ -77,7 +94,7 @@ function AdminDashboard() {
     <div className="max-w-6xl mx-auto px-6 py-10 animate-fadeIn">
       {/* ---------- Header ---------- */}
       <div className="flex flex-wrap items-center justify-between gap-4 mb-2">
-        <h1 className="text-2xl font-bold text-ink-900 animate-fadeInLeft">👑 Admin Dashboard</h1>
+        <h1 className="text-2xl font-semibold text-ink-900 animate-fadeInLeft"> Admin Dashboard</h1>
         <span className="text-sm text-ink-500">
           Signed in as <strong>{currentUser?.name}</strong>
         </span>
@@ -86,96 +103,84 @@ function AdminDashboard() {
         A live view of everyone using the app - who's enrolled, what they're
         doing, and whether they're getting fair prices.
       </p>
-
       {/* ---------- Farmer enrolment cards ---------- */}
-      <h2 className="text-sm font-semibold text-ink-500 uppercase tracking-wide mb-3">
+      <h2 className="text-sm font-medium text-ink-500 uppercase tracking-wide mb-3">
         Farmers
       </h2>
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard
-          icon="🧑‍🌾"
+          icon={FarmersIcon}
           label="Total Farmers Enrolled"
           value={stats.totalFarmers}
-          tone="primary"
-        />
-        <StatCard icon="✅" label="Active Accounts" value={stats.activeFarmers} />
-        <StatCard icon="🆕" label="Joined This Week" value={stats.newFarmersThisWeek} />
+          tone="primary"/>
+        <StatCard icon={OkIcon} label="Active Accounts" value={stats.activeFarmers} />
+        <StatCard icon={InfoIcon} label="Joined This Week" value={stats.newFarmersThisWeek} />
         <StatCard
-          icon="⚡"
+          icon={ActivityIcon}
           label="Active in Last 30 Days"
           value={stats.activeUsersLast30Days}
-          tone="accent"
-        />
+          tone="accent"/>
       </div>
-
       {/* ---------- Receipt / price-fairness cards ---------- */}
-      <h2 className="text-sm font-semibold text-ink-500 uppercase tracking-wide mb-3">
+      <h2 className="text-sm font-medium text-ink-500 uppercase tracking-wide mb-3">
         Receipts &amp; Fair Prices
       </h2>
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard icon="🧾" label="Total Receipts" value={stats.totalReceipts} />
-        <StatCard icon="📅" label="Uploaded This Week" value={stats.receiptsThisWeek} />
+        <StatCard icon={ReceiptIcon} label="Total Receipts" value={stats.totalReceipts} />
+        <StatCard icon={DateIcon} label="Uploaded This Week" value={stats.receiptsThisWeek} />
         <StatCard
-          icon="⚠️"
+          icon={WarnIcon}
           label="Underpaid Sales"
           value={stats.underpaidCount}
-          tone="under"
-        />
+          tone="under"/>
         <StatCard
-          icon="💸"
+          icon={RupeeIcon}
           label="Total Farmer Loss (₹)"
           value={stats.totalPotentialLoss.toLocaleString("en-IN")}
-          tone="under"
-        />
+          tone="under"/>
       </div>
-
       {/* ---------- Charts ---------- */}
       <div className="grid lg:grid-cols-2 gap-6 mb-8">
-        {/* Signups + uploads per day over the last 2 weeks */}
-        <div className="bg-card rounded-2xl shadow-soft p-6 border border-surface-300/60 hover-lift animate-fadeInUp">
-          <h3 className="font-semibold text-ink-900 mb-4">
-            📈 Signups &amp; Uploads (last 14 days)
+      {/* Signups + uploads per day over the last 2 weeks */}
+        <div className="bg-card rounded-lg shadow-soft p-6 border border-surface-300/60 hover-lift animate-fadeInUp">
+          <h3 className="font-medium text-ink-900 mb-4">
+             Signups &amp; Uploads (last 14 days)
           </h3>
           <ResponsiveContainer width="100%" height={260}>
             <LineChart data={stats.signupsByDay}>
               <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-              {/* Show just "16/09" instead of the full date, or the
+      {/* Show just "16/09" instead of the full date, or the
                   labels overlap and become unreadable. */}
               <XAxis
                 dataKey="date"
-                tick={{ fontSize: 11 }}
+          tick={{ fontSize: 11 }}
                 tickFormatter={(d) => d.slice(8) + "/" + d.slice(5, 7)}
               />
               <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
               <Tooltip />
               <Line
                 type="monotone"
-                dataKey="signups"
-                name="New farmers"
-                stroke="#2E7D32"
-                strokeWidth={2}
+          dataKey="signups"
+          name="New farmers"
+          stroke="#2E7D32"strokeWidth={2}
               />
               <Line
                 type="monotone"
-                dataKey="receipts"
-                name="Receipts uploaded"
-                stroke="#D97706"
-                strokeWidth={2}
+          dataKey="receipts"
+          name="Receipts uploaded"
+          stroke="#D97706"strokeWidth={2}
               />
             </LineChart>
           </ResponsiveContainer>
         </div>
-
-        {/* Are farmers overall getting fair prices? */}
-        <div className="bg-card rounded-2xl shadow-soft p-6 border border-surface-300/60 hover-lift animate-fadeInUp">
-          <h3 className="font-semibold text-ink-900 mb-4">⚖️ Verdicts Across All Receipts</h3>
+      {/* Are farmers overall getting fair prices? */}
+        <div className="bg-card rounded-lg shadow-soft p-6 border border-surface-300/60 hover-lift animate-fadeInUp">
+          <h3 className="font-medium text-ink-900 mb-4"> Verdicts Across All Receipts</h3>
           <VerdictPieChart data={stats.verdictBreakdown} />
         </div>
-
-        {/* Most-uploaded crops */}
-        <div className="bg-card rounded-2xl shadow-soft p-6 border border-surface-300/60 hover-lift animate-fadeInUp">
-          <h3 className="font-semibold text-ink-900 mb-4">🌾 Most Uploaded Crops</h3>
-          {stats.topCrops.length === 0 ? (
+      {/* Most-uploaded crops */}
+        <div className="bg-card rounded-lg shadow-soft p-6 border border-surface-300/60 hover-lift animate-fadeInUp">
+          <h3 className="font-medium text-ink-900 mb-4"> Most Uploaded Crops</h3>{stats.topCrops.length === 0 ? (
             <EmptyChartNote />
           ) : (
             <ResponsiveContainer width="100%" height={260}>
@@ -189,11 +194,9 @@ function AdminDashboard() {
             </ResponsiveContainer>
           )}
         </div>
-
-        {/* Most-used mandis */}
-        <div className="bg-card rounded-2xl shadow-soft p-6 border border-surface-300/60 hover-lift animate-fadeInUp">
-          <h3 className="font-semibold text-ink-900 mb-4">🏛️ Most Reported Mandis</h3>
-          {stats.topMandis.length === 0 ? (
+      {/* Most-used mandis */}
+        <div className="bg-card rounded-lg shadow-soft p-6 border border-surface-300/60 hover-lift animate-fadeInUp">
+          <h3 className="font-medium text-ink-900 mb-4"> Most Reported Mandis</h3>{stats.topMandis.length === 0 ? (
             <EmptyChartNote />
           ) : (
             <ResponsiveContainer width="100%" height={260}>
@@ -208,18 +211,14 @@ function AdminDashboard() {
           )}
         </div>
       </div>
-
       {/* ---------- Farmers by state ---------- */}
       {stats.farmersByState.length > 0 && (
-        <div className="bg-card rounded-2xl shadow-soft p-6 border border-surface-300/60 mb-8">
-          <h3 className="font-semibold text-ink-900 mb-4">🗺️ Farmers by State</h3>
-          <div className="flex flex-wrap gap-2">
-            {stats.farmersByState.map((row) => (
+        <div className="bg-card rounded-lg shadow-soft p-6 border border-surface-300/60 mb-8">
+          <h3 className="font-medium text-ink-900 mb-4"> Farmers by State</h3>
+          <div className="flex flex-wrap gap-2">{stats.farmersByState.map((row) => (
               <span
                 key={row.state}
-                className="bg-positive-50 text-positive-800 px-3 py-1.5 rounded-full text-sm"
-              >
-                {row.state}: <strong>{row.count}</strong>
+                className="bg-positive-50 text-positive-800 px-3 py-1.5 rounded-full text-sm">{row.state}: <strong>{row.count}</strong>
               </span>
             ))}
           </div>
@@ -227,28 +226,27 @@ function AdminDashboard() {
       )}
 
       {/* ---------- Recent activity preview ---------- */}
-      <div className="bg-card rounded-2xl shadow-soft p-6 border border-surface-300/60 hover-lift animate-fadeInUp">
+      <div className="bg-card rounded-lg shadow-soft p-6 border border-surface-300/60 hover-lift animate-fadeInUp">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-ink-900">⚡ Latest Farmer Activity</h3>
-          <Link to="/admin/activity" className="text-sm text-primary-700 font-semibold hover:underline">
-            View all →
+          <h3 className="font-medium text-ink-900"> Latest Farmer Activity</h3>
+          <Link to="/admin/activity" className="text-sm text-primary-700 font-medium hover:underline">
+            View all 
           </Link>
-        </div>
-
-        {stats.recentActivity.length === 0 ? (
+        </div>{stats.recentActivity.length === 0 ? (
           <p className="text-sm text-ink-500 py-6 text-center">
             No activity recorded yet. It'll appear here as soon as farmers log
             in and upload receipts.
           </p>
         ) : (
-          <ul className="divide-y divide-surface-200">
-            {stats.recentActivity.map((item) => (
+          <ul className="divide-y divide-surface-200">{stats.recentActivity.map((item) => (
               <li key={item._id} className="py-3 flex items-start gap-3">
-                <span className="text-lg">{actionIcon(item.action)}</span>
+                {(() => {
+                  const Icon = actionIcon(item.action);
+                  return <Icon size={ICON_MD} strokeWidth={ICON_STROKE} className="text-ink-400 shrink-0" aria-hidden="true" />;
+                })()}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-ink-800">{item.description}</p>
-                  <p className="text-xs text-ink-400">
-                    {item.userEmail} · {new Date(item.createdAt).toLocaleString()}
+                  <p className="text-xs text-ink-400">{item.userEmail} · {new Date(item.createdAt).toLocaleString()}
                   </p>
                 </div>
               </li>
@@ -256,26 +254,19 @@ function AdminDashboard() {
           </ul>
         )}
       </div>
-
       {/* ---------- Quick links to the other admin pages ---------- */}
       <div className="grid sm:grid-cols-2 gap-4 mt-8">
         <Link
-          to="/admin/farmers"
-          className="bg-card rounded-2xl shadow-soft border border-surface-300/60 p-6 hover:border-brand-green hover-lift animate-popIn"
-        >
-          <div className="text-2xl mb-2">🧑‍🌾</div>
-          <h4 className="font-semibold text-ink-900">Manage Farmers</h4>
+          to="/admin/farmers"className="bg-card rounded-lg shadow-soft border border-surface-300/60 p-6 hover:border-brand-green hover-lift animate-popIn">
+          <h4 className="font-medium text-ink-900">Manage Farmers</h4>
           <p className="text-sm text-ink-500">
             Search every enrolled farmer, see their uploads, and block or
             unblock accounts.
           </p>
         </Link>
         <Link
-          to="/admin/activity"
-          className="bg-card rounded-2xl shadow-soft border border-surface-300/60 p-6 hover:border-brand-green hover-lift animate-popIn"
-        >
-          <div className="text-2xl mb-2">⚡</div>
-          <h4 className="font-semibold text-ink-900">Full Activity Log</h4>
+          to="/admin/activity"className="bg-card rounded-lg shadow-soft border border-surface-300/60 p-6 hover:border-brand-green hover-lift animate-popIn">
+          <h4 className="font-medium text-ink-900">Full Activity Log</h4>
           <p className="text-sm text-ink-500">
             Every login, search and upload, newest first - filterable by type.
           </p>
@@ -299,17 +290,20 @@ function EmptyChartNote() {
 // Turns an action code like "UPLOAD_RECEIPT" into a little icon.
 // Exported so AdminActivity.jsx can reuse it instead of duplicating it.
 export function actionIcon(action) {
+  // Returns a COMPONENT, not a character - so callers render it as
+  // <Icon /> and it inherits the row's colour and size. These were
+  // emoji, which could do neither.
   const icons = {
-    SIGNUP: "🆕",
-    LOGIN: "🔑",
-    LOGOUT: "👋",
-    UPLOAD_RECEIPT: "🧾",
-    SCAN_RECEIPT: "📷",
-    CHECK_RATES: "🔍",
-    SEARCH_MANDI: "🏛️",
-    VIEW_MANDI: "👀",
+    SIGNUP: SignupIcon,
+    LOGIN: LoginIcon,
+    LOGOUT: LogoutIcon,
+    UPLOAD_RECEIPT: UploadIcon,
+    SCAN_RECEIPT: CameraIcon,
+    CHECK_RATES: SearchIcon,
+    SEARCH_MANDI: SearchIcon,
+    VIEW_MANDI: MandiIcon,
   };
-  return icons[action] || "•";
+  return icons[action] || ActivityIcon;
 }
 
 export default AdminDashboard;

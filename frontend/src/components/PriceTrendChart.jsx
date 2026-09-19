@@ -37,6 +37,13 @@ import {
 
 import { useLanguage } from "../context/LanguageContext";
 import { axisTick, gridStroke, formatRupees } from "./chartTheme";
+import {
+  ICON_MD,
+  ICON_LG,
+  ICON_STROKE,
+  TrendIcon,
+  LineChartIcon,
+} from "./icons";
 
 const LINE_COLOUR = "#2E7D32";
 
@@ -54,17 +61,16 @@ function PriceTrendChart({ points, isLoading, crop }) {
   // ---- 1. Loading ----
   if (isLoading) {
     return (
-      <div className="bg-card rounded-2xl shadow-soft p-6 border border-surface-300/60">
+      <div className="bg-card rounded-lg shadow-soft p-6 border border-surface-300/60">
         <div className="animate-pulse">
           <div className="h-3 w-32 bg-surface-200 rounded mb-6" />
-          {/* Bars of varying height read as "a chart is coming", which
+      {/* Bars of varying height read as "a chart is coming", which
               a plain grey block does not. */}
-          <div className="flex items-end gap-2 h-56">
-            {[45, 70, 35, 85, 55, 75, 40, 65, 50, 80].map((height, index) => (
+          <div className="flex items-end gap-2 h-56">{[45, 70, 35, 85, 55, 75, 40, 65, 50, 80].map((height, index) => (
               <div
                 key={index}
                 className="flex-1 bg-surface-200 rounded-t"
-                style={{ height: `${height}%` }}
+          style={{ height: `${height}%` }}
               />
             ))}
           </div>
@@ -80,7 +86,7 @@ function PriceTrendChart({ points, isLoading, crop }) {
   if (safePoints.length === 0) {
     return (
       <EmptyPanel
-        icon="📭"
+        icon={LineChartIcon}
         title={t("trend_empty_title")}
         text={t("trend_empty_text")}
       />
@@ -92,17 +98,15 @@ function PriceTrendChart({ points, isLoading, crop }) {
     const only = safePoints[0];
     return (
       <EmptyPanel
-        icon="📈"
+        icon={TrendIcon}
         title={t("trend_single_title")}
         text={t("trend_single_text")}
         detail={
-          <div className="inline-flex flex-col items-center bg-primary-50 border border-primary-200 rounded-xl px-6 py-4 mt-4">
+          <div className="inline-flex flex-col items-center bg-primary-50 border border-primary-200 rounded-md px-6 py-4 mt-4">
             <span className="text-xs text-ink-500">{only.date}</span>
-            <span className="text-2xl font-bold text-primary-700">
-              {formatRupees(only.averagePrice)}
+            <span className="text-2xl font-semibold text-primary-700">{formatRupees(only.averagePrice)}
             </span>
-            <span className="text-xs text-ink-400">
-              {pointSourceLabel(t, only)}
+            <span className="text-xs text-ink-400">{pointSourceLabel(t, only)}
             </span>
           </div>
         }
@@ -117,7 +121,7 @@ function PriceTrendChart({ points, isLoading, crop }) {
   }));
 
   return (
-    <div className="bg-card rounded-2xl shadow-soft p-5 pr-3 border border-surface-300/60">
+    <div className="bg-card rounded-lg shadow-soft p-5 pr-3 border border-surface-300/60">
       <ResponsiveContainer width="100%" height={340}>
         <LineChart data={rows} margin={{ top: 10, right: 20, left: 4, bottom: 5 }}>
           <defs>
@@ -131,7 +135,7 @@ function PriceTrendChart({ points, isLoading, crop }) {
 
           <XAxis
             dataKey="label"
-            tick={axisTick()}
+          tick={axisTick()}
             axisLine={false}
             tickLine={false}
             minTickGap={16}
@@ -156,10 +160,9 @@ function PriceTrendChart({ points, isLoading, crop }) {
 
           <Line
             type="monotone"
-            dataKey="averagePrice"
-            name={crop}
-            stroke="url(#trend-line)"
-            strokeWidth={3}
+          dataKey="averagePrice"
+          name={crop}
+            stroke="url(#trend-line)"strokeWidth={3}
             dot={{ r: 4, fill: LINE_COLOUR, strokeWidth: 0 }}
             activeDot={{ r: 6 }}
           />
@@ -179,14 +182,11 @@ function TrendTooltip({ active, payload }) {
   const row = payload[0].payload;
 
   return (
-    <div className="bg-white/97 backdrop-blur rounded-xl shadow-lg border border-surface-300 px-4 py-3 text-sm">
-      <p className="font-semibold text-ink-900 mb-1">{row.date}</p>
-      <p className="text-primary-700 font-bold text-lg">{formatRupees(row.averagePrice)}</p>
-      <p className="text-xs text-ink-400">{t("common_per_quintal")}</p>
-
-      {row.minPrice != null && row.minPrice !== row.maxPrice && (
-        <p className="text-xs text-ink-500 mt-1">
-          {formatRupees(row.minPrice)} – {formatRupees(row.maxPrice)}
+    <div className="bg-white/97 backdrop-blur rounded-md shadow-lg border border-surface-300 px-4 py-3 text-sm">
+      <p className="font-medium text-ink-900 mb-1">{row.date}</p>
+      <p className="text-primary-700 font-semibold text-lg">{formatRupees(row.averagePrice)}</p>
+      <p className="text-xs text-ink-400">{t("common_per_quintal")}</p>{row.minPrice != null && row.minPrice !== row.maxPrice && (
+        <p className="text-xs text-ink-500 mt-1">{formatRupees(row.minPrice)} – {formatRupees(row.maxPrice)}
         </p>
       )}
 
@@ -213,13 +213,14 @@ function pointSourceLabel(t, point) {
 
 // Shared shell for the two "no chart" states, so they look deliberate
 // rather than like an error.
-function EmptyPanel({ icon, title, text, detail }) {
+function EmptyPanel({ icon: Icon, title, text, detail }) {
   return (
-    <div className="bg-card rounded-2xl shadow-soft border border-surface-300/60 py-14 px-6 text-center">
-      <div className="text-4xl mb-3">{icon}</div>
-      <p className="font-semibold text-ink-900 mb-1">{title}</p>
-      <p className="text-sm text-ink-500 max-w-md mx-auto">{text}</p>
-      {detail}
+    <div className="bg-card rounded-lg shadow-soft border border-surface-300/60 py-14 px-6 text-center">
+      <div className="text-ink-300 mb-3 flex justify-center">
+        {Icon && <Icon size={28} strokeWidth={ICON_STROKE} aria-hidden="true" />}
+      </div>
+      <p className="font-medium text-ink-900 mb-1">{title}</p>
+      <p className="text-sm text-ink-500 max-w-md mx-auto">{text}</p>{detail}
     </div>
   );
 }

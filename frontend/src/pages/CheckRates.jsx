@@ -20,8 +20,21 @@ import MandiTrendChart from "../components/MandiTrendChart";
 import CommunityPriceChart from "../components/CommunityPriceChart";
 import { useLanguage } from "../context/LanguageContext";
 import ScopeComparisonCards from "../components/ScopeComparisonCards";
+import DataFreshness from "../components/DataFreshness";
 import CropSelect from "../components/CropSelect";
 import PickList from "../components/PickList";
+import {
+  ICON_MD,
+  ICON_LG,
+  ICON_STROKE,
+  ChartIcon,
+  FarmersIcon,
+  MandiIcon,
+  SearchIcon,
+  TipIcon,
+  TrendIcon,
+  ReceiptIcon,
+} from "../components/icons";
 
 function CheckRates() {
   const { t } = useLanguage();
@@ -151,13 +164,13 @@ function CheckRates() {
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-10 animate-fadeIn">
-      <h1 className="text-2xl font-bold text-ink-900 mb-2">🔍 {t("cr_title")}</h1>
+      <h1 className="text-2xl font-semibold text-ink-900 mb-2"><SearchIcon size={ICON_MD} strokeWidth={ICON_STROKE} className="shrink-0" aria-hidden="true" /> {t("cr_title")}</h1>
       <p className="text-ink-600 mb-6">{t("cr_subtitle")}</p>
 
       {/* ---------- Search form ---------- */}
       <form
         onSubmit={handleSearch}
-        className="bg-card rounded-2xl shadow-soft p-6 border border-surface-300/60 grid sm:grid-cols-4 gap-4 mb-8"
+        className="bg-card rounded-lg shadow-soft p-6 border border-surface-300/60 grid sm:grid-cols-4 gap-4 mb-8"
       >
         <div className="sm:col-span-2">
           <label className="block text-sm font-medium text-ink-600 mb-1">{t("common_crop")}</label>
@@ -184,22 +197,22 @@ function CheckRates() {
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+            className="w-full border border-ink-200 rounded-md px-3.5 py-2.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
           />
         </div>
         <div className="sm:col-span-4">
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full sm:w-auto bg-primary-gradient text-primary-foreground font-semibold px-6 py-3 rounded-2xl shadow-soft hover:scale-[1.02] transition-all disabled:opacity-50"
+            className="w-full sm:w-auto bg-primary-gradient text-primary-foreground font-medium px-6 py-3 rounded-lg shadow-soft hover:scale-[1.02] transition-all disabled:opacity-50"
           >
-            {isLoading ? t("common_searching") : `🔍 ${t("cr_btn_check")}`}
+            {isLoading ? t("common_searching") : `${t("cr_btn_check")}`}
           </button>
         </div>
       </form>
 
       {errorMessage && (
-        <div className="bg-negative-50 text-negative-700 border border-negative-200 rounded-lg px-4 py-3 mb-6 text-sm">
+        <div className="bg-negative-50 text-negative-700 border border-negative-200 rounded-md px-4 py-3 mb-6 text-sm">
           {errorMessage}
         </div>
       )}
@@ -227,6 +240,11 @@ function CheckRates() {
 
       {/* ---------- Results ---------- */}
       {result && <ResultsView result={result} />}
+
+      {/* The date the farmer PICKED is passed in, so if they are looking
+          at last month the label says so instead of implying the sync
+          time is the data's date. */}
+      {result && <DataFreshness source="agmarknet" forDate={date} className="mt-4" />}
     </div>
   );
 }
@@ -248,24 +266,24 @@ function QuickStats({ result }) {
   const { government, community } = result;
 
   const items = [
-    { icon: "🏛️", label: t("cr_gov_average"), value: government.averagePrice, isPrice: true },
-    { icon: "🧑‍🌾", label: t("cr_farmer_average"), value: community.averagePrice, isPrice: true },
-    { icon: "📝", label: t("cr_reports_found"), value: community.reportCount, isPrice: false },
+    { icon: MandiIcon, label: t("cr_gov_average"), value: government.averagePrice, isPrice: true },
+    { icon: FarmersIcon, label: t("cr_farmer_average"), value: community.averagePrice, isPrice: true },
+    { icon: ReceiptIcon, label: t("cr_reports_found"), value: community.reportCount, isPrice: false },
   ];
 
   return (
     <div
-      className="flex flex-wrap items-center gap-x-6 gap-y-3 bg-card rounded-2xl
+      className="flex flex-wrap items-center gap-x-6 gap-y-3 bg-card rounded-lg
         shadow-soft border border-surface-300/60 px-5 py-3.5 mb-6"
     >
       {items.map((item) => (
         <div key={item.label} className="flex items-center gap-2.5 min-w-0">
-          <span className="text-lg leading-none shrink-0">{item.icon}</span>
+          <item.icon size={ICON_LG} strokeWidth={ICON_STROKE} className="text-ink-400 shrink-0" aria-hidden="true" />
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-400 truncate">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-ink-400 truncate">
               {item.label}
             </p>
-            <p className="font-bold text-ink-900 leading-tight">
+            <p className="font-semibold text-ink-900 leading-tight">
               {item.value == null
                 ? "-"
                 : item.isPrice
@@ -291,9 +309,9 @@ function ResultsView({ result }) {
   // A short, honest note about where the government numbers came from -
   // the same "real vs mock" idea shown on the Upload result screen.
   const govtSourceLabel = {
-    "real-exact-date": `✅ ${t("cr_src_real", { date: government.matchedDate })}`,
-    "real-nearest-date": `✅ ${t("cr_src_real_nearest", { date: government.matchedDate })}`,
-    mock: `⚠️ ${t("cr_src_mock")}`,
+    "real-exact-date": `${t("cr_src_real", { date: government.matchedDate })}`,
+    "real-nearest-date": `${t("cr_src_real_nearest", { date: government.matchedDate })}`,
+    mock: `${t("cr_src_mock")}`,
   }[government.dataSource];
 
   return (
@@ -321,12 +339,12 @@ function ResultsView({ result }) {
       <details open className="group mb-6">
         <summary
           className="cursor-pointer list-none flex items-center gap-2 px-4 py-2.5
-            rounded-xl bg-warning-50 border border-warning-200 text-sm
-            font-semibold text-warning-900 hover:bg-warning-100 transition-colors"
+            rounded-md bg-warning-50 border border-warning-200 text-sm
+            font-medium text-warning-900 hover:bg-warning-100 transition-colors"
         >
           {/* Rotates to point down when the block is open. */}
           <span className="text-ink-400 transition-transform group-open:rotate-90">▶</span>
-          💡 {t("cr_insights")}
+          <TipIcon size={ICON_MD} strokeWidth={ICON_STROKE} className="shrink-0" aria-hidden="true" /> {t("cr_insights")}
         </summary>
 
         <div className="px-4 pt-3 space-y-2">
@@ -346,20 +364,20 @@ function ResultsView({ result }) {
 
       {/* ---- The full ranking, best to worst ---- */}
       {rankedMandis && rankedMandis.length > 2 && (
-        <details className="bg-card rounded-2xl shadow-soft border border-surface-300/60 mb-6">
+        <details className="bg-card rounded-lg shadow-soft border border-surface-300/60 mb-6">
           {/* <details>/<summary> is plain HTML - it gives you a
               collapsible section with no JavaScript at all. */}
-          <summary className="cursor-pointer px-6 py-4 font-semibold text-ink-900">
-            📊 {t("cr_see_all_ranked", { count: rankedMandis.length })}
+          <summary className="cursor-pointer px-6 py-4 font-medium text-ink-900">
+            <ChartIcon size={ICON_MD} strokeWidth={ICON_STROKE} className="shrink-0" aria-hidden="true" /> {t("cr_see_all_ranked", { count: rankedMandis.length })}
           </summary>
           <div className="px-6 pb-5 max-h-96 overflow-y-auto">
             <table className="w-full text-sm">
               <thead className="text-ink-500 text-left">
                 <tr>
-                  <th className="py-2 font-semibold">#</th>
-                  <th className="py-2 font-semibold">{t("common_mandi")}</th>
-                  <th className="py-2 font-semibold">{t("common_source")}</th>
-                  <th className="py-2 font-semibold text-right">{t("common_per_quintal")}</th>
+                  <th className="py-2 font-medium">#</th>
+                  <th className="py-2 font-medium">{t("common_mandi")}</th>
+                  <th className="py-2 font-medium">{t("common_source")}</th>
+                  <th className="py-2 font-medium text-right">{t("common_per_quintal")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -376,7 +394,7 @@ function ResultsView({ result }) {
                     <td className="py-2">
                       <SourceChip source={offer.source} reportCount={offer.reportCount} />
                     </td>
-                    <td className="py-2 text-right font-semibold">
+                    <td className="py-2 text-right font-medium">
                       ₹{offer.price.toLocaleString("en-IN")}
                     </td>
                   </tr>
@@ -396,23 +414,23 @@ function ResultsView({ result }) {
 
           <details>/<summary> is plain HTML: a collapsible section with
           no JavaScript and no state to keep. */}
-      <details className="group bg-card rounded-2xl shadow-soft border border-surface-300/60">
+      <details className="group bg-card rounded-lg shadow-soft border border-surface-300/60">
         <summary
           className="cursor-pointer list-none flex items-center gap-2 px-6 py-4
-            font-semibold text-ink-900"
+            font-medium text-ink-900"
         >
           <span className="text-ink-400 transition-transform group-open:rotate-90">▶</span>
-          📈 {t("cr_charts")}
+          <TrendIcon size={ICON_MD} strokeWidth={ICON_STROKE} className="shrink-0" aria-hidden="true" /> {t("cr_charts")}
         </summary>
 
         <div className="grid lg:grid-cols-2 gap-6 px-6 pb-6">
           <div>
-            <h2 className="font-semibold text-ink-900 mb-3">🏛️ {t("cr_chart_gov")}</h2>
+            <h2 className="font-medium text-ink-900 mb-3"><MandiIcon size={ICON_MD} strokeWidth={ICON_STROKE} className="shrink-0" aria-hidden="true" /> {t("cr_chart_gov")}</h2>
             <MandiTrendChart data={government.prices} />
           </div>
 
           <div>
-            <h2 className="font-semibold text-ink-900 mb-3">🧑‍🌾 {t("cr_chart_farmers")}</h2>
+            <h2 className="font-medium text-ink-900 mb-3"><FarmersIcon size={ICON_MD} strokeWidth={ICON_STROKE} className="shrink-0" aria-hidden="true" /> {t("cr_chart_farmers")}</h2>
             <CommunityPriceChart data={community.records} />
           </div>
         </div>
@@ -425,7 +443,7 @@ function ResultsView({ result }) {
 // One of the two big "best / worst mandi" cards at the top of the
 // results. `tone` is just "good" or "bad" and picks the colour scheme.
 // ---------------------------------------------------------------------
-function MandiOfferCard({ title, emoji, offer, tone }) {
+function MandiOfferCard({ title, emoji: Icon, offer, tone }) {
   const { t } = useLanguage();
 
   const styles =
@@ -436,14 +454,15 @@ function MandiOfferCard({ title, emoji, offer, tone }) {
   const priceColor = tone === "good" ? "text-positive-700" : "text-negative-700";
 
   return (
-    <div className={`rounded-2xl border px-5 py-4 ${styles}`}>
-      <p className="text-xs font-semibold uppercase tracking-wide opacity-70 mb-1">
-        {emoji} {title}
+    <div className={`rounded-lg border px-5 py-4 ${styles}`}>
+      <p className="text-xs font-medium uppercase tracking-wide opacity-70 mb-1">
+        {Icon && <Icon size={ICON_MD} strokeWidth={ICON_STROKE} className="inline-block mr-1.5 align-[-2px]" aria-hidden="true" />}
+        {title}
       </p>
-      <p className="text-lg font-bold leading-tight">{offer.mandiName}</p>
+      <p className="text-lg font-semibold leading-tight">{offer.mandiName}</p>
       <p className="text-sm opacity-70 mb-2">{offer.state}</p>
 
-      <p className={`text-3xl font-bold ${priceColor}`}>
+      <p className={`text-3xl font-semibold ${priceColor}`}>
         ₹{offer.price.toLocaleString("en-IN")}
         <span className="text-sm font-normal opacity-60"> {t("common_per_quintal")}</span>
       </p>
@@ -463,7 +482,7 @@ function SourceChip({ source, reportCount }) {
   if (source === "government") {
     return (
       <span className="inline-block bg-white/70 text-xs px-2 py-1 rounded-full font-medium">
-        🏛️ {t("src_government_listed")}
+        <MandiIcon size={ICON_MD} strokeWidth={ICON_STROKE} className="shrink-0" aria-hidden="true" /> {t("src_government_listed")}
       </span>
     );
   }
@@ -473,7 +492,7 @@ function SourceChip({ source, reportCount }) {
   // most of the languages this app offers.
   return (
     <span className="inline-block bg-white/70 text-xs px-2 py-1 rounded-full font-medium">
-      🧑‍🌾 {tPlural("src_farmer_reports", reportCount)}
+      <FarmersIcon size={ICON_MD} strokeWidth={ICON_STROKE} className="shrink-0" aria-hidden="true" /> {tPlural("src_farmer_reports", reportCount)}
     </span>
   );
 }

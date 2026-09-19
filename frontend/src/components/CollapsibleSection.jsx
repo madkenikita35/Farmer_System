@@ -21,7 +21,7 @@
 // open", which is what rotates the arrow.
 //
 // USAGE
-//   <CollapsibleSection title="📈 Price charts">
+//   <CollapsibleSection title="Price charts">
 //     ...anything...
 //   </CollapsibleSection>
 //
@@ -29,6 +29,8 @@
 //                  answer; leave it off when the content is background.
 //   subtitle     - a quiet line under the title, for a count or a hint.
 // -----------------------------------------------------------------------
+
+import { ExpandIcon, ICON_MD, ICON_STROKE } from "./icons";
 
 function CollapsibleSection({
   title,
@@ -40,23 +42,23 @@ function CollapsibleSection({
   return (
     <details
       open={defaultOpen}
-      className={`group bg-card rounded-2xl shadow-soft border border-surface-300/60 ${className}`}
+      className={`group bg-card rounded-lg shadow-soft border border-surface-300/60 ${className}`}
     >
       <summary
         className="cursor-pointer list-none flex items-center gap-2.5 px-5 sm:px-6 py-4
-          rounded-2xl hover:bg-surface-100 transition-colors"
+          rounded-lg hover:bg-surface-100 transition-colors"
       >
         {/* Our own marker, since list-none removed the browser's. It
             points right when closed and down when open. */}
-        <span
-          className="text-ink-400 text-xs transition-transform duration-200 group-open:rotate-90"
+        <ExpandIcon
+          size={ICON_MD}
+          strokeWidth={ICON_STROKE}
+          className="text-ink-400 shrink-0 transition-transform duration-200 group-open:rotate-90"
           aria-hidden="true"
-        >
-          ▶
-        </span>
+        />
 
         <span className="min-w-0">
-          <span className="block font-semibold text-ink-900 truncate">{title}</span>
+          <span className="block font-medium text-ink-900 truncate">{title}</span>
           {subtitle && (
             <span className="block text-xs text-ink-500 truncate">{subtitle}</span>
           )}

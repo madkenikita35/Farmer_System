@@ -27,31 +27,31 @@
 
 import { Link } from "react-router-dom";
 
-// Each crop's emoji plus the colours for its card. `name` is passed
+// The crops the ticker cycles through. `name` is passed
 // straight to the Check Rates page as a search term, so it must match a
 // crop name the government dataset actually uses.
 const crops = [
-  { name: "Wheat", emoji: "🌾", from: "from-warning-100", to: "to-yellow-200", text: "text-warning-900" },
-  { name: "Onion", emoji: "🧅", from: "from-purple-100", to: "to-fuchsia-200", text: "text-purple-900" },
-  { name: "Tomato", emoji: "🍅", from: "from-negative-100", to: "to-rose-200", text: "text-negative-900" },
-  { name: "Potato", emoji: "🥔", from: "from-orange-100", to: "to-warning-200", text: "text-orange-900" },
-  { name: "Rice", emoji: "🍚", from: "from-slate-100", to: "to-gray-200", text: "text-ink-800" },
-  { name: "Cotton", emoji: "🌱", from: "from-emerald-100", to: "to-positive-200", text: "text-emerald-900" },
-  { name: "Maize", emoji: "🌽", from: "from-yellow-100", to: "to-warning-200", text: "text-yellow-900" },
-  { name: "Chilli", emoji: "🌶️", from: "from-negative-100", to: "to-orange-200", text: "text-negative-900" },
-  { name: "Banana", emoji: "🍌", from: "from-yellow-100", to: "to-lime-200", text: "text-yellow-900" },
-  { name: "Mango", emoji: "🥭", from: "from-orange-100", to: "to-yellow-200", text: "text-orange-900" },
-  { name: "Garlic", emoji: "🧄", from: "from-stone-100", to: "to-neutral-200", text: "text-stone-800" },
-  { name: "Grapes", emoji: "🍇", from: "from-violet-100", to: "to-purple-200", text: "text-violet-900" },
-  { name: "Coconut", emoji: "🥥", from: "from-warning-100", to: "to-orange-200", text: "text-warning-900" },
-  { name: "Soyabean", emoji: "🫘", from: "from-lime-100", to: "to-positive-200", text: "text-lime-900" },
+  { name: "Wheat"},
+  { name: "Onion"},
+  { name: "Tomato"},
+  { name: "Potato"},
+  { name: "Rice"},
+  { name: "Cotton"},
+  { name: "Maize"},
+  { name: "Chilli"},
+  { name: "Banana"},
+  { name: "Mango"},
+  { name: "Garlic"},
+  { name: "Grapes"},
+  { name: "Coconut"},
+  { name: "Soyabean"},
 ];
 
 function CropTicker({ t }) {
   return (
     <div>
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-ink-900">{t("crops_title")}</h2>
+        <h2 className="text-2xl font-semibold text-ink-900">{t("crops_title")}</h2>
         <p className="text-ink-500">{t("crops_subtitle")}</p>
       </div>
 
@@ -91,11 +91,9 @@ function CropCard({ crop, isDuplicate }) {
       to={`/check-rates?crop=${encodeURIComponent(crop.name)}`}
       aria-hidden={isDuplicate}
       tabIndex={isDuplicate ? -1 : 0}
-      className={`shrink-0 w-36 rounded-2xl bg-gradient-to-br ${crop.from} ${crop.to}
-        border border-white/60 shadow-sm p-5 text-center hover-lift`}
+      className={`shrink-0 w-36 rounded-lg  border border-white/60 shadow-sm p-5 text-center hover-lift`}
     >
-      <div className="text-4xl mb-2">{crop.emoji}</div>
-      <p className={`font-semibold ${crop.text}`}>{crop.name}</p>
+      <p className={`font-medium `}>{crop.name}</p>
       <p className="text-[11px] text-ink-600/80 mt-1">View rates →</p>
     </Link>
   );

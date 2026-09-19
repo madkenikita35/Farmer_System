@@ -21,6 +21,14 @@ import {
 } from "../api/api";
 import StatCard from "../components/StatCard";
 import { actionIcon } from "./AdminDashboard";
+import {
+  FarmersIcon,
+  OkIcon,
+  ReceiptIcon,
+  ICON_MD,
+  ICON_STROKE,
+  ICON_SM,
+} from "../components/icons";
 
 function AdminFarmers() {
   const [search, setSearch] = useState("");
@@ -83,7 +91,7 @@ function AdminFarmers() {
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-10 animate-fadeIn">
-      <h1 className="text-2xl font-bold text-ink-900 mb-2">🧑‍🌾 Enrolled Farmers</h1>
+      <h1 className="text-2xl font-semibold text-ink-900 mb-2"> Enrolled Farmers</h1>
       <p className="text-ink-600 mb-6">
         Everyone who has signed up, with how much they've used the app.
         Click any row to see that farmer's receipts and activity.
@@ -91,66 +99,55 @@ function AdminFarmers() {
 
       <div className="grid sm:grid-cols-3 gap-4 mb-8">
         <StatCard
-          icon="🧑‍🌾"
+          icon={FarmersIcon}
           label="Farmers Matching"
           value={totalMatching}
-          tone="primary"
-        />
-        <StatCard icon="✅" label="Active on This Page" value={activeCount} />
-        <StatCard icon="📄" label="Page" value={`${page} of ${totalPages}`} />
+          tone="primary"/>
+        <StatCard icon={OkIcon} label="Active on This Page" value={activeCount} />
+        <StatCard icon={ReceiptIcon} label="Page" value={`${page} of ${totalPages}`} />
       </div>
-
       {/* ---------- Search ---------- */}
       <form onSubmit={handleSearch} className="flex gap-2 mb-6">
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name, email, phone or state..."
-          className="flex-1 border border-ink-200 rounded-xl px-4 py-2.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
-        />
+          placeholder="Search by name, email, phone or state..."className="flex-1 border border-ink-200 rounded-md px-4 py-2.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"/>
         <button
           type="submit"
-          className="bg-primary-gradient text-primary-foreground font-semibold px-6 py-2.5 rounded-xl shadow-soft hover:scale-[1.02] transition-all"
-        >
-          🔍 Search
+          className="bg-primary-gradient text-primary-foreground font-medium px-6 py-2.5 rounded-md shadow-soft hover:scale-[1.02] transition-all">
+           Search
         </button>
-      </form>
-
-      {errorMessage && (
-        <div className="bg-negative-50 text-negative-700 border border-negative-200 rounded-lg px-4 py-3 mb-6 text-sm">
-          {errorMessage}
+      </form>{errorMessage && (
+        <div className="bg-negative-50 text-negative-700 border border-negative-200 rounded-md px-4 py-3 mb-6 text-sm">{errorMessage}
         </div>
       )}
 
       {/* ---------- Table ---------- */}
       {isLoading ? (
         <div className="text-center py-16 text-ink-500">
-          <div className="text-3xl mb-2 animate-pulse">🧑‍🌾</div>
           <p className="text-sm">Loading farmers...</p>
         </div>
       ) : farmers.length === 0 ? (
-        <div className="text-center py-16 text-ink-500 bg-card rounded-2xl border border-border">
-          <div className="text-3xl mb-2">🤷</div>
+        <div className="text-center py-16 text-ink-500 bg-card rounded-lg border border-border">
           <p className="font-medium">No farmers found.</p>
         </div>
       ) : (
-        <div className="bg-card rounded-2xl shadow-soft border border-surface-300/60 overflow-hidden">
+        <div className="bg-card rounded-lg shadow-soft border border-surface-300/60 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-surface-200/70 text-ink-600">
                 <tr>
-                  <th className="text-left px-4 py-3 font-semibold">Farmer</th>
-                  <th className="text-left px-4 py-3 font-semibold">State</th>
-                  <th className="text-left px-4 py-3 font-semibold">Enrolled</th>
-                  <th className="text-left px-4 py-3 font-semibold">Last Login</th>
-                  <th className="text-right px-4 py-3 font-semibold">Receipts</th>
-                  <th className="text-right px-4 py-3 font-semibold">Actions</th>
-                  <th className="text-right px-4 py-3 font-semibold">Status</th>
+                  <th className="text-left px-4 py-3 font-medium">Farmer</th>
+                  <th className="text-left px-4 py-3 font-medium">State</th>
+                  <th className="text-left px-4 py-3 font-medium">Enrolled</th>
+                  <th className="text-left px-4 py-3 font-medium">Last Login</th>
+                  <th className="text-right px-4 py-3 font-medium">Receipts</th>
+                  <th className="text-right px-4 py-3 font-medium">Actions</th>
+                  <th className="text-right px-4 py-3 font-medium">Status</th>
                 </tr>
               </thead>
-              <tbody>
-                {farmers.map((farmer) => (
+              <tbody>{farmers.map((farmer) => (
                   <FarmerRow
                     key={farmer.id}
                     farmer={farmer}
@@ -173,8 +170,7 @@ function AdminFarmers() {
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="px-4 py-2 rounded-lg border border-ink-200 text-ink-600 disabled:opacity-40 hover:bg-surface-200 transition-all"
-          >
+            className="px-4 py-2 rounded-md border border-ink-200 text-ink-600 disabled:opacity-40 hover:bg-surface-200 transition-all">
             ← Previous
           </button>
           <span className="text-sm text-ink-500">
@@ -183,9 +179,8 @@ function AdminFarmers() {
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="px-4 py-2 rounded-lg border border-ink-200 text-ink-600 disabled:opacity-40 hover:bg-surface-200 transition-all"
-          >
-            Next →
+            className="px-4 py-2 rounded-md border border-ink-200 text-ink-600 disabled:opacity-40 hover:bg-surface-200 transition-all">
+            Next 
           </button>
         </div>
       )}
@@ -224,48 +219,38 @@ function FarmerRow({ farmer, isExpanded, onToggleExpand, onToggleActive }) {
     <>
       <tr
         className={`border-t border-surface-200 hover:bg-primary-50/40 cursor-pointer ${
-          isExpanded ? "bg-positive-50/50" : ""
-        }`}
+          isExpanded ? "bg-positive-50/50" : ""}`}
         onClick={onToggleExpand}
       >
         <td className="px-4 py-3">
           <p className="font-medium text-ink-900">{farmer.name}</p>
-          <p className="text-xs text-ink-400">{farmer.email}</p>
-          {farmer.phone && <p className="text-xs text-ink-400">📞 {farmer.phone}</p>}
+          <p className="text-xs text-ink-400">{farmer.email}</p>{farmer.phone && <p className="text-xs text-ink-400"> {farmer.phone}</p>}
         </td>
         <td className="px-4 py-3 text-ink-600">{farmer.state || "—"}</td>
-        <td className="px-4 py-3 text-ink-600">
-          {new Date(farmer.enrolledOn).toLocaleDateString()}
+        <td className="px-4 py-3 text-ink-600">{new Date(farmer.enrolledOn).toLocaleDateString()}
         </td>
-        <td className="px-4 py-3 text-ink-600">
-          {farmer.lastLoginAt ? new Date(farmer.lastLoginAt).toLocaleDateString() : "Never"}
+        <td className="px-4 py-3 text-ink-600">{farmer.lastLoginAt ? new Date(farmer.lastLoginAt).toLocaleDateString() : "Never"}
         </td>
-        <td className="px-4 py-3 text-right font-semibold">{farmer.receiptCount}</td>
+        <td className="px-4 py-3 text-right font-medium">{farmer.receiptCount}</td>
         <td className="px-4 py-3 text-right text-ink-500">{farmer.activityCount}</td>
         <td className="px-4 py-3 text-right">
-          {/* stopPropagation stops the click ALSO expanding the row -
+      {/* stopPropagation stops the click ALSO expanding the row -
               otherwise blocking someone would open their details too. */}
           <button
             onClick={(e) => {
               e.stopPropagation();
               onToggleActive();
             }}
-            className={`px-3 py-1 rounded-full text-xs font-semibold ${
+            className={`px-3 py-1 rounded-full text-xs font-medium ${
               farmer.isActive
-                ? "bg-positive-100 text-positive-700 hover:bg-positive-200"
-                : "bg-negative-100 text-negative-700 hover:bg-negative-200"
-            }`}
-          >
-            {farmer.isActive ? "Active" : "Blocked"}
+                ? "bg-positive-100 text-positive-700 hover:bg-positive-200": "bg-negative-100 text-negative-700 hover:bg-negative-200"}`}
+          >{farmer.isActive ? "Active" : "Blocked"}
           </button>
         </td>
-      </tr>
-
-      {isExpanded && (
+      </tr>{isExpanded && (
         <tr className="bg-muted/70">
-          {/* colSpan makes this cell stretch across all 7 columns */}
-          <td colSpan={7} className="px-4 py-5">
-            {isLoadingDetail ? (
+      {/* colSpan makes this cell stretch across all 7 columns */}
+          <td colSpan={7} className="px-4 py-5">{isLoadingDetail ? (
               <p className="text-sm text-ink-500 text-center py-4">Loading details...</p>
             ) : !detail ? (
               <p className="text-sm text-negative-600 text-center py-4">
@@ -273,26 +258,22 @@ function FarmerRow({ farmer, isExpanded, onToggleExpand, onToggleActive }) {
               </p>
             ) : (
               <div className="grid md:grid-cols-2 gap-6">
-                {/* ---- Their receipts ---- */}
+      {/* ---- Their receipts ---- */}
                 <div>
-                  <h4 className="font-semibold text-ink-900 text-sm mb-2">
-                    🧾 Receipts ({detail.receiptCount})
-                  </h4>
-                  {detail.receipts.length === 0 ? (
+                  <h4 className="font-medium text-ink-900 text-sm mb-2">
+                     Receipts ({detail.receiptCount})
+                  </h4>{detail.receipts.length === 0 ? (
                     <p className="text-xs text-ink-500">No receipts uploaded yet.</p>
                   ) : (
-                    <ul className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                      {detail.receipts.map((r) => (
+                    <ul className="space-y-2 max-h-56 overflow-y-auto pr-1">{detail.receipts.map((r) => (
                         <li
                           key={r._id}
-                          className="bg-card rounded-lg border border-border px-3 py-2 text-xs"
-                        >
+                          className="bg-card rounded-md border border-border px-3 py-2 text-xs">
                           <div className="flex justify-between gap-2">
                             <span className="font-medium text-ink-900">{r.crop}</span>
                             <VerdictBadge verdict={r.verdict} />
                           </div>
-                          <p className="text-ink-500 mt-0.5">
-                            {r.mandiName} · ₹{r.pricePerQuintal}/qtl · {r.quantityInQuintal} qtl
+                          <p className="text-ink-500 mt-0.5">{r.mandiName} · ₹{r.pricePerQuintal}/qtl · {r.quantityInQuintal} qtl
                           </p>
                           <p className="text-ink-400">{r.date}</p>
                         </li>
@@ -300,23 +281,22 @@ function FarmerRow({ farmer, isExpanded, onToggleExpand, onToggleActive }) {
                     </ul>
                   )}
                 </div>
-
-                {/* ---- Their activity ---- */}
+      {/* ---- Their activity ---- */}
                 <div>
-                  <h4 className="font-semibold text-ink-900 text-sm mb-2">
-                    ⚡ Recent Activity
-                  </h4>
-                  {detail.activity.length === 0 ? (
+                  <h4 className="font-medium text-ink-900 text-sm mb-2">
+                     Recent Activity
+                  </h4>{detail.activity.length === 0 ? (
                     <p className="text-xs text-ink-500">No activity recorded yet.</p>
                   ) : (
-                    <ul className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
-                      {detail.activity.map((a) => (
+                    <ul className="space-y-1.5 max-h-56 overflow-y-auto pr-1">{detail.activity.map((a) => (
                         <li key={a._id} className="flex items-start gap-2 text-xs">
-                          <span>{actionIcon(a.action)}</span>
+                          {(() => {
+                            const Icon = actionIcon(a.action);
+                            return <Icon size={ICON_SM} strokeWidth={ICON_STROKE} className="text-ink-400 shrink-0" aria-hidden="true" />;
+                          })()}
                           <div>
                             <p className="text-ink-700">{a.description}</p>
-                            <p className="text-ink-400">
-                              {new Date(a.createdAt).toLocaleString()}
+                            <p className="text-ink-400">{new Date(a.createdAt).toLocaleString()}
                             </p>
                           </div>
                         </li>
@@ -343,8 +323,7 @@ function VerdictBadge({ verdict }) {
   };
 
   return (
-    <span className={`px-2 py-0.5 rounded-full font-medium ${styles[verdict] || styles["No Data"]}`}>
-      {verdict}
+    <span className={`px-2 py-0.5 rounded-full font-medium ${styles[verdict] || styles["No Data"]}`}>{verdict}
     </span>
   );
 }

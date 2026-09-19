@@ -44,6 +44,7 @@
 // -----------------------------------------------------------------------
 
 const axios = require("axios");
+const { recordSuccessfulSync, SOURCES } = require("./syncStatusService");
 
 const BASE_URL = "https://api.ceda.ashoka.edu.in/v1";
 
@@ -602,6 +603,10 @@ async function getPrices({ commodityId, stateId, districtIds, marketIds, fromDat
   const { rows, message } = unwrap(body);
 
   const prices = rows.map((row) => ({ ...row, date: toIsoDay(row.date) }));
+
+  // CEDA answered. Fire-and-forget bookkeeping, same as the government
+  // feed - see services/syncStatusService.js.
+  recordSuccessfulSync(SOURCES.CEDA, prices.length);
 
   // CEDA answers 200 with "No data exists" instead of 404. Passing the
   // message up lets the caller tell "nothing here" apart from "broken".

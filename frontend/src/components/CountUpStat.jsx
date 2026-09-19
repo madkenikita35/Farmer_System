@@ -33,7 +33,7 @@ function CountUpStat({ target, label, suffix = "" }) {
 
   return (
     <div className="text-center">
-      <p className="text-3xl sm:text-4xl font-extrabold text-primary-700">
+      <p className="text-3xl sm:text-3xl font-bold text-primary-700">
         {displayValue.toLocaleString("en-IN")}
         {suffix}
       </p>

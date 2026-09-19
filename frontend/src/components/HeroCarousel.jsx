@@ -35,7 +35,7 @@ const slides = [
     imageUrl:
       "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=1600&q=80&auto=format&fit=crop",
     captionKey: "hero_slide_1_caption",
-    fallbackEmoji: "🌾",
+    fallbackEmoji: "",
     fallbackFrom: "from-warning-400",
     fallbackTo: "to-yellow-600",
   },
@@ -43,7 +43,7 @@ const slides = [
     imageUrl:
       "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=1600&q=80&auto=format&fit=crop",
     captionKey: "hero_slide_2_caption",
-    fallbackEmoji: "🧑‍🌾",
+    fallbackEmoji: "",
     fallbackFrom: "from-positive-500",
     fallbackTo: "to-emerald-700",
   },
@@ -51,7 +51,7 @@ const slides = [
     imageUrl:
       "https://images.unsplash.com/photo-1592982537447-7440770cbfc9?w=1600&q=80&auto=format&fit=crop",
     captionKey: "hero_slide_3_caption",
-    fallbackEmoji: "🧾",
+    fallbackEmoji: "",
     fallbackFrom: "from-orange-400",
     fallbackTo: "to-negative-500",
   },
@@ -59,7 +59,7 @@ const slides = [
     imageUrl:
       "https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=1600&q=80&auto=format&fit=crop",
     captionKey: "hero_slide_4_caption",
-    fallbackEmoji: "📈",
+    fallbackEmoji: "",
     fallbackFrom: "from-info-500",
     fallbackTo: "to-blue-700",
   },
@@ -110,7 +110,7 @@ function HeroCarousel({ t }) {
 
   return (
     <div
-      className="relative w-full h-64 sm:h-80 md:h-96 rounded-2xl overflow-hidden shadow-xl animate-fadeInRight"
+      className="relative w-full h-64 sm:h-80 md:h-96 rounded-lg overflow-hidden shadow-xl animate-fadeInRight"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
@@ -152,7 +152,7 @@ function HeroCarousel({ t }) {
             <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
 
             <p
-              className={`absolute bottom-8 left-6 right-6 text-white text-lg sm:text-xl font-semibold drop-shadow-lg ${
+              className={`absolute bottom-8 left-6 right-6 text-white text-lg sm:text-xl font-medium drop-shadow-lg ${
                 isActive ? "animate-fadeInUp" : ""
               }`}
             >

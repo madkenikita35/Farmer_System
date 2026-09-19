@@ -55,6 +55,11 @@ import {
   gridStroke,
   readToken,
 } from "./chartTheme";
+import {
+  ChartIcon,
+  ICON_MD,
+  ICON_STROKE,
+} from "./icons";
 
 // Above this many crops a category is trimmed, with a button to open it
 // up. Twelve bars is about as much as fits on a phone before the chart
@@ -118,7 +123,7 @@ function CropCategoryCharts({ crops }) {
 
   return (
     <div className="mb-8">
-      <h2 className="font-semibold text-ink-900 mb-1">📊 {t("mdet_charts_title")}</h2>
+      <h2 className="font-medium text-ink-900 mb-1"><ChartIcon size={ICON_MD} strokeWidth={ICON_STROKE} className="shrink-0" aria-hidden="true" /> {t("mdet_charts_title")}</h2>
       <p className="text-xs text-ink-500 mb-4">{t("mdet_charts_note")}</p>
 
       {/* ---- Category tabs ---- */}
@@ -175,7 +180,7 @@ function CropCategoryCharts({ crops }) {
           <button
             type="button"
             onClick={() => setShowAll((previous) => !previous)}
-            className="text-sm font-semibold text-primary-700 hover:text-primary-800
+            className="text-sm font-medium text-primary-700 hover:text-primary-800
               px-4 py-2 rounded-full hover:bg-primary-50 transition-colors"
           >
             {isTrimmed
@@ -208,7 +213,7 @@ function CategoryChart({ rows, colour, categoryKey }) {
   const gradientId = `bar-gradient-${categoryKey}`;
 
   return (
-    <div className="bg-card rounded-2xl shadow-soft p-5 pr-3 border border-surface-300/60 animate-fadeIn">
+    <div className="bg-card rounded-lg shadow-soft p-5 pr-3 border border-surface-300/60 animate-fadeIn">
       <ResponsiveContainer width="100%" height={chartHeight}>
         <BarChart
           data={rows}
@@ -319,13 +324,13 @@ function PriceTooltip({ active, payload, label }) {
   const row = payload[0].payload;
 
   return (
-    <div className="bg-white/97 backdrop-blur rounded-xl shadow-lg border border-surface-300 px-4 py-3 text-sm">
-      <p className="font-semibold text-ink-900 mb-1.5">{label}</p>
+    <div className="bg-white/97 backdrop-blur rounded-md shadow-lg border border-surface-300 px-4 py-3 text-sm">
+      <p className="font-medium text-ink-900 mb-1.5">{label}</p>
 
       {row.government != null && (
         <p className="text-ink-700">
           <span className="text-ink-500">{t("common_government")}: </span>
-          <span className="font-semibold">{formatRupees(row.government)}</span>
+          <span className="font-medium">{formatRupees(row.government)}</span>
         </p>
       )}
 
@@ -340,7 +345,7 @@ function PriceTooltip({ active, payload, label }) {
       {row.farmer != null && (
         <p className="text-warning-600 mt-1.5">
           <span className="text-ink-500">{t("common_our_farmers")}: </span>
-          <span className="font-semibold">{formatRupees(row.farmer)}</span>
+          <span className="font-medium">{formatRupees(row.farmer)}</span>
           {row.reports > 0 && (
             <span className="text-ink-400 text-xs">
               {" "}

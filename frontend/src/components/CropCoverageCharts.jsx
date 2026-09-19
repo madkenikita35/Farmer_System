@@ -51,6 +51,13 @@ import {
 
 import { useLanguage } from "../context/LanguageContext";
 import {
+  ICON_MD,
+  ICON_LG,
+  ICON_STROKE,
+  SearchIcon,
+  SellIcon,
+} from "./icons";
+import {
   CATEGORY_ORDER,
   CATEGORY_LABEL_KEYS,
   categoryColour,
@@ -98,14 +105,14 @@ function CropCoverageCharts({ coverage }) {
         <CoverageChart
           title={t("md_most_listed")}
           subtitle={t("md_most_listed_sub")}
-          icon="🌾"
+          icon={SellIcon}
           rows={coverage.mostListed}
           totalMandis={coverage.totalMandis}
         />
         <CoverageChart
           title={t("md_least_listed")}
           subtitle={t("md_least_listed_sub")}
-          icon="🔍"
+          icon={SearchIcon}
           rows={coverage.leastListed}
           totalMandis={coverage.totalMandis}
         />
@@ -114,7 +121,7 @@ function CropCoverageCharts({ coverage }) {
   );
 }
 
-function CoverageChart({ title, subtitle, icon, rows, totalMandis }) {
+function CoverageChart({ title, subtitle, icon: Icon, rows, totalMandis }) {
   const data = rows.map((row) => ({
     name: row.crop,
     mandis: row.mandiCount,
@@ -125,11 +132,11 @@ function CoverageChart({ title, subtitle, icon, rows, totalMandis }) {
   const chartHeight = Math.max(240, data.length * 32 + 30);
 
   return (
-    <div className="bg-card rounded-2xl shadow-soft p-5 pr-3 border border-surface-300/60 hover-lift">
+    <div className="bg-card rounded-lg shadow-soft p-5 pr-3 border border-surface-300/60 hover-lift">
       <div className="flex items-start gap-2 mb-3 pl-1">
-        <span className="text-lg leading-none mt-0.5">{icon}</span>
+        {Icon && <Icon size={ICON_LG} strokeWidth={ICON_STROKE} className="text-ink-400 shrink-0 mt-0.5" aria-hidden="true" />}
         <div>
-          <h3 className="font-semibold text-ink-800 text-sm leading-tight">{title}</h3>
+          <h3 className="font-medium text-ink-800 text-sm leading-tight">{title}</h3>
           <p className="text-xs text-ink-400">{subtitle}</p>
         </div>
       </div>
@@ -198,8 +205,8 @@ function CoverageTooltip({ active, payload, label, totalMandis }) {
   const share = totalMandis > 0 ? Math.round((row.mandis / totalMandis) * 100) : null;
 
   return (
-    <div className="bg-white/97 backdrop-blur rounded-xl shadow-lg border border-surface-300 px-4 py-3 text-sm">
-      <p className="font-semibold text-ink-900">{label}</p>
+    <div className="bg-white/97 backdrop-blur rounded-md shadow-lg border border-surface-300 px-4 py-3 text-sm">
+      <p className="font-medium text-ink-900">{label}</p>
 
       <p className="flex items-center gap-1.5 text-xs text-ink-500 mt-0.5 mb-1.5">
         <span
@@ -209,7 +216,7 @@ function CoverageTooltip({ active, payload, label, totalMandis }) {
         {t(CATEGORY_LABEL_KEYS[row.category] || "cat_other")}
       </p>
 
-      <p className="text-ink-700 font-semibold">
+      <p className="text-ink-700 font-medium">
         {t("md_mandi_count", { count: row.mandis })}
       </p>
 

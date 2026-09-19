@@ -27,6 +27,7 @@ import { useAuth } from "../context/AuthContext";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import Footer from "./Footer";
+import { CropIcon, AdminIcon, CloseIcon, ICON_MD, ICON_STROKE } from "./icons";
 
 // Kept in localStorage alongside `mandi_language`. Both are UI
 // preferences with nothing private in them - no token, no name, no
@@ -46,7 +47,6 @@ function readCollapsed() {
 
 function AppShell({ children }) {
   const { t } = useLanguage();
-  const { isLoggedIn } = useAuth();
   const location = useLocation();
 
   const [isCollapsed, setIsCollapsed] = useState(readCollapsed);
@@ -94,20 +94,10 @@ function AppShell({ children }) {
     };
   }, [isDrawerOpen]);
 
-  // Logged out: top bar and content only.
-  if (!isLoggedIn) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <TopBar
-          onOpenMenu={() => {}}
-          onToggleCollapse={() => {}}
-          isCollapsed={false}
-        />
-        <main className="flex-1">{children}</main>
-        <Footer />
-      </div>
-    );
-  }
+  // NOTE: guests get the full shell now, sidebar included. Before, the
+  // app bounced them to /login from every page, so a logged-out sidebar
+  // would have been an empty panel. Now the price pages are public and
+  // the sidebar is how you reach them.
 
   const railWidth = isCollapsed ? "lg:w-[4.5rem]" : "lg:w-64";
 
@@ -150,10 +140,10 @@ function AppShell({ children }) {
                 type="button"
                 onClick={() => setIsDrawerOpen(false)}
                 aria-label={t("nav_close")}
-                className="grid place-items-center w-10 h-10 rounded-xl text-ink-500
+                className="grid place-items-center w-10 h-10 rounded-md text-ink-500
                   hover:bg-surface-200 transition-colors"
               >
-                ✕
+                <CloseIcon size={ICON_MD} strokeWidth={ICON_STROKE} aria-hidden="true" />
               </button>
             </div>
 
@@ -199,16 +189,24 @@ function BrandMark({ isCollapsed }) {
         border-surface-300 ${isCollapsed ? "justify-center px-0" : "px-4"}`}
     >
       <span
-        className={`grid place-items-center w-9 h-9 rounded-xl text-lg shrink-0
-          ${isAdmin ? "bg-secondary text-secondary-foreground" : "bg-primary-gradient"}`}
+        className={`grid place-items-center w-9 h-9 rounded-md shrink-0
+          ${
+            isAdmin
+              ? "bg-secondary text-secondary-foreground"
+              : "bg-primary-600 text-primary-foreground"
+          }`}
       >
-        {isAdmin ? "👑" : "🌾"}
+        {isAdmin ? (
+          <AdminIcon size={ICON_MD} strokeWidth={ICON_STROKE} aria-hidden="true" />
+        ) : (
+          <CropIcon size={ICON_MD} strokeWidth={ICON_STROKE} aria-hidden="true" />
+        )}
       </span>
 
       {!isCollapsed && (
-        <span className="font-bold text-ink-900 leading-tight truncate">
+        <span className="font-semibold text-ink-900 leading-tight truncate">
           Mandi
-          <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-400">
+          <span className="block text-[10px] font-medium uppercase tracking-[0.14em] text-ink-400">
             {isAdmin ? "Admin Panel" : "Price Checker"}
           </span>
         </span>

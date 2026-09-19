@@ -27,17 +27,27 @@ import { useState } from "react";
 
 import { resolveLocation } from "../api/api";
 import { useLanguage } from "../context/LanguageContext";
+import {
+  OkIcon,
+  ICON_MD,
+  ICON_STROKE,
+  LocationIcon,
+  MandiIcon,
+  ReceiptIcon,
+  RegionIcon,
+  CountryIcon,
+} from "./icons";
 
 const METHODS = [
-  { key: "gps", labelKey: "loc_method_gps", icon: "📍" },
-  { key: "place", labelKey: "loc_method_place", icon: "🏘️" },
-  { key: "pincode", labelKey: "loc_method_pincode", icon: "🔢" },
-  { key: "address", labelKey: "loc_method_address", icon: "✉️" },
-  { key: "coords", labelKey: "loc_method_coords", icon: "🧭" },
+  { key: "gps", labelKey: "loc_method_gps", icon: LocationIcon },
+  { key: "place", labelKey: "loc_method_place", icon: MandiIcon },
+  { key: "pincode", labelKey: "loc_method_pincode", icon: ReceiptIcon },
+  { key: "address", labelKey: "loc_method_address", icon: RegionIcon },
+  { key: "coords", labelKey: "loc_method_coords", icon: CountryIcon },
 ];
 
 const inputClass =
-  "w-full border border-ink-200 rounded-xl px-3.5 py-2.5 bg-card " +
+  "w-full border border-ink-200 rounded-md px-3.5 py-2.5 bg-card " +
   "focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all";
 
 function LocationPicker({ resolved, onResolved, onError }) {
@@ -91,8 +101,7 @@ function LocationPicker({ resolved, onResolved, onError }) {
       },
       (error) => {
         setIsBusy(false);
-        // Say WHICH problem it was - "allow it" and "type your town"
-        // are different instructions.
+        // Say WHICH problem it was - "allow it" and "type your town"// are different instructions.
         const messages = {
           1: t("nm_err_denied"),
           2: t("nm_err_unavailable"),
@@ -125,45 +134,43 @@ function LocationPicker({ resolved, onResolved, onError }) {
   return (
     <div className="border-t border-surface-200 pt-4">
       <p className="text-sm font-medium text-ink-600 mb-2">{t("nm_your_location")}</p>
-
       {/* ---- Method tabs ---- */}
-      <div className="flex flex-wrap gap-2 mb-3">
-        {METHODS.map((m) => (
+      <div className="flex flex-wrap gap-2 mb-3">{METHODS.map((m) => (
           <button
             key={m.key}
             type="button"
-            onClick={() => {
+          onClick={() => {
               setMethod(m.key);
               setLocalError("");
             }}
             className={`px-3 py-1.5 rounded-full text-sm font-medium transition border ${
               method === m.key
-                ? "bg-primary-600 text-primary-foreground border-transparent shadow-sm"
-                : "bg-card text-ink-600 border-surface-300 hover:border-ink-300 hover:bg-surface-100"
-            }`}
+                ? "bg-primary-600 text-primary-foreground border-transparent shadow-sm": "bg-card text-ink-600 border-surface-300 hover:border-ink-300 hover:bg-surface-100"}`}
           >
-            {m.icon} {t(m.labelKey)}
+            {m.icon && (
+              <m.icon
+                size={ICON_MD}
+                strokeWidth={ICON_STROKE}
+                className="inline-block mr-1.5 align-[-2px]"
+                aria-hidden="true"
+              />
+            )}
+            {t(m.labelKey)}
           </button>
         ))}
       </div>
-
       {/* ---- The chosen method's inputs ---- */}
       {method === "gps" && (
         <button
           type="button"
           onClick={useMyLocation}
           disabled={isBusy}
-          className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50 ${
-            resolved?.method === "gps"
-              ? "bg-positive-100 text-positive-800 border border-positive-300"
-              : "bg-secondary text-secondary-foreground hover:opacity-90"
-          }`}
-        >
-          {isBusy
-            ? `📡 ${t("nm_finding_you")}`
-            : resolved?.method === "gps"
-            ? `✅ ${t("nm_using_location")}`
-            : `📍 ${t("nm_use_my_location")}`}
+          className={`px-4 py-2 rounded-md font-medium text-sm transition-colors disabled:opacity-50 ${
+            resolved?.method === "gps"? "bg-positive-100 text-positive-800 border border-positive-300": "bg-secondary text-secondary-foreground hover:opacity-90"}`}
+        >{isBusy
+            ? ` ${t("nm_finding_you")}`
+            : resolved?.method === "gps"? `${t("nm_using_location")}`
+            : `${t("nm_use_my_location")}`}
         </button>
       )}
 
@@ -171,7 +178,7 @@ function LocationPicker({ resolved, onResolved, onError }) {
         <div className="flex gap-2">
           <input
             type="text"
-            value={fields.place}
+          value={fields.place}
             onChange={(e) => setField("place", e.target.value)}
             placeholder={t("nm_place_placeholder")}
             className={inputClass}
@@ -184,8 +191,7 @@ function LocationPicker({ resolved, onResolved, onError }) {
         <div className="flex gap-2">
           <input
             type="text"
-            inputMode="numeric"
-            // 6 digits is the whole format, so the box says so rather
+          inputMode="numeric"// 6 digits is the whole format, so the box says so rather
             // than letting someone paste an essay and get a 400.
             maxLength={6}
             value={fields.pincode}
@@ -202,28 +208,28 @@ function LocationPicker({ resolved, onResolved, onError }) {
           <div className="grid sm:grid-cols-2 gap-2">
             <input
               type="text"
-              value={fields.address}
+          value={fields.address}
               onChange={(e) => setField("address", e.target.value)}
               placeholder={t("loc_address_placeholder")}
               className={inputClass}
             />
             <input
               type="text"
-              value={fields.postOffice}
+          value={fields.postOffice}
               onChange={(e) => setField("postOffice", e.target.value)}
               placeholder={t("loc_post_office_placeholder")}
               className={inputClass}
             />
             <input
               type="text"
-              value={fields.taluka}
+          value={fields.taluka}
               onChange={(e) => setField("taluka", e.target.value)}
               placeholder={t("loc_taluka_placeholder")}
               className={inputClass}
             />
             <input
               type="text"
-              value={fields.district}
+          value={fields.district}
               onChange={(e) => setField("district", e.target.value)}
               placeholder={t("loc_district_placeholder")}
               className={inputClass}
@@ -241,16 +247,16 @@ function LocationPicker({ resolved, onResolved, onError }) {
           <div className="grid sm:grid-cols-2 gap-2">
             <input
               type="number"
-              step="any"
-              value={fields.lat}
+          step="any"
+          value={fields.lat}
               onChange={(e) => setField("lat", e.target.value)}
               placeholder={t("loc_lat_placeholder")}
               className={inputClass}
             />
             <input
               type="number"
-              step="any"
-              value={fields.lon}
+          step="any"
+          value={fields.lon}
               onChange={(e) => setField("lon", e.target.value)}
               placeholder={t("loc_lon_placeholder")}
               className={inputClass}
@@ -265,7 +271,7 @@ function LocationPicker({ resolved, onResolved, onError }) {
       {/* ---- What we settled on ---- */}
       {resolved && !localError && (
         <p className="text-xs text-positive-700 mt-2">
-          ✅ {t("loc_using", { label: resolved.label || `${resolved.lat}, ${resolved.lon}` })}
+          <OkIcon size={ICON_MD} strokeWidth={ICON_STROKE} className="shrink-0" aria-hidden="true" /> {t("loc_using", { label: resolved.label || `${resolved.lat}, ${resolved.lon}` })}
           {/* A pincode gets you to a district, not a doorstep. Saying so
               stops the distances below looking more precise than they
               are. */}
@@ -289,12 +295,10 @@ function ResolveButton({ onClick, isBusy }) {
   return (
     <button
       type="button"
-      onClick={onClick}
+          onClick={onClick}
       disabled={isBusy}
-      className="px-4 py-2 rounded-lg bg-secondary text-secondary-foreground text-sm font-semibold
-        hover:opacity-90 disabled:opacity-50 shrink-0"
-    >
-      {isBusy ? t("loc_finding") : t("loc_find")}
+      className="px-4 py-2 rounded-md bg-secondary text-secondary-foreground text-sm font-medium
+        hover:opacity-90 disabled:opacity-50 shrink-0">{isBusy ? t("loc_finding") : t("loc_find")}
     </button>
   );
 }
