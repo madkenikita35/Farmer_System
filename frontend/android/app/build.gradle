@@ -22,6 +22,22 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    // Java 17, stated explicitly.
+    //
+    // Without this block the module inherits whatever Java the Gradle
+    // daemon happens to be running on. Android Studio ships its own
+    // JDK 21 runtime and uses it by default, so the app module compiled
+    // at 21 while Capacitor's generated capacitor.build.gradle - and
+    // every Capacitor plugin module - compiled at 17. Gradle stops the
+    // build when two modules in the same project disagree.
+    //
+    // 17 rather than 21 because that is what the Capacitor 8 modules
+    // target, and matching them is the whole point.
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
 }
 
 repositories {

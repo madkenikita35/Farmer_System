@@ -196,14 +196,30 @@ function HeroCarousel({ t }) {
       {/* ---- Dots: show which slide is active, and jump to any slide ---- */}
       <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
         {slides.map((slide, index) => (
+          // The BUTTON is the touch target and the SPAN is the dot.
+          //
+          // They used to be the same element, which made the tap area
+          // 10x10 - about a quarter of the 44px minimum in each
+          // direction, and by far the hardest thing to hit in the app.
+          // Splitting them lets the dot stay small and pretty while the
+          // button around it is a comfortable size.
+          //
+          // py-3 px-1.5 gives roughly 44x22 here; the parent row adds
+          // the rest of the height. On the web it is harmless padding.
           <button
             key={slide.imageUrl}
             onClick={() => setActiveIndex(index)}
             aria-label={`Go to slide ${index + 1}`}
-            className={`h-2.5 rounded-full transition-all duration-300 ${
-              index === activeIndex ? "bg-card w-7" : "bg-white/50 w-2.5 hover:bg-white/80"
-            }`}
-          />
+            className="grid place-items-center min-w-[44px] min-h-[44px] shrink-0 group"
+          >
+            <span
+              className={`block h-2.5 rounded-full transition-all duration-300 ${
+                index === activeIndex
+                  ? "bg-card w-7"
+                  : "bg-white/50 w-2.5 group-hover:bg-white/80"
+              }`}
+            />
+          </button>
         ))}
       </div>
     </div>

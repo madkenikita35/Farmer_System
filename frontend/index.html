@@ -6,7 +6,17 @@
 <html lang="en" data-accent="green">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover is what makes env(safe-area-inset-*) return a
+         real number instead of 0. Without it Android/iOS letterbox the web
+         view away from the notch, the insets read as zero, and the CSS
+         below silently does nothing.
+
+         user-scalable=no + maximum-scale=1 stop the double-tap zoom that
+         makes a wrapped web app feel like a web page. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <meta
       name="description"
       content="Check government mandi rates and real farmer-reported prices before you sell your crop."

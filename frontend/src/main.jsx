@@ -10,6 +10,17 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App.jsx";
 import "./index.css";
+import { initNative } from "./native";
+import { warmUpBackend } from "./api/api";
+
+// Status bar colour and splash-screen dismissal, for the installed app.
+// A no-op in a browser - see src/native.js - so the website is
+// unaffected by this line.
+initNative();
+
+// Start the backend waking up now rather than when the first search
+// happens - see warmUpBackend() for why that is worth 20 seconds.
+warmUpBackend();
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

@@ -427,6 +427,25 @@ export function getSyncStatus() {
   return api.get("/sync-status");
 }
 
+// ---------------------------------------------------------------------
+// WARM-UP
+// ---------------------------------------------------------------------
+// The backend is on Render's free tier, which spins the service down
+// after about fifteen minutes of no traffic. The next request then pays
+// for the whole container starting up - measured at 21.8 SECONDS.
+//
+// Nothing in our code can make that start-up faster. What it CAN do is
+// start it earlier: this fires the cheapest endpoint we have the moment
+// the app loads, so the server wakes while someone is still reading the
+// home page rather than after they press Search.
+//
+// Deliberately fire-and-forget. Nothing waits on it, nothing renders
+// from it, and a failure is ignored - it exists only for the side
+// effect of making the server exist.
+export function warmUpBackend() {
+  api.get("/sync-status", { timeout: 60000 }).catch(() => {});
+}
+
 export function getMandiCropNames() {
   return api.get("/mandi/crop-names");
 }

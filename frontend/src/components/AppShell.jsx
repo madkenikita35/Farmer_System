@@ -28,6 +28,8 @@ import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import Footer from "./Footer";
 import { CropIcon, AdminIcon, CloseIcon, ICON_MD, ICON_STROKE } from "./icons";
+import BottomTabBar from "./BottomTabBar";
+import { isNative } from "../native";
 
 // Kept in localStorage alongside `mandi_language`. Both are UI
 // preferences with nothing private in them - no token, no name, no
@@ -101,6 +103,11 @@ function AppShell({ children }) {
 
   const railWidth = isCollapsed ? "lg:w-[4.5rem]" : "lg:w-64";
 
+  // The installed app gets a bottom tab bar. The website does not - see
+  // components/BottomTabBar.jsx for why it is additive rather than a
+  // replacement for the sidebar.
+  const native = isNative();
+
   return (
     <div className="min-h-screen flex">
       {/* ================= SIDEBAR (desktop) ================= */}
@@ -165,11 +172,33 @@ function AppShell({ children }) {
           isCollapsed={isCollapsed}
         />
 
-        {/* flex-1 pushes the Footer to the bottom even on short pages */}
-        <main className="flex-1">{children}</main>
+        {/* flex-1 pushes the Footer to the bottom even on short pages.
 
-        <Footer />
+            On native, the bottom padding keeps the last element clear of
+            the tab bar - without it the final card sits underneath and
+            cannot be read or tapped. --tab-bar-height is 0px on the web,
+            so this costs the site nothing. */}
+        <main className="flex-1" style={{ paddingBottom: "var(--tab-bar-height)" }}>
+          {/* key={pathname} is what makes the transition happen: React
+              treats a changed key as a different element, unmounts the
+              old page and mounts the new one, so the CSS animation runs
+              again. Without it the class is already applied and nothing
+              replays.
+
+              The class is native-only (see index.css); on the web this
+              is a plain div that does nothing. */}
+          <div key={location.pathname} className={native ? "page-transition" : undefined}>
+            {children}
+          </div>
+        </main>
+
+        {/* The footer is a website thing: contact links, a copyright
+            line, a sitemap. An installed app has no use for it, and it
+            would just push the real content further up. */}
+        {!native && <Footer />}
       </div>
+
+      {native && <BottomTabBar />}
     </div>
   );
 }

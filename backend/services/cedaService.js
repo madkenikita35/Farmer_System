@@ -44,6 +44,7 @@
 // -----------------------------------------------------------------------
 
 const axios = require("axios");
+const { KEYS, readCache, writeCache } = require("./persistentCache");
 const { recordSuccessfulSync, SOURCES } = require("./syncStatusService");
 
 const BASE_URL = "https://api.ceda.ashoka.edu.in/v1";
@@ -121,10 +122,38 @@ function isFresh(entry) {
   return entry.data && Date.now() - entry.fetchedAt < entry.lifetime;
 }
 
-function store(entry, data, ok) {
+function store(entry, data, ok, key) {
   entry.data = data;
   entry.fetchedAt = Date.now();
   entry.lifetime = ok ? REFERENCE_CACHE_MS : FAILED_CACHE_MS;
+
+  // Also write it where a restart cannot lose it. These two lists -
+  // 453 commodities and every state/district CEDA knows - change maybe
+  // once a season, but the in-memory copy dies with the process, so on
+  // a host that sleeps they were being re-fetched constantly.
+  //
+  // Not awaited: the caller already has the data.
+  if (key && ok) writeCache(key, data, entry.lifetime);
+}
+
+/**
+ * Fills an in-memory entry from the database, if there is a fresh row.
+ *
+ * Called before an upstream fetch, so a cold start reads one document
+ * instead of making a network round trip to CEDA - which also matters
+ * because CEDA allows only 40 requests an hour.
+ */
+async function hydrate(entry, key) {
+  if (isFresh(entry)) return true;
+
+  const stored = await readCache(key);
+  if (!stored) return false;
+
+  entry.data = stored.payload;
+  entry.fetchedAt = new Date(stored.fetchedAt).getTime();
+  entry.lifetime = REFERENCE_CACHE_MS;
+  console.log(`📦 CEDA ${key} served from the database`);
+  return true;
 }
 
 // ---------------------------------------------------------------------
@@ -417,6 +446,11 @@ async function callCeda(method, path, body = null, attempt = 1) {
 async function getCommodities() {
   if (isFresh(cache.commodities)) return cache.commodities.data;
 
+  // Memory is empty - try the database before the network.
+  if (await hydrate(cache.commodities, KEYS.CEDA_CROPS)) {
+    return cache.commodities.data;
+  }
+
   try {
     const body = await callCeda("get", "/agmarknet/commodities");
 
@@ -428,7 +462,7 @@ async function getCommodities() {
       .filter((c) => c && c.commodity_name)
       .map((c) => ({ id: c.commodity_id, name: String(c.commodity_name).trim() }));
 
-    store(cache.commodities, commodities, true);
+    store(cache.commodities, commodities, true, KEYS.CEDA_CROPS);
     console.log(`✅ CEDA: ${commodities.length} commodities loaded`);
     return commodities;
   } catch (error) {
@@ -460,6 +494,10 @@ async function getCommodities() {
  */
 async function getGeographies() {
   if (isFresh(cache.geographies)) return cache.geographies.data;
+
+  if (await hydrate(cache.geographies, KEYS.CEDA_GEOGRAPHIES)) {
+    return cache.geographies.data;
+  }
 
   try {
     const body = await callCeda("get", "/agmarknet/geographies");
@@ -501,7 +539,7 @@ async function getGeographies() {
       state.districts.sort((a, b) => a.district_name.localeCompare(b.district_name));
     }
 
-    store(cache.geographies, geographies, true);
+    store(cache.geographies, geographies, true, KEYS.CEDA_GEOGRAPHIES);
     console.log(`✅ CEDA: ${geographies.length} states loaded`);
     return geographies;
   } catch (error) {

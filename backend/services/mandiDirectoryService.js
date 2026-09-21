@@ -32,6 +32,7 @@
 // ---------------------------------------------------------------------
 
 const axios = require("axios");
+const { KEYS, readCache, writeCache } = require("./persistentCache");
 
 const { categoriseCrop } = require("../config/cropCategories");
 const Receipt = require("../models/Receipt");
@@ -81,7 +82,12 @@ async function fetchMandiListFromApi() {
 
   if (!apiKey) {
     console.log("ℹ️  No MANDI_API_KEY set - using a small sample mandi list.");
-    return { mandis: getMockMandiList(), crops: getMockCropCoverage(), dataSource: "mock", fallbackReason: "no-api-key" };
+    return {
+      mandis: getMockMandiList(),
+      crops: getMockCropCoverage(),
+      dataSource: "mock",
+      fallbackReason: "no-api-key",
+    };
   }
 
   // Downloading several thousand records is a heavy request, and the
@@ -112,7 +118,7 @@ async function fetchMandiListFromApi() {
     } catch (error) {
       lastError = error;
       console.warn(
-        `⚠️  Mandi list request (limit ${attempt.limit}) failed: ${error.message}`
+        `⚠️  Mandi list request (limit ${attempt.limit}) failed: ${error.message}`,
       );
     }
   }
@@ -125,9 +131,14 @@ async function fetchMandiListFromApi() {
     const reason = lastError ? "api-unreachable" : "api-returned-nothing";
     console.error(
       `❌ Could not fetch the mandi list (${reason}) - falling back to the sample list. ` +
-        `Will retry in ${FAILED_CACHE_LIFETIME_MS / 1000}s.`
+        `Will retry in ${FAILED_CACHE_LIFETIME_MS / 1000}s.`,
     );
-    return { mandis: getMockMandiList(), crops: getMockCropCoverage(), dataSource: "mock", fallbackReason: reason };
+    return {
+      mandis: getMockMandiList(),
+      crops: getMockCropCoverage(),
+      dataSource: "mock",
+      fallbackReason: reason,
+    };
   }
 
   // ---- Collapse thousands of price rows into one row per mandi ----
@@ -227,10 +238,12 @@ async function fetchMandiListFromApi() {
       averagePrice:
         c.pricedRows > 0 ? Math.round(c.priceTotal / c.pricedRows) : null,
     }))
-    .sort((a, b) => b.mandiCount - a.mandiCount || a.crop.localeCompare(b.crop));
+    .sort(
+      (a, b) => b.mandiCount - a.mandiCount || a.crop.localeCompare(b.crop),
+    );
 
   console.log(
-    `✅ Mandi directory loaded: ${mandis.length} mandis, ${crops.length} crops from data.gov.in`
+    `✅ Mandi directory loaded: ${mandis.length} mandis, ${crops.length} crops from data.gov.in`,
   );
   return { mandis, crops, dataSource: "real", fallbackReason: null };
 }
@@ -248,39 +261,82 @@ async function getMandiDirectory({ search = "", state = "" } = {}) {
   // Note `cache.lifetime`, not a fixed constant: a real list is trusted
   // for hours, a failed one for a couple of minutes. See the comment on
   // FAILED_CACHE_LIFETIME_MS for the bug this prevents.
-  const cacheIsFresh = cache.data && Date.now() - cache.fetchedAt < cache.lifetime;
+  const cacheIsFresh =
+    cache.data && Date.now() - cache.fetchedAt < cache.lifetime;
 
   if (!cacheIsFresh) {
-    try {
-      const result = await fetchMandiListFromApi();
+    // ---- Step 1a: Mongo, before the network ----
+    //
+    // The in-memory cache above is empty on every cold start, and on
+    // Render's free tier the service sleeps after ~15 minutes - so in
+    // practice it is empty most of the time and each visitor paid for a
+    // fresh 10,000-row download (measured at 4.1s, on top of a 21s
+    // wake-up).
+    //
+    // Mongo survives the restart. Reading one document is ~20ms against
+    // those 4 seconds.
+    const stored = await readCache(KEYS.MANDI_DIRECTORY);
 
-      // If the fetch fell back to sample data but we still have a real
-      // list from earlier, keep the older REAL list - stale but genuine
-      // data beats ten made-up mandis.
-      if (result.dataSource === "mock" && cache.data?.dataSource === "real") {
-        console.warn("⚠️  Mandi API unavailable - serving the previously cached real list.");
+    if (stored) {
+      cache.data = stored.payload;
+      cache.fetchedAt = new Date(stored.fetchedAt).getTime();
+      cache.lifetime =
+        stored.payload.dataSource === "real"
+          ? CACHE_LIFETIME_MS
+          : FAILED_CACHE_LIFETIME_MS;
+
+      console.log(
+        `📦 Mandi directory served from the database (${Math.round(stored.ageMs / 1000)}s old)`,
+      );
+    }
+
+    // Mongo had a fresh copy, so there is nothing to fetch. Falling
+    // through rather than returning early keeps ONE copy of the
+    // filtering code below, which is what actually builds the response.
+    const stillStale =
+      !cache.data || Date.now() - cache.fetchedAt >= cache.lifetime;
+
+    if (stillStale) {
+      try {
+        const result = await fetchMandiListFromApi();
+
+        // If the fetch fell back to sample data but we still have a real
+        // list from earlier, keep the older REAL list - stale but genuine
+        // data beats ten made-up mandis.
+        if (result.dataSource === "mock" && cache.data?.dataSource === "real") {
+          console.warn(
+            "⚠️  Mandi API unavailable - serving the previously cached real list.",
+          );
+          cache.fetchedAt = Date.now();
+          cache.lifetime = FAILED_CACHE_LIFETIME_MS; // retry again shortly
+        } else {
+          cache.data = result;
+          cache.fetchedAt = Date.now();
+          cache.lifetime =
+            result.dataSource === "real"
+              ? CACHE_LIFETIME_MS
+              : FAILED_CACHE_LIFETIME_MS;
+
+          // Write it down so the NEXT cold start does not repeat this.
+          // Not awaited - the visitor who paid for this fetch should not
+          // also wait for the database write.
+          writeCache(KEYS.MANDI_DIRECTORY, result, cache.lifetime);
+        }
+      } catch (error) {
+        // fetchMandiListFromApi handles its own network errors, so getting
+        // here means something unexpected broke (bad data shape, say).
+        console.error("⚠️  Could not build mandi directory:", error.message);
+        if (!cache.data) {
+          cache.data = {
+            mandis: getMockMandiList(),
+            crops: getMockCropCoverage(),
+            dataSource: "mock",
+            fallbackReason: "unexpected-error",
+          };
+        }
         cache.fetchedAt = Date.now();
-        cache.lifetime = FAILED_CACHE_LIFETIME_MS; // retry again shortly
-      } else {
-        cache.data = result;
-        cache.fetchedAt = Date.now();
-        cache.lifetime =
-          result.dataSource === "real" ? CACHE_LIFETIME_MS : FAILED_CACHE_LIFETIME_MS;
+        cache.lifetime = FAILED_CACHE_LIFETIME_MS;
       }
-    } catch (error) {
-      // fetchMandiListFromApi handles its own network errors, so getting
-      // here means something unexpected broke (bad data shape, say).
-      console.error("⚠️  Could not build mandi directory:", error.message);
-      if (!cache.data) {
-        cache.data = {
-          mandis: getMockMandiList(),
-          crops: getMockCropCoverage(),
-          dataSource: "mock",
-          fallbackReason: "unexpected-error",
-        };
-      }
-      cache.fetchedAt = Date.now();
-      cache.lifetime = FAILED_CACHE_LIFETIME_MS;
     }
   }
 
@@ -293,7 +349,7 @@ async function getMandiDirectory({ search = "", state = "" } = {}) {
 
   if (state) {
     filtered = filtered.filter(
-      (m) => m.state.toLowerCase() === state.toLowerCase()
+      (m) => m.state.toLowerCase() === state.toLowerCase(),
     );
   }
 
@@ -303,7 +359,7 @@ async function getMandiDirectory({ search = "", state = "" } = {}) {
       (m) =>
         m.mandiName.toLowerCase().includes(needle) ||
         m.district.toLowerCase().includes(needle) ||
-        m.state.toLowerCase().includes(needle)
+        m.state.toLowerCase().includes(needle),
     );
   }
 
@@ -370,7 +426,10 @@ async function getCropsInMandi(mandiName, state) {
         }));
       }
     } catch (error) {
-      console.error(`⚠️  Could not fetch crops for "${mandiName}":`, error.message);
+      console.error(
+        `⚠️  Could not fetch crops for "${mandiName}":`,
+        error.message,
+      );
     }
   }
 
@@ -392,7 +451,9 @@ async function getCropsInMandi(mandiName, state) {
     const prices = rows.map((r) => r.pricePerQuintal);
     return {
       crop,
-      averagePrice: Math.round(prices.reduce((sum, p) => sum + p, 0) / prices.length),
+      averagePrice: Math.round(
+        prices.reduce((sum, p) => sum + p, 0) / prices.length,
+      ),
       minPrice: Math.min(...prices),
       maxPrice: Math.max(...prices),
       reportCount: rows.length,
@@ -412,16 +473,16 @@ async function getCropsInMandi(mandiName, state) {
     // A mandi can report the same crop in several varieties/grades, so
     // average them into one number per crop.
     const govRows = governmentCrops.filter(
-      (c) => c.crop.toLowerCase() === cropName.toLowerCase()
+      (c) => c.crop.toLowerCase() === cropName.toLowerCase(),
     );
     const farmerRow = farmerCrops.find(
-      (c) => c.crop.toLowerCase() === cropName.toLowerCase()
+      (c) => c.crop.toLowerCase() === cropName.toLowerCase(),
     );
 
     const governmentPrice =
       govRows.length > 0
         ? Math.round(
-            govRows.reduce((sum, c) => sum + c.modalPrice, 0) / govRows.length
+            govRows.reduce((sum, c) => sum + c.modalPrice, 0) / govRows.length,
           )
         : null;
 
@@ -443,8 +504,10 @@ async function getCropsInMandi(mandiName, state) {
       // unreadable chart with 70 bars. See config/cropCategories.js.
       category: categoriseCrop(cropName),
       governmentPrice,
-      governmentMinPrice: govRows.length > 0 ? Math.min(...govRows.map((c) => c.minPrice)) : null,
-      governmentMaxPrice: govRows.length > 0 ? Math.max(...govRows.map((c) => c.maxPrice)) : null,
+      governmentMinPrice:
+        govRows.length > 0 ? Math.min(...govRows.map((c) => c.minPrice)) : null,
+      governmentMaxPrice:
+        govRows.length > 0 ? Math.max(...govRows.map((c) => c.maxPrice)) : null,
       governmentDate: govRows.length > 0 ? govRows[0].arrivalDate : "",
       farmerPrice,
       farmerReportCount: farmerRow ? farmerRow.reportCount : 0,
@@ -475,16 +538,86 @@ async function getCropsInMandi(mandiName, state) {
  */
 function getMockMandiList() {
   return [
-    { mandiName: "Pune", state: "Maharashtra", district: "Pune", cropCount: 24, recordCount: 24, latestDate: "" },
-    { mandiName: "Nashik", state: "Maharashtra", district: "Nashik", cropCount: 18, recordCount: 18, latestDate: "" },
-    { mandiName: "Kolhapur", state: "Maharashtra", district: "Kolhapur", cropCount: 12, recordCount: 12, latestDate: "" },
-    { mandiName: "Indore", state: "Madhya Pradesh", district: "Indore", cropCount: 20, recordCount: 20, latestDate: "" },
-    { mandiName: "Bhopal", state: "Madhya Pradesh", district: "Bhopal", cropCount: 15, recordCount: 15, latestDate: "" },
-    { mandiName: "Azadpur", state: "Delhi", district: "North Delhi", cropCount: 30, recordCount: 30, latestDate: "" },
-    { mandiName: "Bengaluru", state: "Karnataka", district: "Bangalore", cropCount: 22, recordCount: 22, latestDate: "" },
-    { mandiName: "Guntur", state: "Andhra Pradesh", district: "Guntur", cropCount: 16, recordCount: 16, latestDate: "" },
-    { mandiName: "Ludhiana", state: "Punjab", district: "Ludhiana", cropCount: 14, recordCount: 14, latestDate: "" },
-    { mandiName: "Jaipur", state: "Rajasthan", district: "Jaipur", cropCount: 19, recordCount: 19, latestDate: "" },
+    {
+      mandiName: "Pune",
+      state: "Maharashtra",
+      district: "Pune",
+      cropCount: 24,
+      recordCount: 24,
+      latestDate: "",
+    },
+    {
+      mandiName: "Nashik",
+      state: "Maharashtra",
+      district: "Nashik",
+      cropCount: 18,
+      recordCount: 18,
+      latestDate: "",
+    },
+    {
+      mandiName: "Kolhapur",
+      state: "Maharashtra",
+      district: "Kolhapur",
+      cropCount: 12,
+      recordCount: 12,
+      latestDate: "",
+    },
+    {
+      mandiName: "Indore",
+      state: "Madhya Pradesh",
+      district: "Indore",
+      cropCount: 20,
+      recordCount: 20,
+      latestDate: "",
+    },
+    {
+      mandiName: "Bhopal",
+      state: "Madhya Pradesh",
+      district: "Bhopal",
+      cropCount: 15,
+      recordCount: 15,
+      latestDate: "",
+    },
+    {
+      mandiName: "Azadpur",
+      state: "Delhi",
+      district: "North Delhi",
+      cropCount: 30,
+      recordCount: 30,
+      latestDate: "",
+    },
+    {
+      mandiName: "Bengaluru",
+      state: "Karnataka",
+      district: "Bangalore",
+      cropCount: 22,
+      recordCount: 22,
+      latestDate: "",
+    },
+    {
+      mandiName: "Guntur",
+      state: "Andhra Pradesh",
+      district: "Guntur",
+      cropCount: 16,
+      recordCount: 16,
+      latestDate: "",
+    },
+    {
+      mandiName: "Ludhiana",
+      state: "Punjab",
+      district: "Ludhiana",
+      cropCount: 14,
+      recordCount: 14,
+      latestDate: "",
+    },
+    {
+      mandiName: "Jaipur",
+      state: "Rajasthan",
+      district: "Jaipur",
+      cropCount: 19,
+      recordCount: 19,
+      latestDate: "",
+    },
   ];
 }
 
@@ -527,8 +660,16 @@ async function getCropCoverage() {
  */
 function getMockCropCoverage() {
   const sample = [
-    ["Onion", 6], ["Tomato", 6], ["Potato", 5], ["Wheat", 4], ["Rice", 4],
-    ["Banana", 3], ["Brinjal", 3], ["Cabbage", 2], ["Mango", 2], ["Garlic", 1],
+    ["Onion", 6],
+    ["Tomato", 6],
+    ["Potato", 5],
+    ["Wheat", 4],
+    ["Rice", 4],
+    ["Banana", 3],
+    ["Brinjal", 3],
+    ["Cabbage", 2],
+    ["Mango", 2],
+    ["Garlic", 1],
   ];
 
   return sample.map(([crop, mandiCount]) => ({

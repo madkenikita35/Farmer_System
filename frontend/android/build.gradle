@@ -24,6 +24,37 @@ allprojects {
     }
 }
 
+// ---------------------------------------------------------------------
+// ONE JAVA VERSION FOR EVERY MODULE
+// ---------------------------------------------------------------------
+// Capacitor plugins each ship their own build.gradle, and they do not
+// agree: @capacitor/status-bar targets Java 17 while
+// @capacitor/splash-screen targets 21. Building with a JDK 17 toolchain
+// then fails on the 21 module with:
+//
+//     :capacitor-splash-screen:compileDebugJavaWithJavac FAILED
+//     error: invalid source release: 21
+//
+// Editing node_modules would fix it until the next `npm install` wipes
+// it. This overrides every Android module from here instead, which is
+// part of the project and survives.
+//
+// afterEvaluate is required: the plugin modules set their own
+// compileOptions while being evaluated, so anything applied earlier
+// gets overwritten by the value we are trying to replace.
+subprojects {
+    afterEvaluate { project ->
+        if (project.hasProperty("android")) {
+            project.android {
+                compileOptions {
+                    sourceCompatibility JavaVersion.VERSION_17
+                    targetCompatibility JavaVersion.VERSION_17
+                }
+            }
+        }
+    }
+}
+
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
