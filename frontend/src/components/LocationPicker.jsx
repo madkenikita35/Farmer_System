@@ -50,10 +50,17 @@ const inputClass =
   "w-full border border-ink-200 rounded-md px-3.5 py-2.5 bg-card " +
   "focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all";
 
-function LocationPicker({ resolved, onResolved, onError }) {
+function LocationPicker({ resolved, onResolved, onError, onDraft }) {
   const { t } = useLanguage();
 
   const [method, setMethod] = useState("gps");
+
+  // Changing tab changes which typed value counts, so the parent is
+  // told about that too - see setField() below.
+  function changeMethod(next) {
+    setMethod(next);
+    if (onDraft) onDraft({ method: next, fields });
+  }
   const [isBusy, setIsBusy] = useState(false);
   const [localError, setLocalError] = useState("");
 
@@ -71,7 +78,24 @@ function LocationPicker({ resolved, onResolved, onError }) {
   });
 
   function setField(name, value) {
-    setFields((prev) => ({ ...prev, [name]: value }));
+    setFields((prev) => {
+      const next = { ...prev, [name]: value };
+
+      // Tell the parent what has been TYPED, not just what has been
+      // resolved.
+      //
+      // Before this, the only way out of this component was
+      // onResolved() - which fires when the little "Find" button is
+      // pressed. So someone who typed "pune" and went straight for
+      // "Find Best Mandis" hit an error telling them to pick a
+      // location, with the location sitting right there in the box.
+      //
+      // The parent can now send the raw text to the backend, which
+      // already knows how to geocode a place name.
+      if (onDraft) onDraft({ method, fields: next });
+
+      return next;
+    });
   }
 
   function fail(message) {
@@ -139,8 +163,8 @@ function LocationPicker({ resolved, onResolved, onError }) {
           <button
             key={m.key}
             type="button"
-          onClick={() => {
-              setMethod(m.key);
+            onClick={() => {
+              changeMethod(m.key);
               setLocalError("");
             }}
             className={`px-3 py-1.5 rounded-full text-sm font-medium transition border ${

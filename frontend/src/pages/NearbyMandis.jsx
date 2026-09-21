@@ -23,7 +23,7 @@
 // -----------------------------------------------------------------------
 
 import { useState, useMemo } from "react";
-import { getNearbyMandis } from "../api/api";
+import { getNearbyMandis, resolveLocation } from "../api/api";
 import StatCard from "../components/StatCard";
 import CropSelect from "../components/CropSelect";
 import LocationPicker from "../components/LocationPicker";
@@ -53,6 +53,11 @@ function NearbyMandis() {
   // price; a trader buying wants the lowest. It changes which two
   // mandis every card shows, at all three scopes.
   const [mode, setMode] = useState("sell");
+
+  // What the farmer has TYPED into the location picker but not pressed
+  // "Find" on. Kept so the main search can use it directly - see
+  // handleSearch below for why that matters.
+  const [locationDraft, setLocationDraft] = useState(null);
   const [sortBy, setSortBy] = useState("price");
 
   // Coordinates, however the farmer gave them to us. Everything
@@ -74,6 +79,49 @@ function NearbyMandis() {
   // `overrides` lets the mode toggle re-run the search immediately:
   // setMode is async, so reading `mode` right after setting it would
   // still give the old value.
+  // The typed value for whichever location tab is showing.
+  //
+  // Pincode and lat/long are deliberately excluded: those are resolved
+  // by dedicated endpoints that validate them (a 6-digit code has to
+  // exist; a coordinate has to be inside India), and guessing at a
+  // half-typed one would send nonsense to the search.
+  function draftPlaceText() {
+    if (!locationDraft) return "";
+
+    const { method, fields } = locationDraft;
+
+    if (method === "place") return (fields.place || "").trim();
+
+    if (method === "address") {
+      // The address tab is four boxes; joining them gives the geocoder
+      // the same string the Find button would have sent.
+      return [fields.address, fields.postOffice, fields.taluka, fields.district]
+        .map((part) => (part || "").trim())
+        .filter(Boolean)
+        .join(", ");
+    }
+
+    return "";
+  }
+
+  // Pincode and lat/long, which need validating before they can be
+  // used. Returns what to resolve, or null if this tab has nothing
+  // typed into it.
+  function draftNeedsResolving() {
+    if (!locationDraft) return null;
+    const { method, fields } = locationDraft;
+
+    if (method === "pincode" && (fields.pincode || "").trim().length === 6) {
+      return { method, fields: { pincode: fields.pincode.trim() } };
+    }
+
+    if (method === "coords" && String(fields.lat).trim() && String(fields.lon).trim()) {
+      return { method, fields: { lat: fields.lat, lon: fields.lon } };
+    }
+
+    return null;
+  }
+
   async function handleSearch(e, overrides = {}) {
     if (e && e.preventDefault) e.preventDefault();
 
@@ -81,7 +129,23 @@ function NearbyMandis() {
       setErrorMessage(t("nm_err_choose_crop"));
       return;
     }
-    if (!coordinates) {
+    // A typed town is a perfectly good answer to "where are you?", so
+    // it counts even though nobody pressed the little "Find" button.
+    //
+    // This used to insist on coordinates, which made every method
+    // except "My location" a TWO-step process: type the town, press
+    // Find, then press Find Best Mandis. Miss the middle step - as
+    // anyone would, with a big button labelled "Find Best Mandis" right
+    // there - and the answer was "type the town you are selling near",
+    // with the town already typed in the box above.
+    //
+    // The backend has always accepted a place name and geocoded it
+    // itself (see resolveOrigin in nearbyController.js). The frontend
+    // simply never sent it.
+    const typedPlace = draftPlaceText();
+    const typedExact = draftNeedsResolving();
+
+    if (!coordinates && !typedPlace && !typedExact) {
       setErrorMessage(t("nm_err_need_place"));
       return;
     }
@@ -89,12 +153,36 @@ function NearbyMandis() {
     setErrorMessage("");
     setIsLoading(true);
     try {
+      // A pincode or a lat/long has to be CHECKED, not guessed at - a
+      // six-digit code either exists or it does not, and a coordinate
+      // either falls inside India or it does not. So instead of sending
+      // the raw text to the search, resolve it first through the same
+      // endpoint the "Find" button uses, then search with the result.
+      //
+      // Two requests rather than one, but the farmer presses one button
+      // and gets an answer, which is the whole point. A place name skips
+      // this - the search endpoint geocodes that itself.
+      let point = coordinates;
+
+      if (!point && typedExact) {
+        const resolved = await resolveLocation({
+          method: typedExact.method,
+          ...typedExact.fields,
+        });
+        point = { lat: resolved.data.lat, lon: resolved.data.lon };
+        setCoordinates(point);
+        setResolvedLocation({ ...resolved.data, method: typedExact.method });
+      }
+
       const response = await getNearbyMandis({
         mode: overrides.mode || mode,
         crop: crop.trim(),
-        // Send coordinates if we have them, otherwise the typed name.
-        lat: coordinates.lat,
-        lon: coordinates.lon,
+        // Coordinates are exact and need no lookup, so they win when we
+        // have them. Otherwise the typed name goes up and the server
+        // resolves it.
+        lat: point?.lat,
+        lon: point?.lon,
+        place: point ? undefined : typedPlace,
         radius,
         sortBy,
       });
@@ -203,6 +291,7 @@ function NearbyMandis() {
             setErrorMessage("");
           }}
           onError={(message) => setErrorMessage(message)}
+          onDraft={setLocationDraft}
         />
 
         <div className="flex flex-wrap items-center gap-3 mt-5">
