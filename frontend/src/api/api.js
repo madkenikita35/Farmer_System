@@ -222,16 +222,41 @@ api.interceptors.response.use(
   }
 );
 
-/** Forget everything locally and send the user back to the login page. */
+// Who to tell when a session ends. AuthContext registers itself here at
+// startup, so this module can clear the app's auth state without
+// importing React or knowing that AuthContext exists.
+let sessionEndedListener = null;
+
+export function onSessionEnded(callback) {
+  sessionEndedListener = callback;
+}
+
+/**
+ * Forget the local session.
+ *
+ * ---------------------------------------------------------------------
+ * WHY THIS NO LONGER REDIRECTS
+ * ---------------------------------------------------------------------
+ * It used to do `window.location.href = "/login"`, which was right when
+ * every page required an account: a 401 meant you had been thrown out,
+ * so the login page was where you belonged.
+ *
+ * That became a bug the moment guests could browse. On startup
+ * AuthContext calls /auth/refresh to see whether anyone is signed in. A
+ * visitor with no cookie gets a perfectly normal 401 - "nobody is
+ * logged in" - and this function bounced them from the home page they
+ * had just opened to a login screen they never asked for.
+ *
+ * Now it clears the session and tells AuthContext, and React decides
+ * what to show: the public pages stay public, and the two account-only
+ * pages render SignInPrompt in place. Nobody loses the page they were
+ * on, which is also what a real session expiry should feel like.
+ */
 function handleSessionEnded() {
   clearAccessToken();
   purgeLegacyStorage();
 
-  // Only redirect if we are not ALREADY on the login page, otherwise
-  // we would bounce the page in a loop while someone is typing.
-  if (!window.location.pathname.startsWith("/login")) {
-    window.location.href = "/login";
-  }
+  if (sessionEndedListener) sessionEndedListener();
 }
 
 // =======================================================================

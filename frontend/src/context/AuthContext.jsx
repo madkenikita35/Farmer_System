@@ -52,6 +52,7 @@ import {
   refreshRequest,
   setAccessToken,
   clearAccessToken,
+  onSessionEnded,
   purgeLegacyStorage,
 } from "../api/api";
 
@@ -98,6 +99,12 @@ export function AuthProvider({ children }) {
     }
 
     restoreSession();
+
+    // If a request later comes back 401 and cannot be refreshed, the
+    // API layer clears the token and calls this. Mirroring it into
+    // React state is what makes the UI agree - otherwise the header
+    // would keep showing a name for a session that no longer exists.
+    onSessionEnded(() => setCurrentUser(null));
   }, []); // the empty [] means "only run this on first load"
 
   // A small helper so login() and signup() don't repeat themselves.
