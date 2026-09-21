@@ -34,6 +34,7 @@ const trendRoutes = require("./routes/trendRoutes");
 const cedaRoutes = require("./routes/cedaRoutes");
 const locationRoutes = require("./routes/locationRoutes");
 const syncRoutes = require("./routes/syncRoutes");
+const { primeLearnedDistricts } = require("./services/locationService");
 const voiceRoutes = require("./routes/voiceRoutes");
 
 // Refuse to boot on placeholder secrets in production - see the file.
@@ -310,6 +311,12 @@ const PORT = process.env.PORT || 5000;
 // ready, and no point starting without an admin account existing.)
 connectDB()
   .then(() => seedDefaultUsers())
+  .then(() => {
+    // Load any district positions learned on earlier runs. Not awaited:
+    // the server should start listening whether or not this succeeds,
+    // and every lookup falls back to the state centre until it lands.
+    primeLearnedDistricts().catch(() => {});
+  })
   .then(() => {
     const server = app.listen(PORT, () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`);

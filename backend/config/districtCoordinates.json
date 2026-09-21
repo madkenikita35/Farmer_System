@@ -1723,5 +1723,195 @@
   "lat": 19.8076083,
   "lon": 85.8252538,
   "accuracy": "district"
+ },
+ "Haryana|||Sonipat": {
+  "lat": 28.9953758,
+  "lon": 77.0233627,
+  "accuracy": "district"
+ },
+ "Rajasthan|||Jalore": {
+  "lat": 25.2093482,
+  "lon": 72.3178889,
+  "accuracy": "district"
+ },
+ "Punjab|||Moga": {
+  "lat": 30.7877554,
+  "lon": 75.159359,
+  "accuracy": "district"
+ },
+ "Karnataka|||Bengaluru Rural": {
+  "lat": 13.1826245,
+  "lon": 77.3395681,
+  "accuracy": "district"
+ },
+ "Uttar Pradesh|||Kasganj": {
+  "lat": 27.7888527,
+  "lon": 78.8229701,
+  "accuracy": "district"
+ },
+ "Gujarat|||Chhota Udaipur": {
+  "lat": 22.2224345,
+  "lon": 73.7778749,
+  "accuracy": "district"
+ },
+ "Gujarat|||Junagarh": {
+  "lat": 21.25,
+  "lon": 70.333333,
+  "accuracy": "district"
+ },
+ "Uttar Pradesh|||Lalitpur": {
+  "lat": 24.6999688,
+  "lon": 78.51862,
+  "accuracy": "district"
+ },
+ "Odisha|||Sonepur": {
+  "lat": 20.8453864,
+  "lon": 83.909083,
+  "accuracy": "district"
+ },
+ "Punjab|||Ropar (Rupnagar)": {
+  "lat": 30.9688367,
+  "lon": 76.526088,
+  "accuracy": "district"
+ },
+ "Tripura|||North Tripura": {
+  "lat": 24.0921476,
+  "lon": 92.2451214,
+  "accuracy": "district"
+ },
+ "Nagaland|||Kohima": {
+  "lat": 25.6618755,
+  "lon": 94.1019156,
+  "accuracy": "district"
+ },
+ "Haryana|||Kaithal": {
+  "lat": 29.7996588,
+  "lon": 76.3989903,
+  "accuracy": "district"
+ },
+ "Jammu and Kashmir|||Rajouri": {
+  "lat": 33.3772495,
+  "lon": 74.3132332,
+  "accuracy": "district"
+ },
+ "Punjab|||Fatehgarh": {
+  "lat": 31.6610527,
+  "lon": 74.9764967,
+  "accuracy": "district"
+ },
+ "Odisha|||Sundergarh": {
+  "lat": 22.1172081,
+  "lon": 84.0200982,
+  "accuracy": "district"
+ },
+ "Haryana|||Jind": {
+  "lat": 29.3152073,
+  "lon": 76.314082,
+  "accuracy": "district"
+ },
+ "Odisha|||Ganjam": {
+  "lat": 19.6090068,
+  "lon": 84.7080633,
+  "accuracy": "district"
+ },
+ "Odisha|||Sambalpur": {
+  "lat": 21.5570606,
+  "lon": 84.1528515,
+  "accuracy": "district"
+ },
+ "Odisha|||Boudh": {
+  "lat": 20.6407463,
+  "lon": 83.9969704,
+  "accuracy": "district"
+ },
+ "Bihar|||Khagaria": {
+  "lat": 25.4930513,
+  "lon": 86.6982264,
+  "accuracy": "district"
+ },
+ "Odisha|||Koraput": {
+  "lat": 18.7232023,
+  "lon": 82.6100596,
+  "accuracy": "district"
+ },
+ "Haryana|||Sirsa": {
+  "lat": 29.6063041,
+  "lon": 74.9036568,
+  "accuracy": "district"
+ },
+ "West Bengal|||Paschim Bardhaman": {
+  "lat": 23.6461884,
+  "lon": 87.1587969,
+  "accuracy": "district"
+ },
+ "Odisha|||Jagatsinghpur": {
+  "lat": 20.2593872,
+  "lon": 86.1660878,
+  "accuracy": "district"
+ },
+ "Rajasthan|||Ganganagar": {
+  "lat": 25.9061389,
+  "lon": 76.4815499,
+  "accuracy": "district"
+ },
+ "Punjab|||Muktsar": {
+  "lat": 30.4692,
+  "lon": 74.5182,
+  "accuracy": "district"
+ },
+ "Uttar Pradesh|||Hamirpur": {
+  "lat": 25.75,
+  "lon": 80,
+  "accuracy": "district"
+ },
+ "Gujarat|||Panchmahals": {
+  "lat": 22.2587,
+  "lon": 71.1924,
+  "accuracy": "state"
+ },
+ "Uttar Pradesh|||Pratapgarh": {
+  "lat": 25.75,
+  "lon": 81.75,
+  "accuracy": "district"
+ },
+ "Nagaland|||Tsemenyu": {
+  "lat": 26.1584,
+  "lon": 94.5624,
+  "accuracy": "state"
+ },
+ "Chattisgarh|||Kanker": {
+  "lat": 20.2692747,
+  "lon": 81.4932111,
+  "accuracy": "district"
+ },
+ "Odisha|||Gajapati": {
+  "lat": 19.1966026,
+  "lon": 84.1930634,
+  "accuracy": "district"
+ },
+ "Odisha|||Bhadrak": {
+  "lat": 20.9854052,
+  "lon": 86.5934226,
+  "accuracy": "district"
+ },
+ "Madhya Pradesh|||Singroli": {
+  "lat": 22.9734,
+  "lon": 78.6569,
+  "accuracy": "state"
+ },
+ "Uttarakhand|||Chamoli (Gopeshwar)": {
+  "lat": 30.40878,
+  "lon": 79.31855,
+  "accuracy": "district"
+ },
+ "Jammu and Kashmir|||Ganderbal": {
+  "lat": 34.2889322,
+  "lon": 75.0407983,
+  "accuracy": "district"
+ },
+ "Uttar Pradesh|||Kaushambi": {
+  "lat": 25.5342456,
+  "lon": 81.4493567,
+  "accuracy": "district"
  }
 }

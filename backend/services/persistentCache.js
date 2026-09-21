@@ -15,6 +15,11 @@ const KEYS = {
   MANDI_DIRECTORY: "mandi-directory",
   CEDA_CROPS: "ceda-crops",
   CEDA_GEOGRAPHIES: "ceda-geographies",
+
+  // District positions geocoded at runtime, for districts the shipped
+  // coordinate file does not cover - see learnDistrict() in
+  // services/locationService.js.
+  LEARNED_DISTRICTS: "learned-districts",
 };
 
 /**

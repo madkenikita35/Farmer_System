@@ -110,6 +110,114 @@ function distanceInKm(pointA, pointB) {
  *   is the middle of the whole state). The caller passes that on to the
  *   frontend so a rough distance can be labelled as rough.
  */
+// =======================================================================
+// LEARNING DISTRICTS WE DID NOT SHIP
+// =======================================================================
+// config/districtCoordinates.json is built by a one-time script from a
+// single day's mandi feed, so it can only ever cover the districts that
+// reported that day. Anything else lands on the state centre, which can
+// be 400km out - enough to hide a farmer's own local mandi from a
+// "within 150km" search.
+//
+// Rather than ship a bigger file that is still incomplete, the app now
+// learns: the first time an unknown district appears, it is geocoded in
+// the background and written to MongoDB, and every request after that
+// uses the real position.
+//
+// THREE THINGS THAT KEEP THIS SAFE
+//   1. Nobody waits. The request that discovered the district is already
+//      being answered with the state centre by the time this runs.
+//   2. One attempt per district per process, tracked in `attempted`, so
+//      a district that cannot be geocoded is not retried on every row of
+//      every request.
+//   3. Nominatim asks for at most one request per second, so lookups are
+//      queued and spaced rather than fired in parallel.
+// =======================================================================
+
+const { KEYS, readCache, writeCache } = require("./persistentCache");
+
+const NOMINATIM_GAP_MS = 1100; // their published limit is 1/second
+
+// Districts we have already tried this process - success or failure.
+const attempted = new Set();
+
+// Positions learned in earlier runs, loaded once from MongoDB.
+let learned = {};
+let learnedLoaded = false;
+
+// A simple serial queue, so two unknown districts do not hit Nominatim
+// at the same moment.
+let queue = Promise.resolve();
+
+async function loadLearned() {
+  if (learnedLoaded) return;
+  learnedLoaded = true;
+
+  const stored = await readCache(KEYS.LEARNED_DISTRICTS);
+  if (stored && stored.payload) {
+    learned = stored.payload;
+    const count = Object.keys(learned).length;
+    if (count) console.log(`Loaded ${count} learned district positions.`);
+  }
+}
+
+async function geocodeDistrict(state, district) {
+  const response = await axios.get("https://nominatim.openstreetmap.org/search", {
+    params: { q: `${district}, ${state}, India`, format: "json", limit: 1 },
+    // Nominatim requires a real identifying User-Agent and blocks
+    // callers that do not send one.
+    headers: { "User-Agent": "MandiPriceChecker/1.0 (district lookup)" },
+    timeout: 12000,
+  });
+
+  const hit = response.data && response.data[0];
+  if (!hit) return null;
+
+  return { lat: Number(hit.lat), lon: Number(hit.lon), accuracy: "district" };
+}
+
+/**
+ * Queue an unknown district to be looked up and remembered.
+ *
+ * Deliberately not awaited by the caller and deliberately silent on
+ * failure - this is a background improvement, not part of answering the
+ * request.
+ */
+function learnDistrict(state, district) {
+  const key = `${state}|||${district}`;
+  if (attempted.has(key)) return;
+  attempted.add(key);
+
+  queue = queue
+    .then(async () => {
+      await loadLearned();
+      if (learned[key]) return; // a previous run already found it
+
+      const found = await geocodeDistrict(state, district);
+      if (!found) return;
+
+      learned[key] = found;
+      districtCoordinates[key] = found; // usable immediately, in memory
+
+      // A month: district boundaries do not move, and this saves
+      // re-geocoding after every restart.
+      writeCache(KEYS.LEARNED_DISTRICTS, learned, 30 * 24 * 60 * 60 * 1000);
+      console.log(`Learned ${district}, ${state} -> ${found.lat}, ${found.lon}`);
+
+      await new Promise((resolve) => setTimeout(resolve, NOMINATIM_GAP_MS));
+    })
+    .catch(() => {
+      // Offline, rate-limited, or the name is not recognisable. The
+      // state centre is still returned; there is nothing to report.
+    });
+}
+
+/** Called once at startup so learned positions are available early. */
+async function primeLearnedDistricts() {
+  await loadLearned();
+  Object.assign(districtCoordinates, learned);
+}
+
 function findMandiLocation(state, district) {
   const cleanState = (state || "").trim();
   const cleanDistrict = (district || "").trim();
@@ -131,7 +239,33 @@ function findMandiLocation(state, district) {
     }
   }
 
+  // --- An unknown district: use the state centre, and LEARN it ---
+  //
+  // The coordinate file is built from one day's mandi data, so it only
+  // ever contains districts that happened to report that day. India has
+  // around 780 districts; a typical day's feed mentions under 300. On a
+  // day when Wardha reports, Wardha is not in the file.
+  //
+  // Falling back to the state centre is not harmless: it can place a
+  // mandi 400km from where it really is, so a farmer searching within
+  // 150km never sees their own local market. That is the bug this whole
+  // function exists to avoid.
+  //
+  // So the fallback is still returned for THIS request - nobody waits
+  // on a geocoder - but the district is queued to be looked up in the
+  // background and remembered, and every later request gets the real
+  // position. See learnDistrict() below.
+  if (cleanState && cleanDistrict) {
+    learnDistrict(cleanState, cleanDistrict);
+  }
+
   // --- Last resort: the middle of the state ---
+  //
+  // NOTE for whoever works on this next: a state centre can be 400km
+  // from the mandi it is standing in for. The distance shown is then
+  // meaningless, which is why `accuracy: "state"` travels with it -
+  // callers are expected to treat those rows as approximate rather
+  // than sorting them alongside real measurements.
   const centre = STATE_CENTRES[cleanState];
   if (centre) return { lat: centre.lat, lon: centre.lon, accuracy: "state" };
 
@@ -496,6 +630,7 @@ function warnIfNearestImplausible({
 }
 
 module.exports = {
+  primeLearnedDistricts,
   distanceInKm,
   findMandiLocation,
   findStateForCoordinates,
