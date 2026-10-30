@@ -62,6 +62,12 @@ function CheckRates() {
   const [coordinates, setCoordinates] = useState(null);
   const [radiusKm, setRadiusKm] = useState(50);
 
+  // Whether the farmer has actually PICKED a radius. Same reasoning as
+  // the Near Me page: sending 50 on the first search hides the nearest
+  // mandi whenever it happens to be 60km away. See the note in
+  // backend/controllers/nearbyController.js.
+  const [radiusChosen, setRadiusChosen] = useState(false);
+
   // The states that actually have mandis reporting, for the dropdown.
   // Asked for once when the page opens rather than on every search -
   // the list does not change while someone is standing here.
@@ -119,7 +125,17 @@ function CheckRates() {
     }
 
     const where = overrides.coordinates || coordinates;
-    const radius = overrides.radiusKm || radiusKm;
+
+    // null means "explicitly no cap" - a sentinel, because setState is
+    // async and reading radiusChosen here would give its previous value.
+    const radius =
+      overrides.radiusKm === null
+        ? undefined
+        : overrides.radiusKm !== undefined
+        ? overrides.radiusKm
+        : radiusChosen
+        ? radiusKm
+        : undefined;
 
     setErrorMessage("");
     setIsLoading(true);
@@ -141,7 +157,15 @@ function CheckRates() {
   // Changing the radius only affects the "Near You" card, but the
   // filtering happens server-side, so it needs another call.
   function handleRadiusChange(nextRadius) {
+    // `null` from the control means "any distance".
+    if (nextRadius === null || nextRadius === "") {
+      setRadiusChosen(false);
+      if (crop.trim() && result) runSearch(crop, { radiusKm: null });
+      return;
+    }
+
     setRadiusKm(nextRadius);
+    setRadiusChosen(true);
     if (crop.trim() && result) runSearch(crop, { radiusKm: nextRadius });
   }
 
@@ -231,7 +255,7 @@ function CheckRates() {
         <ScopeComparisonCards
           scopes={result?.scopes}
           isLoading={isLoading}
-          radiusKm={radiusKm}
+          radiusKm={radiusChosen ? radiusKm : null}
           onRadiusChange={handleRadiusChange}
           onUseLocation={handleUseMyLocation}
           hasLocation={Boolean(coordinates)}

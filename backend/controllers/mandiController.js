@@ -238,9 +238,18 @@ async function comparePrices(req, res) {
         ? { lat: latNumber, lon: lonNumber }
         : null;
 
-    // Clamped so a hand-edited URL cannot ask for a 40,000 km "radius"
-    // and quietly turn the local card into the national one.
-    const radiusKm = Math.min(Math.max(Number(radius) || 50, 1), 500);
+    // The radius is an OPTIONAL FILTER, not a precondition - see the
+    // long note in nearbyController.js. Absent means "no cap": show the
+    // nearest mandi wherever it is, rather than an empty card.
+    //
+    // When a value IS given it is clamped, so a hand-edited URL cannot
+    // ask for a 40,000km "radius" and quietly turn the local card into
+    // the national one.
+    const hasRadius = radius !== undefined && radius !== null && String(radius).trim() !== "";
+    const parsedRadius = hasRadius ? Number(radius) : NaN;
+    const radiusKm = Number.isFinite(parsedRadius)
+      ? Math.min(Math.max(parsedRadius, 1), 500)
+      : null;
 
     // Run both lookups at the same time (they don't depend on each
     // other) - Promise.all() is faster than awaiting them one by one.
@@ -292,9 +301,22 @@ async function comparePrices(req, res) {
     const derivedState = origin ? findStateForCoordinates(origin) : null;
     const scopeStateName = (state && state.trim()) || derivedState?.state || null;
 
-    const nearYouMandis = origin
-      ? allMandis.filter((m) => m.distanceKm != null && m.distanceKm <= radiusKm)
+    // Everything we could place on the map, nearest first.
+    const locatable = origin
+      ? allMandis
+          .filter((m) => m.distanceKm != null)
+          .sort((a, b) => a.distanceKm - b.distanceKm)
       : [];
+
+    const insideRadius =
+      radiusKm == null ? locatable : locatable.filter((m) => m.distanceKm <= radiusKm);
+
+    // A radius that matches nothing falls back to the nearest overall,
+    // and says so, rather than showing an empty card.
+    const nearYouRadiusEmpty =
+      radiusKm != null && insideRadius.length === 0 && locatable.length > 0;
+
+    const nearYouMandis = nearYouRadiusEmpty ? locatable : insideRadius;
 
     const stateMandis = scopeStateName
       ? allMandis.filter(
@@ -305,6 +327,7 @@ async function comparePrices(req, res) {
     const scopes = {
       nearYou: buildScope(nearYouMandis, {
         radiusKm,
+        radiusFilterEmpty: nearYouRadiusEmpty,
         hasLocation: Boolean(origin),
         // How many mandis we could NOT place on the map. Without this a
         // farmer cannot tell "nothing is near you" from "we could not

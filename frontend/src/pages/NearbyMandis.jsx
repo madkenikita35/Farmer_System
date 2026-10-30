@@ -41,6 +41,7 @@ import {
   TipIcon,
   SellIcon,
   BuyIcon,
+  WarnIcon,
 } from "../components/icons";
 
 function NearbyMandis() {
@@ -48,6 +49,16 @@ function NearbyMandis() {
 
   const [crop, setCrop] = useState("");
   const [radius, setRadius] = useState(150);
+
+  // Has the farmer actually CHOSEN a radius, or is 150 just what the
+  // dropdown happened to be showing?
+  //
+  // The difference matters. Sending 150 on the first search means a
+  // location with nothing inside that ring returns an empty list, even
+  // though a nearest mandi obviously exists further out. So the first
+  // search sends no radius at all and gets the nearest wherever it is;
+  // the radius becomes a filter only once someone touches the control.
+  const [radiusChosen, setRadiusChosen] = useState(false);
 
   // "sell" (the default) or "buy". A farmer selling wants the highest
   // price; a trader buying wants the lowest. It changes which two
@@ -58,7 +69,13 @@ function NearbyMandis() {
   // "Find" on. Kept so the main search can use it directly - see
   // handleSearch below for why that matters.
   const [locationDraft, setLocationDraft] = useState(null);
-  const [sortBy, setSortBy] = useState("price");
+  // "price" or "distance". Null until the farmer picks one, so the
+  // server can choose sensibly: nearest-first when there is no radius,
+  // best-paying-first when there is. Sending "price" unconditionally -
+  // as this used to - meant an uncapped search returned the national
+  // maximum as the top "nearby" result, 900km away.
+  const [sortBy, setSortBy] = useState(null);
+
 
   // Coordinates, however the farmer gave them to us. Everything
   // downstream - the search, the distances - uses only this.
@@ -70,6 +87,12 @@ function NearbyMandis() {
   const [resolvedLocation, setResolvedLocation] = useState(null);
 
   const [result, setResult] = useState(null);
+
+  // What the sort control shows, and what the table sorts by, when
+  // nobody has chosen: follow whatever the server actually did.
+  // Declared here, AFTER `result`, because reading a const before its
+  // declaration is a ReferenceError, not undefined.
+  const effectiveSort = sortBy || result?.sortBy || "price";
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -183,8 +206,25 @@ function NearbyMandis() {
         lat: point?.lat,
         lon: point?.lon,
         place: point ? undefined : typedPlace,
-        radius,
-        sortBy,
+        // Three cases, and `undefined` cannot express all of them:
+        //   overrides.radius === null  -> explicitly NO cap
+        //   overrides.radius is a number -> use it
+        //   nothing passed -> whatever the control says, if it has been
+        //                     touched (see radiusChosen above)
+        //
+        // The sentinel is needed because setRadiusChosen() is async: at
+        // the moment this runs, the flag still holds its OLD value, so
+        // reading it here would send the radius the farmer just cleared.
+        radius:
+          overrides.radius === null
+            ? undefined
+            : overrides.radius !== undefined
+            ? overrides.radius
+            : radiusChosen
+            ? radius
+            : undefined,
+        // Omitted until chosen, so the server can default by context.
+        sortBy: sortBy || undefined,
       });
       setResult(response.data);
     } catch (error) {
@@ -266,10 +306,34 @@ function NearbyMandis() {
               {t("nm_search_within")}
             </label>
             <select
-              value={radius}
-              onChange={(e) => setRadius(Number(e.target.value))}
+              value={radiusChosen ? radius : ""}
+              onChange={(e) => {
+                const value = e.target.value;
+
+                if (value === "") {
+                  // Back to "any distance" - drop the filter and, if
+                  // there is already a result on screen, re-run without
+                  // it. The location is remembered, so nobody has to
+                  // type it again.
+                  setRadiusChosen(false);
+                  if (result && crop.trim()) handleSearch(null, { radius: null });
+                  return;
+                }
+
+                const km = Number(value);
+                setRadius(km);
+                setRadiusChosen(true);
+
+                // Re-filter immediately using the location we already
+                // have, rather than waiting for another button press.
+                if (result && crop.trim()) handleSearch(null, { radius: km });
+              }}
               className="w-full border border-ink-200 rounded-md px-3.5 py-2.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
             >
+              {/* The default. Not a distance at all - it means "do not
+                  cap the search", which is what makes the nearest mandi
+                  findable however far away it is. */}
+              <option value="">{t("nm_any_distance")}</option>
               <option value={50}>50 km</option>
               <option value={100}>100 km</option>
               <option value={150}>150 km</option>
@@ -312,20 +376,31 @@ function NearbyMandis() {
         </div>
       )}
 
+      {/* ---- The radius matched nothing, so we widened it ---- */}
+      {/* Said out loud rather than silently showing a mandi 350km away
+          under a heading that claims "within 150 km". */}
+      {result?.radiusFilterEmpty && (
+        <div className="flex items-start gap-2 bg-warning-50 border border-warning-200
+          text-warning-900 rounded-md px-4 py-3 mb-4 text-sm">
+          <WarnIcon size={ICON_MD} strokeWidth={ICON_STROKE} className="shrink-0 mt-0.5" />
+          <span>{t("nm_radius_empty", { radius: result.requestedRadiusKm })}</span>
+        </div>
+      )}
+
       {/* ---- The three scopes, buy or sell ---- */}
       {(result || isLoading) && (
         <BuySellScopeCards
           scopes={result?.scopes}
           mode={mode}
           isLoading={isLoading}
-          radiusKm={radius}
+          radiusKm={result?.radiusKm ?? null}
         />
       )}
 
       {/* The full ranked table stays below - the cards answer "where
           should I go", the table is for reading the detail. */}
       {result && (
-        <NearbyResults result={result} sortBy={sortBy} onSortChange={setSortBy} />
+        <NearbyResults result={result} sortBy={effectiveSort} onSortChange={setSortBy} />
       )}
 
       {result && <DataFreshness source="agmarknet" className="mt-4" />}

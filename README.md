@@ -12,6 +12,19 @@ it even without help.
 
 ---
 
+> ### 📘 Looking for the full technical reference?
+>
+> **[DOCUMENTATION.md](DOCUMENTATION.md)** is the complete, up-to-date
+> guide for anyone joining the project: every folder and file, every
+> dependency, every API endpoint, every environment variable, the design
+> system, the 11-language setup, the Android build, caching and
+> performance numbers, deployment, and the traps that have actually
+> broken this app before.
+>
+> This README stays as the friendly overview of the product idea.
+
+---
+
 ## 🧠 The idea, in one paragraph
 
 This app gives a farmer **two things they can do**, and **two data

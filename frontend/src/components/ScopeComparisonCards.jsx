@@ -268,7 +268,13 @@ function ScopeComparisonCards({ scopes, isLoading, radiusKm, onRadiusChange, onU
               value={isCustomRadius ? "custom" : radiusKm}
               onChange={(e) => handlePresetChange(e.target.value)}
               className="border border-ink-200 rounded-md px-2.5 py-1.5 bg-card text-sm
-                focus:outline-none focus:ring-2 focus:ring-primary-500">{RADIUS_PRESETS.map((km) => (
+                focus:outline-none focus:ring-2 focus:ring-primary-500">
+              {/* The default: no distance cap, so the "Near You" card
+                  shows a nearest mandi even when it is further away
+                  than any preset. */}
+              <option value="">{t("nm_any_distance")}</option>
+
+              {RADIUS_PRESETS.map((km) => (
                 <option key={km} value={km}>{km} km
                 </option>
               ))}
@@ -307,7 +313,13 @@ function ScopeComparisonCards({ scopes, isLoading, radiusKm, onRadiusChange, onU
       <div className="grid gap-4 lg:grid-cols-3">
         <ScopeCard
           titleKey="scope_near_you"
-          subtitle={t("scope_near_you_sub", { radius: radiusKm })}
+          subtitle={
+            scopes?.nearYou?.radiusFilterEmpty
+              ? t("nm_radius_empty", { radius: scopes.nearYou.radiusKm })
+              : radiusKm == null
+              ? t("nm_any_distance")
+              : t("scope_near_you_sub", { radius: radiusKm })
+          }
           icon={LocationIcon}
           scope={nearYou}
           isLoading={isLoading}

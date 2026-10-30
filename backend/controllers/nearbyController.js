@@ -134,11 +134,21 @@ async function getNearbyMandis(req, res) {
       });
     }
 
-    // Keep the radius sensible whatever arrives in the URL.
-    const radiusKm = Math.min(
-      MAX_RADIUS_KM,
-      Math.max(1, Number(radius) || DEFAULT_RADIUS_KM)
-    );
+    // ---- Is there a radius at all? ----
+    //
+    // The radius is now an OPTIONAL FILTER, not a precondition. It used
+    // to default to 150km whether or not the farmer had asked for one,
+    // which meant a location with no mandi inside that ring returned an
+    // empty list - even though a nearest mandi obviously existed, just
+    // further away. "Where is my nearest mandi" was answered with
+    // "nowhere", which is never true.
+    //
+    // An absent, empty or unparseable radius now means "no cap".
+    const hasRadius = radius !== undefined && radius !== null && String(radius).trim() !== "";
+    const parsedRadius = hasRadius ? Number(radius) : NaN;
+    const radiusKm = Number.isFinite(parsedRadius)
+      ? Math.min(MAX_RADIUS_KM, Math.max(1, parsedRadius))
+      : null; // null = show the nearest wherever it is
 
     // ---- STEP 2: get the prices for this crop ----
     // Both sources at once, as everywhere else in the app.
@@ -190,15 +200,45 @@ async function getNearbyMandis(req, res) {
       });
     }
 
-    // ---- STEP 4: keep only what's within reach ----
-    const withinRadius = withDistance.filter((m) => m.distanceKm <= radiusKm);
+    // ---- STEP 4: apply the radius, IF one was asked for ----
+    //
+    // Three outcomes:
+    //   no radius        -> every mandi, sorted by distance below
+    //   radius, matches  -> just those inside it
+    //   radius, no match -> fall back to everything, and SAY SO, rather
+    //                       than showing a farmer an empty screen when
+    //                       a nearest mandi plainly exists
+    const insideRadius =
+      radiusKm == null ? withDistance : withDistance.filter((m) => m.distanceKm <= radiusKm);
+
+    const radiusFilterEmpty = radiusKm != null && insideRadius.length === 0 && withDistance.length > 0;
+
+    const withinRadius = radiusFilterEmpty ? withDistance : insideRadius;
 
     // ---- STEP 5: order them ----
     // Highest price first by default - that's the question being asked.
     // On a tie, the closer mandi wins, because between two mandis paying
     // the same the nearer one is plainly better.
+    // WITHOUT a radius, distance wins by default.
+    //
+    // "Highest price first" is the right answer inside a radius - the
+    // farmer has already said how far they will drive, so the question
+    // becomes which of those pays best. With no cap that logic breaks:
+    // sorting 376 mandis nationwide by price just returns the national
+    // maximum, which from Nagpur was a Tamil Nadu mandi 917km away
+    // presented as the top "nearby" result.
+    //
+    // An explicit ?sortBy= still wins; this only changes what happens
+    // when nobody has said.
+    // Distance-first in two cases: no radius at all, and a radius that
+    // matched nothing. The second matters because the page then says
+    // "showing nearest overall instead" - and it has to actually BE the
+    // nearest, not the national top price 900km away.
+    const noUsefulRadius = radiusKm == null || radiusFilterEmpty;
+    const effectiveSort = sortBy || (noUsefulRadius ? "distance" : "price");
+
     const sorted = [...withinRadius].sort((a, b) => {
-      if (sortBy === "distance") {
+      if (effectiveSort === "distance") {
         return a.distanceKm - b.distanceKm || b.modalPrice - a.modalPrice;
       }
       return b.modalPrice - a.modalPrice || a.distanceKm - b.distanceKm;
@@ -307,7 +347,7 @@ async function getNearbyMandis(req, res) {
     };
 
     const scopes = {
-      nearYou: buildScope(ranked, { radiusKm }),
+      nearYou: buildScope(ranked, { radiusKm, radiusFilterEmpty }),
       state: buildScope(stateRanked, {
         stateName: scopeStateName,
         // How far the nearest district centre was. A big number means
@@ -332,14 +372,24 @@ async function getNearbyMandis(req, res) {
         label: origin.label,
         source: origin.source, // "gps" | "district-list" | "openstreetmap"
       },
+      // null when no cap was applied, so the UI can say "nearest
+      // overall" instead of inventing a radius it never used.
       radiusKm,
-      sortBy: sortBy === "distance" ? "distance" : "price",
+
+      // True when a radius WAS given, matched nothing, and we fell back
+      // to the nearest overall. The page shows
+      // "No mandis within X km - showing nearest overall instead".
+      radiusFilterEmpty,
+      requestedRadiusKm: radiusKm,
+
+      sortBy: effectiveSort === "distance" ? "distance" : "price",
       mandis: sorted,
       totalFound: sorted.length,
       // Honesty counters, shown on screen so an empty list is explainable
       // rather than just mysterious.
       totalPricedMandis: withDistance.length,
-      outsideRadius: withDistance.length - withinRadius.length,
+      outsideRadius:
+        radiusKm == null ? 0 : withDistance.length - insideRadius.length,
       couldNotLocate,
       bestPaying,
       nearest,
